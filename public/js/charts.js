@@ -1,7 +1,7 @@
 // Small SVG chart helpers. Hovering any point shows its value (handled in app.js via data-tip).
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-export const PALETTE = ['#E5383B', '#E8B465', '#4EA8FF', '#3DDC97', '#C084FC', '#FF9F43', '#2DD4BF', '#F472B6'];
+export const PALETTE = ['#FF2E93', '#00E5E8', '#FFE347', '#7B2FF7', '#FF7A1A', '#7CFF4F', '#3D7BFF', '#FFFFFF'];
 
 function niceTicks(lo, hi, count = 4) {
   if (lo === hi) { lo -= 10; hi += 10; }

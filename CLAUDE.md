@@ -1,12 +1,13 @@
 # buggybuilds.org — league commissioner playbook
 
-Nick runs a Wednesday bowling league at Kingstown Bowl (North Kingstown, RI) and manages it entirely by chatting with Claude. Claude is the admin: Nick sends scores (often a photo of the scoring screen), roster changes, nicknames, commentary and award picks; Claude edits the data files, checks them, and pushes to `main`. Cloudflare Workers Builds deploys `public/` automatically about a minute after each push.
+Nick runs Cereal Bowlers, a Wednesday bowling league at Kingstown Bowl (North Kingstown, RI) and manages it entirely by chatting with Claude. Claude is the admin: Nick sends scores (often a photo of the scoring screen), roster changes, nicknames, commentary and award picks; Claude edits the data files, checks them, and pushes to `main`. Cloudflare Workers Builds deploys `public/` automatically about a minute after each push.
 
 ## Files
 - `public/data/league.json` — the only real data. League settings, roster, events, announcements, power-ranking commentary, manual awards, custom records, photos.
 - `public/data/sample.json` — preview data: the real roster with made-up scores (`node scripts/make-sample.mjs` rebuilds it from the current roster). Shown only while `"sampleMode": true` in league.json. **Set `sampleMode` to `false` before the first real night (Oct 21, 2026)** unless Nick says otherwise.
 - `public/js/engine.js` — every stat is derived here from raw results. Never store computed stats in the data files.
-- `public/js/app.js`, `public/js/charts.js`, `public/css/site.css` — the site.
+- `public/js/app.js`, `public/js/charts.js`, `public/css/site.css` — the site (version 3, 90s bowling alley design, live since Oct 14 2026). Served at buggybuilds.org and cerealbowlers.org.
+- `public/v1/` and `public/v2/` — earlier designs kept viewable at /v1/ and /v2/, reading the same live data. The `version-1` branch is the exact saved copy of version 1. Don't change these unless Nick asks.
 - `scripts/validate.mjs` — run before every push. `scripts/test.mjs` — run after any engine change.
 
 ## Logging a night

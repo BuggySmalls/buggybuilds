@@ -234,14 +234,14 @@ pages.home = () => {
 
   return `
   <section class="hero">
-    <div class="hero-lane" aria-hidden="true"></div>
     <div class="hero-inner">
-      <div>
-        <div class="small" style="color:#F6E7CF;font-weight:600">${esc(S.season?.name || '')}</div>
-        <h1>${esc(L.name)}</h1>
-        <p class="where">${esc(L.weekday)}s at ${esc(L.venue)}, ${esc(L.town)}. ${S.active.length} active bowlers.</p>
+      <div class="hero-copy">
+        <span class="hero-season">★ ${esc(S.season?.name || '')} ★ ${S.active.length} bowlers ★</span>
+        <h1 class="shade">${esc(L.name)}</h1>
+        <p class="where">${esc(L.weekday)} nights at ${esc(L.venue)}, ${esc(L.town)}</p>
+        <div class="hero-art" aria-hidden="true">${pinsArt()}<span class="burst">STRIKE!</span></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px"><div class="board" id="countdown">${countdownHTML(next)}</div><a class="btn" style="align-self:flex-start;background:rgba(7,11,22,.8)" href="webcal://${location.host || 'buggybuilds.org'}/calendar.ics">Add league nights to my calendar</a></div>
+      <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://${location.host || 'buggybuilds.org'}/calendar.ics">★ Add league nights to my calendar</a></div>
     </div>
   </section>
 
@@ -313,6 +313,27 @@ pages.home = () => {
   `;
 };
 
+function pinsArt() {
+  const pin = (x, r = 0) => `<g transform="translate(${x} 0) rotate(${r} 30 150)"><path d="M30 8c10 0 13 9 11 20-2 9-6 13-5 21 1 10 13 21 13 41 0 18-8 30-19 30S11 108 11 90c0-20 12-31 13-41 1-8-3-12-5-21-2-11 1-20 11-20z" fill="#fff" stroke="#111" stroke-width="5"/><path d="M19 44h22M18 52h24" stroke="#FF2E93" stroke-width="5"/></g>`;
+  return `<svg viewBox="0 0 330 150" class="pins">${pin(20, -14)}${pin(80, -4)}${pin(140, 10)}${pin(200, 24)}<g><circle cx="282" cy="98" r="42" fill="#7B2FF7" stroke="#111" stroke-width="5"/><circle cx="270" cy="80" r="6" fill="#111"/><circle cx="288" cy="76" r="6" fill="#111"/><circle cx="282" cy="94" r="6" fill="#111"/><path d="M256 68c6-8 14-12 22-12" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".6"/></g><path d="M240 120c-20 4-40 2-60-6M246 136c-30 6-60 4-90-6" stroke="#00E5E8" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`;
+}
+function tickerHTML() {
+  const bits = [];
+  const n = S.nights.at(-1);
+  if (n) {
+    const w = n.rows[0];
+    bits.push(`WEEK ${weekNo(n)} WINNER: ${P(w.pid).name.toUpperCase()} ${w.series}`);
+    const hg = n.rows.flatMap(r => r.totals.map(t => ({ pid: r.pid, t }))).filter(x => x.t != null).sort((a, b) => b.t - a.t)[0];
+    if (hg) bits.push(`HIGH GAME: ${P(hg.pid).name.toUpperCase()} ${hg.t}`);
+    const pn = S.purse.nights.find(x => x.date === n.date); if (pn) bits.push(`PURSE: $${pn.pot} PAID OUT`);
+  }
+  const mw = matches(); if (mw[0]) bits.push(`MATCH OF THE WEEK: ${P(mw[0].a).name.toUpperCase()} VS ${P(mw[0].b).name.toUpperCase()}`);
+  const lead = seasonTable()[0]; if (lead) bits.push(`LEAGUE LEADER: ${P(lead.id).name.toUpperCase()} ${lead.points} PTS`);
+  if (S.next) bits.push(`NEXT UP: ${fmtDate(S.next.date, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()} · ${fmtTime(S.data.league.startTime)}`);
+  bits.push('BOWLING APPAREL MANDATORY', 'NO SOCKS ON THE LANES');
+  const run = bits.map(b => `<span>${esc(b)}</span>`).join('<i>★</i>');
+  return `<div class="ticker-track">${run}<i>★</i>${run}<i>★</i></div>`;
+}
 function countdownHTML(next) {
   const L = S.data.league;
   if (!next) return `<div class="board-label">Season schedule</div><div class="live" style="color:var(--muted)">Season complete</div>`;
@@ -321,7 +342,7 @@ function countdownHTML(next) {
   if (next.live) return `<div class="board-label">Tonight</div><div class="live">Bowling now</div>${when}`;
   const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
   const isFirst = !S.nights.some(n => n.date >= (S.data.league.seasons.at(-1)?.start || ''));
-  return `<div class="board-label">${isFirst ? 'Opening night' : 'Next league night'}</div>
+  return `<div class="board-label">${isFirst ? '&gt; OPENING NIGHT' : '&gt; NEXT LEAGUE NIGHT'}<span class="blink">_</span></div>
     <div class="count" aria-live="off"><div><b>${d}</b><span>days</span></div><div><b>${String(h).padStart(2, '0')}</b><span>hours</span></div><div><b>${String(m).padStart(2, '0')}</b><span>min</span></div><div><b>${String(s).padStart(2, '0')}</b><span>sec</span></div></div>${when}`;
 }
 
@@ -931,10 +952,13 @@ function route() {
   catch (e) { console.error(e); html = empty('This page hit a snag', 'Refresh to try again.'); }
   $('#app').innerHTML = html;
   const navKey = { player: 'players', night: 'schedule' }[key] || key;
-  document.querySelectorAll('.nav a').forEach(a => {
+  document.querySelectorAll('.nav a, .tabbar a, .sheet a').forEach(a => {
     const k = a.getAttribute('href').slice(2) || 'home';
-    if (k === navKey) { a.setAttribute('aria-current', 'page'); a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
+    if (k === navKey) { a.setAttribute('aria-current', 'page'); if (a.closest('.nav') && innerWidth > 720) a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
   });
+  const more = document.querySelector('.tabbar [data-more]');
+  if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'schedule'].includes(navKey));
+  document.body.classList.remove('sheet-open');
   const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
@@ -965,6 +989,7 @@ load().then(() => {
   const L = S.data.league;
   $('#logoName').textContent = L.name; $('#footLeague').textContent = `${L.name} · ${S.season?.name || ''}`;
   $('#sampleBar').hidden = !S.sample;
+  const tk = document.getElementById('ticker'); if (tk) tk.innerHTML = tickerHTML();
   const next = E.nextNight(S.data, new Date());
   if (next) $('#topNext').innerHTML = next.live ? '<b>Bowling now</b>' : `Next: <b>${fmtDate(next.date, { weekday: 'short', month: 'short', day: 'numeric' })}</b>`;
   lastPath = location.hash.split('?')[0];

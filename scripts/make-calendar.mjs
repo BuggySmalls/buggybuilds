@@ -23,7 +23,9 @@ export function buildCalendar() {
       `SUMMARY:${esc(`${L.name}: week ${i + 1}${champ ? ` (${monthName(d.slice(0, 7)).split(' ')[0]} championship night)` : ''}`)}`,
       `LOCATION:${esc(`${L.venue}, ${L.address || L.town}`)}`,
       `DESCRIPTION:${esc(`Drinks from ${t12(sh, sm)}, first ball at ${t12(bh, bm)}. Standings and stats: https://buggybuilds.org`)}`,
-      'BEGIN:VALARM', 'TRIGGER:-PT3H', 'ACTION:DISPLAY', `DESCRIPTION:${esc('Bowling tonight at ' + t12(bh, bm))}`, 'END:VALARM', 'END:VEVENT');
+      // day-of reminders: 9:00 AM and one hour before drinks
+      'BEGIN:VALARM', `TRIGGER:-PT${sh - 9}H${sm ? sm + 'M' : ''}`, 'ACTION:DISPLAY', `DESCRIPTION:${esc(`Bowling tonight: drinks ${t12(sh, sm)}, first ball ${t12(bh, bm)} at ${L.venue}`)}`, 'END:VALARM',
+      'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', `DESCRIPTION:${esc(`Bowling in an hour at ${L.venue}`)}`, 'END:VALARM', 'END:VEVENT');
   });
   lines.push('END:VCALENDAR');
   writeFileSync(new URL('../public/calendar.ics', import.meta.url), lines.join('\r\n') + '\r\n');

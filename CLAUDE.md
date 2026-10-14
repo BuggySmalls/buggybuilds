@@ -13,8 +13,8 @@ Nick runs a Wednesday bowling league at Kingstown Bowl (North Kingstown, RI) and
 Add (or update) one entry in `events`, keyed by date:
 ```json
 { "date": "2026-10-21", "status": "completed",
-  "scores": { "nick": [182, 201, 167], "adam": [145, 160, null] },
-  "frames": { "nick": ["X 7/ 81 9- X X 54 6/ X X8/", "…", "…"] },
+  "scores": { "buggy": [182, 201, 167], "adam": [145, 160, null] },
+  "frames": { "buggy": ["X 7/ 81 9- X X 54 6/ X X8/", "…", "…"] },
   "note": "optional one-line note shown on the results page" }
 ```
 - `scores`: up to 3 games per bowler, `null` for a missed game. Leave out anyone who didn't bowl.

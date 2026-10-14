@@ -16,9 +16,14 @@ SUMMARY:League Night: week 1
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -30,9 +35,14 @@ SUMMARY:League Night: week 2 (October championship night)
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -44,9 +54,14 @@ SUMMARY:League Night: week 3
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -58,9 +73,14 @@ SUMMARY:League Night: week 4
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -72,9 +92,14 @@ SUMMARY:League Night: week 5
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -86,9 +111,14 @@ SUMMARY:League Night: week 6 (November championship night)
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -100,9 +130,14 @@ SUMMARY:League Night: week 7
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -114,9 +149,14 @@ SUMMARY:League Night: week 8
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -128,9 +168,14 @@ SUMMARY:League Night: week 9
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -142,9 +187,14 @@ SUMMARY:League Night: week 10
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -156,9 +206,14 @@ SUMMARY:League Night: week 11 (December championship night)
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -170,9 +225,14 @@ SUMMARY:League Night: week 12
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -184,9 +244,14 @@ SUMMARY:League Night: week 13
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -198,9 +263,14 @@ SUMMARY:League Night: week 14
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -212,9 +282,14 @@ SUMMARY:League Night: week 15 (January championship night)
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
@@ -226,9 +301,14 @@ SUMMARY:League Night: week 16 (February championship night)
 LOCATION:Kingstown Bowl\, 6125 Post Road\, North Kingstown\, RI 02852
 DESCRIPTION:Drinks from 6:30 PM\, first ball at 7:15 PM. Standings and stats: https://buggybuilds.org
 BEGIN:VALARM
-TRIGGER:-PT3H
+TRIGGER:-PT9H30M
 ACTION:DISPLAY
-DESCRIPTION:Bowling tonight at 7:15 PM
+DESCRIPTION:Bowling tonight: drinks 6:30 PM\, first ball 7:15 PM at Kingstown Bowl
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Bowling in an hour at Kingstown Bowl
 END:VALARM
 END:VEVENT
 END:VCALENDAR

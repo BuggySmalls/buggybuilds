@@ -82,6 +82,14 @@
       "active": true
     },
     {
+      "id": "buggy",
+      "name": "Buggy",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
+      "active": true
+    },
+    {
       "id": "cam",
       "name": "Cam",
       "nickname": "",
@@ -148,14 +156,6 @@
     {
       "id": "n8",
       "name": "N8",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "nick",
-      "name": "Nick",
       "nickname": "",
       "hand": "",
       "joined": "2026-10-21",

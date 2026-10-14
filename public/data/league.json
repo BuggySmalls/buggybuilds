@@ -1,93 +1,190 @@
 {
+  "sampleMode": true,
   "league": {
     "name": "League Night",
-    "season": "Fall 2026",
+    "shortName": "LN",
+    "venue": "Kingstown Bowl",
+    "town": "North Kingstown, RI",
+    "weekday": "Wednesday",
+    "socialTime": "18:30",
+    "startTime": "19:15",
+    "timezone": "America/New_York",
+    "format": "individual",
+    "seasons": [
+      {
+        "name": "Fall 2026",
+        "start": "2026-10-21",
+        "end": null
+      }
+    ],
+    "skipDates": [],
     "handicap": {
       "basis": 220,
       "percent": 90
+    },
+    "championship": {
+      "method": "weekly finish, scratch series",
+      "points": [
+        20,
+        17,
+        15,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "minimum": 1
     }
   },
   "players": [
     {
       "id": "adam",
       "name": "Adam",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "anthony",
       "name": "Anthony",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "cam",
       "name": "Cam",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "chris",
       "name": "Chris",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "fontes",
       "name": "Fontes",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "james",
       "name": "James",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "jason",
       "name": "Jason",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "liam-b",
       "name": "Liam B.",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "liam-c",
       "name": "Liam C.",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "matt",
       "name": "Matt",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "n8",
       "name": "N8",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "nick",
       "name": "Nick",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "q",
       "name": "Q",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "rob",
       "name": "Rob",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "roy",
       "name": "Roy",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "ryan",
       "name": "Ryan",
+      "nickname": "",
+      "hand": "",
+      "joined": "2026-10-21",
       "active": true
     }
   ],
-  "weeks": []
+  "events": [],
+  "announcements": [
+    {
+      "date": "2026-10-14",
+      "title": "Opening night is Wednesday, October 21",
+      "body": "Drinks at 6:30, first ball at 7:15 at Kingstown Bowl in North Kingstown."
+    }
+  ],
+  "powerRankings": {},
+  "awards": {},
+  "customRecords": [],
+  "photos": []
 }

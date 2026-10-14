@@ -1,0 +1,975 @@
+{
+ "_about": "Fictional sample data for previewing the site. Turned off by setting sampleMode to false in league.json.",
+ "seasons": [
+  {
+   "name": "Sample season",
+   "start": "2026-09-02",
+   "end": "2026-10-14"
+  }
+ ],
+ "players": [
+  {
+   "id": "sample-ace",
+   "name": "Ace Delgado",
+   "nickname": "The Closer",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-bo",
+   "name": "Bo Kowalski",
+   "nickname": "Big Bo",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-cooper",
+   "name": "Cooper Hale",
+   "nickname": "",
+   "hand": "Left",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-dex",
+   "name": "Dex Moreau",
+   "nickname": "Lefty",
+   "hand": "Left",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-eddie",
+   "name": "Eddie Santos",
+   "nickname": "",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-frankie",
+   "name": "Frankie Russo",
+   "nickname": "Frankie Gutters",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-gus",
+   "name": "Gus Pereira",
+   "nickname": "",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-hank",
+   "name": "Hank Oduya",
+   "nickname": "Hammer",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-iggy",
+   "name": "Iggy Brandt",
+   "nickname": "",
+   "hand": "Left",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-jojo",
+   "name": "Jojo Whitfield",
+   "nickname": "Two-Hand Jojo",
+   "hand": "Two-handed",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-kip",
+   "name": "Kip Lindqvist",
+   "nickname": "",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  },
+  {
+   "id": "sample-lou",
+   "name": "Lou Castellano",
+   "nickname": "Pops",
+   "hand": "Right",
+   "joined": "2026-09-02",
+   "active": true,
+   "sample": true
+  }
+ ],
+ "events": [
+  {
+   "date": "2026-09-02",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     221,
+     123,
+     177
+    ],
+    "sample-bo": [
+     180,
+     150,
+     235
+    ],
+    "sample-cooper": [
+     186,
+     160,
+     170
+    ],
+    "sample-dex": [
+     197,
+     157,
+     188
+    ],
+    "sample-eddie": [
+     159,
+     126,
+     160
+    ],
+    "sample-frankie": [
+     117,
+     97,
+     137
+    ],
+    "sample-gus": [
+     140,
+     163,
+     181
+    ],
+    "sample-hank": [
+     167,
+     172,
+     132
+    ],
+    "sample-iggy": [
+     101,
+     127,
+     101
+    ],
+    "sample-jojo": [
+     170,
+     153,
+     175
+    ],
+    "sample-kip": [
+     170,
+     140,
+     182
+    ],
+    "sample-lou": [
+     202,
+     135,
+     167
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "X X 9/ X 9/ X X X 8- XX8",
+     "9- X 9G X 9- -6 9/ 9- X 7-",
+     "X X 81 72 X X 6/ X 8/ 8-"
+    ],
+    "sample-bo": [
+     "X 8/ X 8/ 9/ 9/ 9- 63 X X71",
+     "7/ 9/ 7/ 71 X 9- 9/ 7/ X 7-",
+     "X 9/ X X X X X 9/ 81 XX9"
+    ],
+    "sample-cooper": [
+     "9- X X 7- -8 S6/ X X X 9/9",
+     "X 8- 9/ S63 9/ 8- X X 9/ 8/6",
+     "9/ S71 7/ 9- 9/ 9/ X 9/ X 7/8"
+    ],
+    "sample-dex": [
+     "X X X 9/ 71 6/ 7/ X X 81",
+     "X 9/ 6/ S72 72 9/ S8- 9/ X 8/X",
+     "7- 7/ 7/ 8/ 9/ X X X 9- 8/X"
+    ],
+    "sample-eddie": [
+     "S8/ X 7/ X 61 9- 9- 71 9/ XX9",
+     "72 9- 62 72 7- X 72 X 8/ 7/9",
+     "7- X 9- X 8/ 9/ X 9/ 9/ 7/-"
+    ],
+    "sample-frankie": [
+     "61 52 8/ 9- X 6/ 9G 9- 81 9-",
+     "8- 71 52 8- 8/ 9- 81 S6- 5/ 61",
+     "8- 6/ 8/ 8/ 9/ X 54 63 81 62"
+    ],
+    "sample-gus": [
+     "X 9/ X 62 9- 71 9- 6/ X 81",
+     "8/ X 7/ 71 X X 61 X X 6-",
+     "9- 8/ 6- 81 X X X 8- X XX7"
+    ],
+    "sample-hank": [
+     "63 X X X X 71 9- 6/ 81 9-",
+     "X X X X 8- 71 71 X S6G 6/X",
+     "7- 9- 7/ -/ 7/ 7/ X 9G 7/ 7G"
+    ],
+    "sample-iggy": [
+     "8/ 7- 72 9/ S81 S7- 8- 71 8/ -8",
+     "6- 7/ X 7G 8- 9/ X 6- S61 6/X",
+     "8/ 72 S81 9- 8- 7- 52 8- -/ 81"
+    ],
+    "sample-jojo": [
+     "6/ 8/ X 7/ 7- 7/ -- X X X9G",
+     "9G X 9/ X 6- X 9/ 71 9/ X7-",
+     "9- 8/ 7- X 8/ X X 7/ 8/ 8/9"
+    ],
+    "sample-kip": [
+     "X 8/ 8- X X 8- 7/ X X 61",
+     "7/ 6/ X 7/ 8- 9/ 62 62 7/ 72",
+     "9- S81 8/ 6/ X X X 8/ 61 XX7"
+    ],
+    "sample-lou": [
+     "9/ X X 9G 9G X X X 7/ X9-",
+     "6/ S7- X S8- 9- 7/ X 9- 71 9/X",
+     "7- X X 8/ 8- 8/ X 8/ 8- 8/X"
+    ]
+   }
+  },
+  {
+   "date": "2026-09-09",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     211,
+     170,
+     165
+    ],
+    "sample-bo": [
+     154,
+     138,
+     162
+    ],
+    "sample-cooper": [
+     161,
+     145,
+     142
+    ],
+    "sample-dex": [
+     155,
+     154,
+     135
+    ],
+    "sample-gus": [
+     172,
+     125,
+     158
+    ],
+    "sample-hank": [
+     161,
+     169,
+     162
+    ],
+    "sample-iggy": [
+     187,
+     151,
+     134
+    ],
+    "sample-jojo": [
+     184,
+     170,
+     189
+    ],
+    "sample-kip": [
+     156,
+     144,
+     145
+    ],
+    "sample-lou": [
+     143,
+     168,
+     164
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "S8/ X 9/ X X 9/ 72 X X X72",
+     "X X 6/ X 81 7/ X 81 X 9G",
+     "X 7- X 71 X 9/ 7/ X 9- XXX"
+    ],
+    "sample-bo": [
+     "9/ 8G X 7/ 9G 9/ 7/ 63 7/ 9/9",
+     "6/ 9- 71 7/ 7/ 9/ 9- 9- 9- 8/X",
+     "8/ 9/ S8- 7- S8/ X X 7- X 9/9"
+    ],
+    "sample-cooper": [
+     "9- 9/ 9- X X X 81 S62 9/ -/X",
+     "7/ 8/ X 61 9- 63 8- 9/ 8/ X9-",
+     "8- 7/ X S7/ 8- X X 7- 9G 8-"
+    ],
+    "sample-dex": [
+     "71 6/ X X 9/ 81 9/ 63 X 71",
+     "X -7 7/ X 7/ 9/ 9- 9/ 9/ 62",
+     "9/ 81 9/ S81 9- 81 9/ S8G X 8/7"
+    ],
+    "sample-gus": [
+     "9/ X S6- 7/ 7/ 9- 9/ 7/ X X9-",
+     "9- 9G S81 6/ 9- X 8- X 72 7/6",
+     "-5 X X 6/ 9/ 62 X 6/ 6/ 9G"
+    ],
+    "sample-hank": [
+     "9/ X 81 81 7/ 8/ 9- 6/ 9/ 9/X",
+     "X 6/ S7G X 9- 7/ X 9G -/ XX9",
+     "72 9/ 9- 9/ 9G 9/ X 7/ 9/ X71"
+    ],
+    "sample-iggy": [
+     "X X X 9- 9/ 7/ G/ S8- 9/ XX7",
+     "71 72 8/ 8- S81 X X 6/ 8/ 6/9",
+     "9- X 62 5/ X 61 6- X 7- XX5"
+    ],
+    "sample-jojo": [
+     "X 8/ X 6/ X 9/ S7/ 9/ X 72",
+     "71 X 6/ X 62 7/ X 7/ 8/ 8/X",
+     "X X X 72 X X 81 9- X 9/9"
+    ],
+    "sample-kip": [
+     "X 9- 6/ 6/ X S71 9G X 6/ 7/X",
+     "72 X 81 X G/ 6/ 7/ 8- X 9-",
+     "X 6/ 61 X 8- X 9- X 9G 7/X"
+    ],
+    "sample-lou": [
+     "9/ 7- 9/ 9- 9/ 8- 81 7/ 8/ 8/X",
+     "X 9- 81 7/ 9- X 9/ 7/ 7/ XX9",
+     "X X 71 9G X 9/ 6/ S72 X 6/X"
+    ]
+   }
+  },
+  {
+   "date": "2026-09-16",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     172,
+     193,
+     133
+    ],
+    "sample-bo": [
+     135,
+     170,
+     147
+    ],
+    "sample-cooper": [
+     223,
+     165,
+     172
+    ],
+    "sample-dex": [
+     122,
+     177,
+     151
+    ],
+    "sample-eddie": [
+     120,
+     158,
+     172
+    ],
+    "sample-gus": [
+     103,
+     139,
+     146
+    ],
+    "sample-hank": [
+     137,
+     121,
+     128
+    ],
+    "sample-iggy": [
+     149,
+     113,
+     149
+    ],
+    "sample-jojo": [
+     139,
+     133,
+     177
+    ],
+    "sample-kip": [
+     188,
+     149,
+     129
+    ],
+    "sample-lou": [
+     137,
+     148,
+     163
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "X 9- X 8/ 9/ X 9/ 7/ X 9-",
+     "X X 9/ X 81 X X 9/ 9- X81",
+     "9/ 8/ G4 9- -4 X 9/ X 9G 9/X"
+    ],
+    "sample-bo": [
+     "8- 63 X 9- 71 X 9/ 7G 9/ 9/9",
+     "X 9- 8- 8- 6/ X X X 9- X9-",
+     "8- 9/ 9- X 81 X X 9/ 81 7-"
+    ],
+    "sample-cooper": [
+     "6/ 9- X X X X X X 9G X8-",
+     "X 9- X X 7/ 9- X 8- 9/ 6/X",
+     "9- -/ S7- 7/ 7/ 9/ X X 8/ 7/8"
+    ],
+    "sample-dex": [
+     "9- 9/ X 6- 8/ 8- 9- X 72 71",
+     "9- 8/ 8/ 9- 8/ X X 6/ 8/ X8-",
+     "X S81 X 6/ -/ 8/ X 72 9/ 81"
+    ],
+    "sample-eddie": [
+     "X 71 7/ X 7- 9- 63 72 6- X7-",
+     "7/ X 6/ 8/ 9/ X 7- 81 9- 9/9",
+     "81 9/ X X 9/ X 81 X 8/ 72"
+    ],
+    "sample-gus": [
+     "62 X 8- 8- -1 9- 7/ 7- 8- X81",
+     "9/ 6/ 8- 6/ 81 9- X 7- X -/7",
+     "S8- X 81 9- X X 6/ 9- 72 X71"
+    ],
+    "sample-hank": [
+     "X 9- S8- X 7- 6- X X 7- X7/",
+     "9/ 9/ 9- 8/ 8- 6/ -3 61 9- 8/9",
+     "8/ 9- 8- 7/ S81 X 7/ 9- 71 81"
+    ],
+    "sample-iggy": [
+     "X 81 61 7/ 6- 8G X X 7/ 9/8",
+     "S8- 6/ 61 72 8- X 54 9- X 72",
+     "8G 81 X 7- X 81 X X X 61"
+    ],
+    "sample-jojo": [
+     "8/ 81 9- 81 X 9/ 9- X 7/ 72",
+     "9/ 81 X 8- X 7/ S8- 8- 9- 7/7",
+     "71 9- X X 6/ 8- 9/ X X 9/9"
+    ],
+    "sample-kip": [
+     "S7/ X X S72 8/ 6/ 8/ X 9/ X9-",
+     "X X 5/ S63 7/ 81 81 X 8/ 61",
+     "9- 9- 6/ 62 S6G 6/ 9- 9- X X7-"
+    ],
+    "sample-lou": [
+     "61 S81 S7/ X 8- 6/ 9/ 9- 81 X9G",
+     "9/ 9/ X 8/ 81 61 7- 9/ 9- 8/X",
+     "6/ 8/ 8- 8/ 9/ X 9- 8/ 9/ 7/6"
+    ]
+   }
+  },
+  {
+   "date": "2026-09-23",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     184,
+     230,
+     129
+    ],
+    "sample-cooper": [
+     182,
+     166,
+     123
+    ],
+    "sample-dex": [
+     135,
+     166,
+     186
+    ],
+    "sample-eddie": [
+     177,
+     149,
+     174
+    ],
+    "sample-frankie": [
+     142,
+     102,
+     134
+    ],
+    "sample-gus": [
+     184,
+     134,
+     144
+    ],
+    "sample-hank": [
+     101,
+     137,
+     134
+    ],
+    "sample-iggy": [
+     145,
+     105,
+     97
+    ],
+    "sample-jojo": [
+     200,
+     179,
+     135
+    ],
+    "sample-kip": [
+     159,
+     156,
+     155
+    ],
+    "sample-lou": [
+     88,
+     113,
+     116
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "S7/ X 6/ S8- 8/ X 7/ 9/ X 7/9",
+     "X X 71 X 7/ 9/ X X X XX8",
+     "9- 9/ 6/ 7- 9- 71 7/ 8- X 7/7"
+    ],
+    "sample-cooper": [
+     "7/ 7/ X X X S61 9/ X S8- X9-",
+     "X X 9- S62 X X 9/ X X -1",
+     "X 9/ 72 81 X 71 8/ 6/ S72 -G"
+    ],
+    "sample-dex": [
+     "9/ 81 7/ X 63 9- 9G 8/ 8/ 7-",
+     "9- X X 71 9- 9- X X 6/ X6/",
+     "7/ X X 72 X X X 8/ 62 9G"
+    ],
+    "sample-eddie": [
+     "63 X 9- 63 X S7- 8/ X X XX7",
+     "6/ 9- S61 7/ 7/ 6/ 61 9- X X9/",
+     "9/ X X 6/ 81 7/ X 81 6/ 7/6"
+    ],
+    "sample-frankie": [
+     "8/ 6/ X 7- X G3 X 81 X 5/8",
+     "72 S71 X 9- 8G 6- 9/ 5G 6/ 61",
+     "6/ 8- X 7/ -8 S72 5- X 7/ 8/8"
+    ],
+    "sample-gus": [
+     "9/ X X 7/ 9- 81 X X 6/ 6/8",
+     "8/ 61 61 7/ 71 9/ 9/ 7/ 9/ 62",
+     "9/ X 9- S63 X 7/ 62 9G 8- XX6"
+    ],
+    "sample-hank": [
+     "X S8- 8- 9- 8/ 72 81 6- 8- 81",
+     "X 9- X X S8- -4 X 9- 7- 9/6",
+     "X S62 8/ 9- 6/ 8- 7/ 9/ 9- 7G"
+    ],
+    "sample-iggy": [
+     "X 7/ X 61 8/ X S7- 54 X 72",
+     "51 S63 X 9/ 8- 81 9- 8- 72 63",
+     "8- X 63 5/ 6- 81 X G1 9- 9G"
+    ],
+    "sample-jojo": [
+     "X X X 8/ X 8/ 9/ 61 X 7/X",
+     "9/ X S81 X 61 9/ X X 9/ X71",
+     "9/ 72 81 X 8/ 8/ 9- 9/ 8G 8-"
+    ],
+    "sample-kip": [
+     "X 81 7/ 7/ 8/ X 6/ 9- X 9G",
+     "9/ 72 -/ X X 8/ X 8- S62 71",
+     "7/ 62 X 9/ 9- 7/ 81 X 8/ 7/9"
+    ],
+    "sample-lou": [
+     "X 9G S63 7G S63 72 9/ -2 7- 7-",
+     "7/ 9/ S8- 81 9- 8G S62 S71 9/ 72",
+     "S81 9- 72 X 6/ G8 8- 9/ 6/ 81"
+    ]
+   },
+   "note": "Sample note: lanes 7 and 8 were oiled heavy tonight."
+  },
+  {
+   "date": "2026-09-30",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     202,
+     181,
+     172
+    ],
+    "sample-cooper": [
+     159,
+     146,
+     141
+    ],
+    "sample-dex": [
+     206,
+     185,
+     170
+    ],
+    "sample-eddie": [
+     146,
+     114,
+     146
+    ],
+    "sample-frankie": [
+     115,
+     127,
+     124
+    ],
+    "sample-gus": [
+     207,
+     170,
+     160
+    ],
+    "sample-hank": [
+     182,
+     131,
+     149
+    ],
+    "sample-iggy": [
+     161,
+     113,
+     null
+    ],
+    "sample-jojo": [
+     203,
+     124,
+     178
+    ],
+    "sample-kip": [
+     140,
+     130,
+     164
+    ],
+    "sample-lou": [
+     136,
+     155,
+     144
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "X 9/ 9/ 7/ X 7/ X 7/ 9/ XX7",
+     "X 7- 9/ X 9- 9/ X X 9/ X9/",
+     "X 9G X 9/ X S7G X 9/ X 8/X"
+    ],
+    "sample-cooper": [
+     "9G 8/ 63 X 7/ 8G X 7/ X 7/9",
+     "9/ 9/ 71 8- X 9/ 9/ S8- 81 6/X",
+     "9- 9- 6/ X 9- 6/ X 8/ 7- X-1"
+    ],
+    "sample-dex": [
+     "X 9/ X 8/ X 8/ X 8/ X X8G",
+     "6- X S72 X X 7/ X X 7/ X7-",
+     "6/ X X X 71 7- S71 X X 62"
+    ],
+    "sample-eddie": [
+     "X S6- X X 6/ X 7- S71 8- 9/8",
+     "9- 9/ 7/ 9- 81 9/ 8- 81 X -3",
+     "81 -/ 9/ 9/ 6/ X 71 9- X 81"
+    ],
+    "sample-frankie": [
+     "8/ 81 63 X 63 72 7- 63 61 5/9",
+     "5/ X 63 8/ 72 72 9- X 9- 7-",
+     "6/ 61 72 72 X -6 72 9/ 8/ 8/6"
+    ],
+    "sample-gus": [
+     "9/ X X X 9- 6/ X 9/ X 6/X",
+     "81 9/ X 9- 9/ 9G X X 7/ X71",
+     "8/ X X 81 9G 6/ 9- S62 9G XXX"
+    ],
+    "sample-hank": [
+     "9- X X 9/ 9/ 7/ X 9G X 9/X",
+     "X 71 9- X 6- 8/ 7/ 9- 9/ -/9",
+     "X 81 G6 X 9/ X 72 9- 7/ X71"
+    ],
+    "sample-iggy": [
+     "X 8/ X 9- 8/ 81 9/ X 7/ 8G",
+     "S81 9- 8- X 81 5/ 8G 9- X 61",
+     null
+    ],
+    "sample-jojo": [
+     "X 9/ 63 X 7/ 9- 7/ X X XXX",
+     "7- X -2 6/ X 8/ 9/ 81 71 9-",
+     "X 7/ 9/ 6/ 8/ S63 X 8/ X 9/X"
+    ],
+    "sample-kip": [
+     "X X 62 9- 71 62 72 6/ 9/ 9/6",
+     "9- 7/ 9/ S62 6/ 81 X 5/ S62 7-",
+     "9- 6/ 9/ 6/ 72 X 81 X X 6/X"
+    ],
+    "sample-lou": [
+     "71 71 X 8/ 7/ 8/ 61 G/ X 6-",
+     "X 8/ 9/ S62 S8- 7/ X 6/ 6/ 9-",
+     "X 8/ 6/ S71 X 71 X S72 9- X7/"
+    ]
+   }
+  },
+  {
+   "date": "2026-10-07",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     199,
+     203,
+     158
+    ],
+    "sample-bo": [
+     139,
+     146,
+     165
+    ],
+    "sample-cooper": [
+     133,
+     122,
+     149
+    ],
+    "sample-dex": [
+     159,
+     147,
+     180
+    ],
+    "sample-frankie": [
+     104,
+     130,
+     121
+    ],
+    "sample-gus": [
+     144,
+     143,
+     179
+    ],
+    "sample-hank": [
+     117,
+     126,
+     141
+    ],
+    "sample-iggy": [
+     138,
+     131,
+     147
+    ],
+    "sample-jojo": [
+     151,
+     168,
+     167
+    ],
+    "sample-kip": [
+     166,
+     109,
+     124
+    ],
+    "sample-lou": [
+     155,
+     157,
+     147
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "8/ X X 8- X X X X 9- 62",
+     "X 9/ 9/ X 9- X X X 8/ 9/9",
+     "X X 7/ 9G -3 9- 9/ 7- X X7/"
+    ],
+    "sample-bo": [
+     "9/ 61 81 S6- 7- 7/ 9/ X 7/ 7/8",
+     "8/ 7/ S71 9/ -/ 9- 8/ 9- 8/ X8-",
+     "7/ 9/ 9/ 8/ 9/ 9G X 8/ 7- 8/8"
+    ],
+    "sample-cooper": [
+     "81 9- 81 9- X 9/ 8/ 6/ 6/ 81",
+     "9- 9- 8/ 8/ X 9- -3 9/ 8- 9-",
+     "-5 72 X 63 7/ X 9/ 9- X 8/9"
+    ],
+    "sample-dex": [
+     "7/ X 81 X 9- 9- X 9- 7/ XX6",
+     "9- 9/ X 7/ 8/ 7- S6/ X 9- 71",
+     "7/ 7/ 7/ 6- 9- X X 7/ 8/ XXX"
+    ],
+    "sample-frankie": [
+     "72 8/ 54 72 7- 7/ 5/ 51 81 7/G",
+     "62 8/ S8- 7/ 9/ 6/ 7- 9- 7/ 9G",
+     "X 8/ 54 S63 8/ 72 6/ 81 8- 52"
+    ],
+    "sample-gus": [
+     "8/ -4 9/ X 9/ 8- 71 62 8/ XX8",
+     "X 7/ 81 9/ S81 X X S62 71 81",
+     "9/ X 8- X 9/ X 9G X X 6/9"
+    ],
+    "sample-hank": [
+     "72 81 6/ 7/ 7G 9/ X 6- 71 8-",
+     "S63 63 8/ 6/ 81 7/ X 9- 9- 71",
+     "X 6/ 7- 72 S71 X X 8/ 61 63"
+    ],
+    "sample-iggy": [
+     "71 X X 9/ -3 6/ 6/ 7/ S8- 81",
+     "62 72 9- 63 9/ X 6/ 9- 9- X63",
+     "X 63 6/ X 63 7/ 7/ 9- 9/ 8G"
+    ],
+    "sample-jojo": [
+     "X X 61 X 9/ 72 7/ S81 8G 6/X",
+     "X 61 X 9/ X 9/ 7/ 9- X 8/9",
+     "9/ 81 X 81 9/ X 8/ X X 62"
+    ],
+    "sample-kip": [
+     "81 8- 9- 9- 6/ 7/ X X X 7/7",
+     "6/ 72 8G 71 8- 9- 8- X 8- 9/6",
+     "S8- X 9- X 9/ 72 7/ S7- 72 63"
+    ],
+    "sample-lou": [
+     "X -/ 7- 9- X X 6/ 9- 9- 7/9",
+     "7/ 7/ 9/ 9- 71 9- X X 8/ 9G",
+     "9/ X 7- 9- 6G X 9/ X 6/ 8/-"
+    ]
+   }
+  },
+  {
+   "date": "2026-10-14",
+   "status": "completed",
+   "scores": {
+    "sample-ace": [
+     180,
+     201,
+     187
+    ],
+    "sample-bo": [
+     116,
+     138,
+     165
+    ],
+    "sample-cooper": [
+     144,
+     137,
+     135
+    ],
+    "sample-dex": [
+     142,
+     155,
+     163
+    ],
+    "sample-eddie": [
+     161,
+     187,
+     185
+    ],
+    "sample-frankie": [
+     101,
+     105,
+     105
+    ],
+    "sample-gus": [
+     127,
+     147,
+     192
+    ],
+    "sample-iggy": [
+     105,
+     101,
+     85
+    ],
+    "sample-jojo": [
+     200,
+     167,
+     217
+    ],
+    "sample-kip": [
+     146,
+     137,
+     158
+    ],
+    "sample-lou": [
+     164,
+     135,
+     126
+    ]
+   },
+   "frames": {
+    "sample-ace": [
+     "X 9/ 9/ 9- 8/ 9- 7/ 9- X XX7",
+     "X 9/ 7- X 9/ 7/ -/ X X XXX",
+     "S7/ 9/ 9/ 7/ 7/ X 9/ X S72 XX7"
+    ],
+    "sample-bo": [
+     "8- 9G 9- 62 8/ 9- 81 X 71 X9G",
+     "X 9/ X 72 8- X 9- S81 S8- 9/7",
+     "9/ S61 X 9- X 6/ X 71 X X8/"
+    ],
+    "sample-cooper": [
+     "7/ 7- 7/ S63 X 8/ 9/ X 9- 71",
+     "9- X 8- 9/ 7- 72 81 8/ X 9/X",
+     "81 7/ 6/ X 9- 9/ 72 72 63 7/8"
+    ],
+    "sample-dex": [
+     "63 7/ 7/ X X 7- 8- 6/ 9- 81",
+     "9/ X 9/ 9- 6/ 8/ 71 X 71 X71",
+     "9/ 7/ 8/ X 8- X X -/ 8/ 62"
+    ],
+    "sample-eddie": [
+     "61 -/ 6/ 9- X 8/ X 8/ X 9/-",
+     "X X X 8/ 9- 9/ 9/ 8/ S71 X9-",
+     "9/ 7/ 6/ X X 8/ X 9/ X 61"
+    ],
+    "sample-frankie": [
+     "81 72 54 X 6- 8- G9 8- 8- 8/9",
+     "81 X 71 X 5- 5/ -2 9- 81 X8/",
+     "6/ S72 7G 8/ 6/ 61 71 8- 72 8G"
+    ],
+    "sample-gus": [
+     "S8- 71 63 X 6- 71 7/ X 9/ 6/6",
+     "X -/ X 9/ 6G X 9- 9- X 72",
+     "-/ X X 9G X 63 X X X 7/G"
+    ],
+    "sample-iggy": [
+     "S81 9- 6/ 62 7- 6- X S6- 9/ 9-",
+     "X 9/ S81 G5 8- 62 81 63 61 8G",
+     "S8- 7- 8- 7- 81 6/ -1 X 8- 72"
+    ],
+    "sample-jojo": [
+     "S8- X 9- X X X X 7/ X 8/7",
+     "X 9- 6/ 71 X 9/ 9/ 71 8/ XXX",
+     "X 9/ X X 62 8/ 9/ X X XX6"
+    ],
+    "sample-kip": [
+     "9/ X 7/ 6- 8- 7/ 9/ X 63 81",
+     "71 72 9/ S81 6/ X 7/ 7/ 8- 9/-",
+     "7/ X 81 7/ 7/ 7/ X 81 S62 X7/"
+    ],
+    "sample-lou": [
+     "X 7/ 6/ X 9/ X 6- X 9/ 8G",
+     "8- 9- 63 8- 9- 9/ X 7/ 8/ 8/6",
+     "71 8- 9- 9- 6/ S72 7/ X 9- X8-"
+    ]
+   }
+  }
+ ],
+ "announcements": [
+  {
+   "date": "2026-10-14",
+   "title": "Sample announcement: shirts are in",
+   "body": "Fictional example of a league announcement. Pick yours up at the front desk."
+  }
+ ],
+ "powerRankings": {
+  "2026-10-14": {
+   "comments": {
+    "sample-ace": "Three straight winning nights. Is anyone stopping this guy?",
+    "sample-bo": "A strong start followed by an absolutely catastrophic collapse.",
+    "sample-frankie": "The most overrated bowler in league history."
+   }
+  }
+ },
+ "awards": {},
+ "customRecords": [
+  {
+   "kind": "shame",
+   "title": "Wrong shoes, whole night",
+   "holder": "sample-kip",
+   "value": "Size 13 on a size 9 foot",
+   "date": "2026-09-23"
+  }
+ ]
+}

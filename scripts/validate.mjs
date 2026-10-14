@@ -1,0 +1,11 @@
+// Checks league data before publishing. Run: node scripts/validate.mjs
+import { readFileSync } from 'node:fs';
+import { validate } from '../public/js/engine.js';
+let bad = 0;
+for (const f of ['league.json', 'sample.json']) {
+  const d = JSON.parse(readFileSync(new URL(`../public/data/${f}`, import.meta.url)));
+  const errs = validate({ players: d.players, events: d.events });
+  if (errs.length) { bad += errs.length; console.log(`${f}:`); errs.forEach(e => console.log('  ✗ ' + e)); }
+  else console.log(`${f}: ok (${d.players.length} bowlers, ${d.events.length} nights)`);
+}
+process.exit(bad ? 1 : 0);

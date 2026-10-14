@@ -3,308 +3,52 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>League Night · Buggy Builds</title>
-<meta name="description" content="Season standings, averages, weekly results and head-to-head stats for our bowling league.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2314213A'/%3E%3Ccircle cx='12' cy='11' r='2' fill='%23fff'/%3E%3Ccircle cx='18' cy='10' r='2' fill='%23fff'/%3E%3Ccircle cx='16' cy='15' r='2' fill='%23fff'/%3E%3C/svg%3E">
+<title>League Night · Kingstown Bowl</title>
+<meta name="description" content="Standings, stats, monthly championships, power rankings and rivalries for our Wednesday bowling league at Kingstown Bowl.">
+<meta name="theme-color" content="#0B1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
-<style>
-/* Layout: a scoresheet — league header, tab strip, one dense working table per view */
-:root{
-  --bg:#EEF1F5; --surface:#FFFFFF; --ink:#14213A; --muted:#5A6880; --line:#D6DCE5;
-  --pin:#C8102E; --wood:#9A5F1C; --good-bg:#FCEFD9; --soft:#F5F7FA;
-  --display:"Bowlby One SC", "Arial Black", Impact, sans-serif;
-  --body:"Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --num:"Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
-  color-scheme:light;
-}
-@media (prefers-color-scheme: dark){:root{
-  --bg:#0D1424; --surface:#151F35; --ink:#E7ECF4; --muted:#93A0B6; --line:#26334F;
-  --pin:#FF5C70; --wood:#E3A75E; --good-bg:#3A2A14; --soft:#1A2540; color-scheme:dark}}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
-  padding-inline:max(16px, env(safe-area-inset-left));padding-block:calc(20px + env(safe-area-inset-top)) calc(48px + env(safe-area-inset-bottom))}
-.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
-.eyebrow{font-family:var(--num);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--muted)}
-h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6.5vw,48px);line-height:1;margin:4px 0 0;text-wrap:balance}
-h1 .dot{color:var(--pin)}
-h2{font-family:var(--num);font-weight:700;font-size:20px;letter-spacing:.02em;margin:0;text-transform:uppercase}
-.sub{color:var(--muted);font-size:14px;text-align:right}
-nav{display:flex;gap:4px;border-bottom:2px solid var(--line);overflow-x:auto;scrollbar-width:none}
-nav button{font:600 15px var(--num);letter-spacing:.06em;text-transform:uppercase;background:none;border:0;color:var(--muted);padding:10px 14px;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;white-space:nowrap}
-nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pin)}
-button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
-.leaders{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.leader{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
-.leader .v{font:700 34px/1 var(--num);font-variant-numeric:tabular-nums}
-.leader .who{font-weight:600}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.spread{justify-content:space-between}
-.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th{font:600 12px var(--num);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px;border-bottom:2px solid var(--line);white-space:nowrap}
-td{padding:8px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--num);font-size:17px;white-space:nowrap}
-th:first-child,td:first-child,th.l,td.l{text-align:left}
-td.name{font-family:var(--body);font-size:15px;font-weight:600;text-align:left}
-td.rank{color:var(--muted);width:2.5em}
-tr.click{cursor:pointer}
-tr.click:hover td{background:var(--soft)}
-.hi{background:var(--good-bg);color:var(--wood);font-weight:700;border-radius:3px;padding:1px 5px}
-.perfect{background:var(--pin);color:#fff;font-weight:700;border-radius:3px;padding:1px 5px}
-.chip{font:600 12px var(--num);letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);display:inline-block}
-.chip.top{border-color:var(--pin);color:var(--pin)}
-select{font:500 15px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0;max-width:100%}
-label{display:flex;flex-direction:column;gap:4px;font:600 12px var(--num);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.empty{padding:28px 12px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center}
-.empty strong{color:var(--ink);font-size:16px}
-.note{font-size:13px;color:var(--muted);margin:0}
-.detail td{background:var(--soft);white-space:normal}
-.spark{display:block;width:100%;max-width:520px;height:70px}
-.weekpill{display:flex;gap:6px;flex-wrap:wrap}
-.vs{align-self:flex-end;padding-bottom:10px}
-footer{color:var(--muted);font-size:13px;text-align:center;padding-top:8px}
-footer a{color:inherit}
-@media (prefers-reduced-motion: reduce){*{transition:none!important}}
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <div class="eyebrow" id="season">Bowling league</div>
-      <h1 id="leagueName">League Night<span class="dot">.</span></h1>
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <a class="logo" href="#/" aria-label="Home">
+        <svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="19" fill="#E5383B"/>
+          <path d="M20 6c2.6 0 3.6 2.4 3 5.2-.5 2.2-1.6 3.4-1.4 5.3.3 2.6 3.8 5.3 3.8 10.5 0 4.6-2.2 7-5.4 7s-5.4-2.4-5.4-7c0-5.2 3.5-7.9 3.8-10.5.2-1.9-.9-3.1-1.4-5.3-.6-2.8.4-5.2 3-5.2z" fill="#fff"/>
+          <path d="M16.7 15.6h6.6M16.2 18h7.6" stroke="#E5383B" stroke-width="1.4"/>
+        </svg>
+        <span><span class="logo-name" id="logoName">League Night</span><span class="logo-sub">Kingstown Bowl · Wednesdays</span></span>
+      </a>
+      <a class="top-next" id="topNext" href="#/schedule"></a>
     </div>
-    <div class="sub" id="meta">Loading scores…</div>
-  </header>
-
-  <nav role="tablist" aria-label="Views">
-    <button role="tab" aria-selected="true" data-view="standings">Standings</button>
-    <button role="tab" aria-selected="false" data-view="weeks">Weekly results</button>
-    <button role="tab" aria-selected="false" data-view="h2h">Head to head</button>
-    <button role="tab" aria-selected="false" data-view="bowlers">Bowlers</button>
-  </nav>
-
-  <main>
-    <section id="view-standings"></section>
-    <section id="view-weeks" hidden></section>
-    <section id="view-h2h" hidden></section>
-    <section id="view-bowlers" hidden></section>
-  </main>
-
-  <footer>Scores are updated after each league night. Part of <a href="/">buggybuilds.org</a>.</footer>
-</div>
-
-<script>
-const state = { data:null, error:null, view:'standings', openPlayer:null, selWeek:null, h2hA:null, h2hB:null };
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const VIEWS = ['standings','weeks','h2h','bowlers'];
-
-/* ---------- stats ---------- */
-function hdcpCfg(){ const h = state.data?.league?.handicap || {}; return { basis: h.basis ?? 220, pct: (h.percent ?? 90)/100 }; }
-
-function computeStats(){
-  const players = state.data?.players || [];
-  const active = players.filter(p=>p.active!==false);
-  const {basis, pct} = hdcpCfg();
-  const stats = {};
-  for (const p of players) stats[p.id] = {id:p.id,name:p.name,games:0,pins:0,hg:0,hs:0,over200:0,series:[],rSum:[0,0,0],rN:[0,0,0]};
-  const weeks = [...(state.data?.weeks || [])].sort((a,b)=>a.week-b.week);
-  for (const w of weeks){
-    for (const [pid, arr] of Object.entries(w.scores||{})){
-      const s = stats[pid]; if(!s) continue;
-      const g = (arr||[]).filter(Number.isFinite);
-      if(!g.length) continue;
-      (arr||[]).forEach((x,k)=>{ if(Number.isFinite(x) && k<3){ s.rSum[k]+=x; s.rN[k]++; } });
-      const ser = g.reduce((a,b)=>a+b,0);
-      s.games += g.length; s.pins += ser;
-      s.hg = Math.max(s.hg, ...g); s.over200 += g.filter(x=>x>=200).length;
-      if (g.length===3) s.hs = Math.max(s.hs, ser);
-      s.series.push({week:w.week, ser, n:g.length});
-    }
-  }
-  for (const s of Object.values(stats)){
-    s.avg = s.games ? Math.floor(s.pins/s.games) : null;
-    s.hdcp = s.avg==null ? null : Math.max(0, Math.floor((basis - s.avg)*pct));
-    s.rAvg = s.rSum.map((v,k)=> s.rN[k] ? Math.floor(v/s.rN[k]) : null);
-    s.weeks = s.series.length;
-  }
-  return {stats, active, weeks};
-}
-
-/* ---------- render ---------- */
-function render(){
-  const L = state.data?.league || {};
-  $('#leagueName').innerHTML = esc(L.name || 'League Night') + '<span class="dot">.</span>';
-  $('#season').textContent = L.season ? `Bowling league · ${L.season}` : 'Bowling league';
-  document.title = `${L.name || 'League Night'} · Buggy Builds`;
-  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected', b.dataset.view===state.view));
-  for (const v of VIEWS) $('#view-'+v).hidden = v!==state.view;
-
-  if (state.error){
-    $('#meta').textContent = '';
-    $('#view-'+state.view).innerHTML = `<div class="panel"><div class="empty"><strong>Scores didn't load</strong><span>Refresh the page to try again.</span></div></div>`;
-    return;
-  }
-  if (!state.data){ return; }
-  const {stats, active, weeks} = computeStats();
-  const last = weeks[weeks.length-1];
-  $('#meta').textContent = `${active.length} bowlers · ${weeks.length} week${weeks.length===1?'':'s'} bowled` + (last?.date ? ` · updated ${fmtDate(last.date)}` : '');
-  if (state.view==='standings') renderStandings(stats, active, weeks);
-  if (state.view==='weeks') renderWeeks(stats, weeks);
-  if (state.view==='h2h') renderH2H(stats, active, weeks);
-  if (state.view==='bowlers') renderBowlers(stats);
-}
-
-function scoreCell(v){
-  if(!Number.isFinite(v)) return '<span class="note">—</span>';
-  if(v===300) return `<span class="perfect">300</span>`;
-  if(v>=200) return `<span class="hi">${v}</span>`;
-  return String(v);
-}
-
-function renderStandings(stats, active, weeks){
-  const el = $('#view-standings');
-  const {basis, pct} = hdcpCfg();
-  const rows = active.map(p=>stats[p.id]).sort((a,b)=>(b.avg??-1)-(a.avg??-1) || b.pins-a.pins || a.name.localeCompare(b.name));
-  const withGames = rows.filter(r=>r.games);
-  const best = k => withGames.reduce((m,r)=> (r[k] > (m?.[k]??0) ? r : m), null);
-  const leader = (label, r, k) => `<div class="leader"><span class="eyebrow">${label}</span>
-     <span class="v">${r&&r[k]?r[k]:'—'}</span><span class="who">${r&&r[k]?esc(r.name):'Not bowled yet'}</span></div>`;
-  let html = `<div class="leaders">${leader('Top average', best('avg'), 'avg')}${leader('High game', best('hg'), 'hg')}${leader('High series', best('hs'), 'hs')}</div>`;
-  html += `<div class="panel"><div class="row spread"><h2>Season standings</h2><span class="note">${weeks.length?'Tap a bowler for week-by-week series':'Standings fill in after week 1'}</span></div>
-  <div class="tbl"><table><thead><tr><th>#</th><th class="l">Bowler</th><th>Avg</th><th>Games</th><th>Wks</th><th>G1 avg</th><th>G2 avg</th><th>G3 avg</th><th>Pins</th><th>High G</th><th>High S</th><th>200+</th><th title="${Math.round(pct*100)}% of ${basis} basis">Hdcp</th></tr></thead><tbody>`;
-  rows.forEach((r,i)=>{
-    html += `<tr class="click" data-player="${esc(r.id)}" tabindex="0"><td class="rank">${r.games?i+1:'–'}</td><td class="name">${esc(r.name)}</td>
-      <td><b>${r.avg??'—'}</b></td><td>${r.games}</td><td>${r.weeks}</td>${r.rAvg.map(v=>`<td>${v??'—'}</td>`).join('')}<td>${r.pins.toLocaleString()}</td><td>${r.hg?scoreCell(r.hg):'—'}</td><td>${r.hs||'—'}</td><td>${r.over200}</td><td>${r.hdcp??'—'}</td></tr>`;
-    if(state.openPlayer===r.id) html += `<tr class="detail"><td colspan="13">${playerDetail(r)}</td></tr>`;
-  });
-  html += `</tbody></table></div><p class="note">Averages are truncated, as on a league sheet. Handicap is ${Math.round(pct*100)}% of the difference between a ${basis} basis and the bowler's average. High series counts full three-game nights only.</p></div>`;
-  el.innerHTML = html;
-}
-
-function playerDetail(r){
-  if(!r.series.length) return '<span class="note">No games bowled yet.</span>';
-  const pts = r.series.filter(s=>s.n===3);
-  let svg='';
-  if(pts.length>=2){
-    const W=520,H=70,pad=8, vals=pts.map(p=>p.ser), lo=Math.min(...vals)-20, hi=Math.max(...vals)+20;
-    const x=i=>pad+i*(W-2*pad)/(pts.length-1), y=v=>H-pad-(v-lo)*(H-2*pad)/(hi-lo||1);
-    const d=pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.ser).toFixed(1)}`).join('');
-    const area=d+`L${x(pts.length-1).toFixed(1)},${H-pad}L${pad},${H-pad}Z`;
-    const li=pts.length-1;
-    svg=`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Series by week"><path d="${area}" fill="var(--pin)" fill-opacity=".1"/><path d="${d}" fill="none" stroke="var(--pin)" stroke-width="2"/><circle cx="${x(li)}" cy="${y(pts[li].ser)}" r="4" fill="var(--pin)"/></svg>`;
-  }
-  const list = r.series.map(s=>`<span class="chip">Wk ${s.week}: ${s.ser}${s.n<3?` (${s.n}g)`:''}</span>`).join(' ');
-  return `<div style="display:flex;flex-direction:column;gap:8px"><span class="eyebrow">${esc(r.name)} · series by week</span>${svg}<div class="weekpill">${list}</div></div>`;
-}
-
-function renderWeeks(stats, weeks){
-  const el = $('#view-weeks');
-  if(!weeks.length){
-    el.innerHTML = `<div class="panel"><div class="empty"><strong>No weeks bowled yet</strong><span>Each league night shows up here with every bowler's three games and series.</span></div></div>`;
-    return;
-  }
-  if(state.selWeek==null || !weeks.some(w=>w.week===state.selWeek)) state.selWeek = weeks[weeks.length-1].week;
-  const w = weeks.find(x=>x.week===state.selWeek);
-  const rows = Object.entries(w.scores||{}).map(([pid,arr])=>{
-    const g=[0,1,2].map(k=>Number.isFinite(arr?.[k])?arr[k]:null); const vals=g.filter(v=>v!=null);
-    return {pid, name: stats[pid]?.name || pid, g, ser: vals.reduce((a,b)=>a+b,0), n: vals.length};
-  }).filter(r=>r.n).sort((a,b)=>b.ser-a.ser);
-  let html = `<div class="panel"><div class="row spread"><h2>Week ${w.week}${w.date?` <span class="note" style="text-transform:none;font-family:var(--body)">· ${esc(fmtDate(w.date))}</span>`:''}</h2>
-    <label for="weekSel">Week<select id="weekSel">${weeks.map(x=>`<option value="${x.week}" ${x.week===w.week?'selected':''}>Week ${x.week}</option>`).join('')}</select></label></div>
-    <div class="tbl"><table><thead><tr><th>#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>Series</th><th>vs Avg</th></tr></thead><tbody>`;
-  rows.forEach((r,i)=>{
-    const avg = stats[r.pid]?.avg; const diff = avg!=null ? Math.round(r.ser - avg*r.n) : null;
-    html += `<tr><td class="rank">${i+1}</td><td class="name">${esc(r.name)} ${i===0?'<span class="chip top">Top series</span>':''}</td>
-      ${r.g.map(v=>`<td>${scoreCell(v)}</td>`).join('')}<td><b>${r.ser}</b></td><td>${diff==null?'—':(diff>0?'+':'')+diff}</td></tr>`;
-  });
-  html += `</tbody></table></div>${w.note?`<p class="note">${esc(w.note)}</p>`:''}<p class="note">"vs Avg" compares the night's pins to each bowler's season average times games bowled.</p></div>`;
-  el.innerHTML = html;
-}
-
-function renderH2H(stats, active, weeks){
-  const el = $('#view-h2h');
-  const ids = active.map(p=>p.id);
-  if(ids.length<2){ el.innerHTML = `<div class="panel"><div class="empty"><strong>Need two bowlers</strong></div></div>`; return; }
-  if(!ids.includes(state.h2hA)) state.h2hA = ids[0];
-  if(!ids.includes(state.h2hB) || state.h2hB===state.h2hA) state.h2hB = ids.find(i=>i!==state.h2hA);
-  const A=state.h2hA, B=state.h2hB;
-  const sorted = [...active].sort((a,b)=>a.name.localeCompare(b.name));
-  const opt = sel => sorted.map(p=>`<option value="${esc(p.id)}" ${p.id===sel?'selected':''}>${esc(p.name)}</option>`).join('');
-  let gw=0,gl=0,gt=0,sw=0,sl=0,st=0,margin=0,mN=0; const nights=[];
-  for(const w of weeks){
-    const a=w.scores?.[A], b=w.scores?.[B]; if(!a||!b) continue;
-    let aS=0,bS=0,n=0; const pairs=[null,null,null];
-    for(let k=0;k<3;k++){ if(Number.isFinite(a[k])&&Number.isFinite(b[k])){
-      n++; aS+=a[k]; bS+=b[k]; margin+=a[k]-b[k]; mN++;
-      if(a[k]>b[k]) gw++; else if(a[k]<b[k]) gl++; else gt++;
-      pairs[k]=[a[k],b[k]];
-    }}
-    if(!n) continue;
-    if(aS>bS) sw++; else if(aS<bS) sl++; else st++;
-    nights.push({week:w.week,pairs,aS,bS});
-  }
-  const nA=stats[A].name, nB=stats[B].name;
-  let html = `<div class="panel"><div class="row"><label for="h2hA" style="flex:1 1 150px">Bowler<select id="h2hA">${opt(A)}</select></label><span class="eyebrow vs">vs</span><label for="h2hB" style="flex:1 1 150px">Opponent<select id="h2hB">${opt(B)}</select></label></div></div>`;
-  if(!nights.length){
-    html += `<div class="panel" style="margin-top:12px"><div class="empty"><strong>They haven't met yet</strong><span>A matchup counts once ${esc(nA)} and ${esc(nB)} both bowl the same game on the same night.</span></div></div>`;
-    el.innerHTML = html; return;
-  }
-  const avgM = margin/mN;
-  html += `<div class="leaders" style="margin-top:12px">
-    <div class="leader"><span class="eyebrow">Game record (W-L${gt?'-T':''})</span><span class="v">${gw}-${gl}${gt?'-'+gt:''}</span><span class="who">${esc(nA)} ${gw>gl?'leads':gw<gl?'trails':'is even'}</span></div>
-    <div class="leader"><span class="eyebrow">Series record</span><span class="v">${sw}-${sl}${st?'-'+st:''}</span><span class="who">over ${nights.length} night${nights.length>1?'s':''}</span></div>
-    <div class="leader"><span class="eyebrow">Avg margin per game</span><span class="v">${avgM>0?'+':''}${avgM.toFixed(1)}</span><span class="who">${avgM===0?'Dead even':`${esc(avgM>0?nA:nB)} by ${Math.abs(avgM).toFixed(1)} pins`}</span></div>
-  </div>`;
-  html += `<div class="panel" style="margin-top:12px"><h2>Night by night</h2><div class="tbl"><table><thead><tr><th class="l">Week</th><th>G1</th><th>G2</th><th>G3</th><th>Series</th><th>Winner</th></tr></thead><tbody>`;
-  for(const n of [...nights].reverse()){
-    const cell = p => !p ? '—' : `${p[0]>p[1]?'<b>'+p[0]+'</b>':p[0]}–${p[1]>p[0]?'<b>'+p[1]+'</b>':p[1]}`;
-    html += `<tr><td>Wk ${n.week}</td>${n.pairs.map(p=>`<td>${cell(p)}</td>`).join('')}<td>${n.aS}–${n.bS}</td><td class="name" style="text-align:right">${n.aS===n.bS?'Tie':esc(n.aS>n.bS?nA:nB)}</td></tr>`;
-  }
-  html += `</tbody></table></div><p class="note">Scores read ${esc(nA)}–${esc(nB)}. Game 1 is compared to game 1, and so on, on the same night. Scratch, no handicap.</p></div>`;
-  el.innerHTML = html;
-}
-
-function renderBowlers(stats){
-  const el = $('#view-bowlers');
-  const list = [...(state.data?.players||[])].sort((a,b)=>(a.active===false)-(b.active===false) || a.name.localeCompare(b.name));
-  let html = `<div class="panel"><div class="row spread"><h2>Roster</h2><span class="note">${list.filter(p=>p.active!==false).length} active</span></div>
-    <div class="tbl"><table><thead><tr><th class="l">Bowler</th><th>Avg</th><th>Games</th><th>High G</th></tr></thead><tbody>`;
-  for(const p of list){
-    const s=stats[p.id];
-    html += `<tr><td class="name">${esc(p.name)} ${p.active===false?'<span class="chip">Inactive</span>':''}</td><td>${s?.avg??'—'}</td><td>${s?.games||0}</td><td>${s?.hg?scoreCell(s.hg):'—'}</td></tr>`;
-  }
-  html += `</tbody></table></div></div>`;
-  el.innerHTML = html;
-}
-
-function fmtDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return d; } }
-
-/* ---------- events ---------- */
-document.addEventListener('click', e=>{
-  const t=e.target.closest('button,tr.click'); if(!t) return;
-  if(t.dataset.view){ state.view=t.dataset.view; try{ history.replaceState(null,'','#'+state.view); }catch(_){} render(); return; }
-  if(t.dataset.player!==undefined){ state.openPlayer = state.openPlayer===t.dataset.player?null:t.dataset.player; render(); }
-});
-document.addEventListener('keydown', e=>{ const tr=e.target.closest?.('tr.click'); if(tr && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); tr.click(); }});
-document.addEventListener('change', e=>{
-  if(e.target.id==='weekSel'){ state.selWeek=+e.target.value; render(); }
-  if(e.target.id==='h2hA'){ state.h2hA=e.target.value; if(state.h2hB===state.h2hA) state.h2hB=null; render(); }
-  if(e.target.id==='h2hB'){ state.h2hB=e.target.value; if(state.h2hA===state.h2hB) state.h2hA=null; render(); }
-});
-
-/* ---------- boot ---------- */
-const hash = location.hash.slice(1); if (VIEWS.includes(hash)) state.view = hash;
-render();
-fetch('data/league.json', {cache:'no-store'})
-  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d=>{ state.data=d; render(); })
-  .catch(()=>{ state.error=true; render(); });
-</script>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/">Home</a>
+      <a href="#/standings">Standings</a>
+      <a href="#/players">Players</a>
+      <a href="#/stats">Statistics</a>
+      <a href="#/schedule">Schedule &amp; Results</a>
+      <a href="#/championships">Monthly Championships</a>
+      <a href="#/power">Power Rankings</a>
+      <a href="#/records">League Records</a>
+      <a href="#/rivalries">Rivalries</a>
+    </nav>
+  </div>
+  <div class="lane-band" aria-hidden="true"></div>
+</header>
+<div class="sample-bar" id="sampleBar" hidden><div class="wrap"><b>Preview mode.</b> Every bowler and score you see is fictional sample data. Real stats start after opening night.</div></div>
+<main class="wrap" id="app" tabindex="-1">
+  <div class="empty"><strong>Loading the scoresheet…</strong></div>
+</main>
+<footer class="site"><div class="wrap"><span id="footLeague">League Night</span><span>Kingstown Bowl, North Kingstown, RI · <a href="https://buggybuilds.org">buggybuilds.org</a></span></div></footer>
+<div class="tip" id="tip" hidden></div>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

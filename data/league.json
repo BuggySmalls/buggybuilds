@@ -1,0 +1,25 @@
+{
+  "league": {
+    "name": "League Night",
+    "season": "Fall 2026",
+    "handicap": { "basis": 220, "percent": 90 }
+  },
+  "players": [
+    { "id": "anthony", "name": "Anthony", "active": true },
+    { "id": "cam", "name": "Cam", "active": true },
+    { "id": "chris", "name": "Chris", "active": true },
+    { "id": "fontes", "name": "Fontes", "active": true },
+    { "id": "james", "name": "James", "active": true },
+    { "id": "jason", "name": "Jason", "active": true },
+    { "id": "liam-b", "name": "Liam B.", "active": true },
+    { "id": "liam-c", "name": "Liam C.", "active": true },
+    { "id": "matt", "name": "Matt", "active": true },
+    { "id": "n8", "name": "N8", "active": true },
+    { "id": "nick", "name": "Nick", "active": true },
+    { "id": "q", "name": "Q", "active": true },
+    { "id": "roy", "name": "Roy", "active": true },
+    { "id": "ryan", "name": "Ryan", "active": true },
+    { "id": "the-gazelle", "name": "The Gazelle", "active": true }
+  ],
+  "weeks": []
+}

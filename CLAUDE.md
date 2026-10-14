@@ -29,6 +29,7 @@ Add (or update) one entry in `events`, keyed by date:
 - Announcements: `announcements[] {date, title, body}`.
 - Power-ranking commentary: `powerRankings["<date>"].comments[<id>] = "text"`; optional `order: [ids]` to override the computed order. Keep it friendly ribbing.
 - Weekly award picks override the automatic ones: `awards["<date>"][<awardKey>] = "<id>"` or `{pid, why}`. Keys: botw, improved, strikeKing, spareMaster, clutch, upset, choke, inconsistent, worst, fraud.
+- Badges: 35 defined in `BADGES` (engine.js); all repeatable, count shown on the badge. Commissioner badges (bestDressed, fanFavorite, rookie) are given by hand: `badges[] {pid, key, date, note?}`. Give the same badge again by adding another entry.
 - Custom records: `customRecords[] {kind: "fame"|"shame", title, holder, value, date, detail?}`.
 - Photos for the home gallery: `photos[] {src: "img/gallery/…", caption, date}`.
 - Purse: `league.purse {confirmed, buyIn, payouts:[{key,label,share}]}`; keys highGame, highSeries, hdcpSeries, overAverage. Payouts are computed from results; anything paid by hand goes in `purseAdjustments[] {date, pid, amount, note}`. Rules are PROPOSED ($5, 50% high game / 50% high series) until Nick confirms — then set `confirmed: true`.

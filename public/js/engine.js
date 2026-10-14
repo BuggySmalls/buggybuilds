@@ -574,52 +574,133 @@ export function ordinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; re
  * Achievements
  * ------------------------------------------------------------------ */
 export const BADGES = [
-  { key: 'firstStrike', name: 'First Strike', desc: 'Rolled a strike', frames: true },
-  { key: 'turkey', name: 'Turkey', desc: 'Three strikes in a row', frames: true },
-  { key: 'fiveBagger', name: 'Five-Bagger', desc: 'Five strikes in a row', frames: true },
-  { key: 'club200', name: '200 Club', desc: 'Bowled a 200 game' },
-  { key: 'club250', name: '250 Club', desc: 'Bowled a 250 game' },
-  { key: 'perfect', name: 'Perfect Game', desc: 'Bowled a 300' },
-  { key: 'series600', name: '600 Series', desc: 'Three games totaling 600' },
-  { key: 'firstChamp', name: 'Champion', desc: 'Won a monthly championship' },
-  { key: 'threeChamp', name: 'Dynasty', desc: 'Three monthly championships' },
-  { key: 'tenWins', name: 'Ten Winning Nights', desc: 'Beat more of the field than not on 10 nights' },
-  { key: 'comeback', name: 'Comeback King', desc: 'Game 3 at least 50 pins better than game 1' },
-  { key: 'strikeMachine', name: 'Strike Machine', desc: '50 career strikes', frames: true },
-  { key: 'rivalry', name: 'Rivalry Dominator', desc: 'Won 10+ games against one bowler, at least 75% of them' },
-  { key: 'ironman', name: 'Iron Man', desc: 'Bowled every night of a completed month' },
-  { key: 'improved', name: 'Most Improved', desc: 'Won a weekly Most Improved award' },
+  // skill
+  { key: 'firstStrike', name: 'Strike!', desc: 'A game with at least one strike', frames: true, icon: 'X' },
+  { key: 'turkey', name: 'Turkey', desc: 'Three strikes in a row', frames: true, icon: 'XXX' },
+  { key: 'hambone', name: 'Hambone', desc: 'Four strikes in a row', frames: true, icon: '4X' },
+  { key: 'fiveBagger', name: 'Five-Bagger', desc: 'Five strikes in a row', frames: true, icon: '5X' },
+  { key: 'wildTurkey', name: 'Wild Turkey', desc: 'Three strikes in the 10th frame', frames: true, icon: 'XXX' },
+  { key: 'cleanGame', name: 'Clean Game', desc: 'A game with no open frames', frames: true, icon: '✓' },
+  { key: 'dutch200', name: 'Dutch 200', desc: 'Strike, spare, strike, spare… exactly 200', frames: true, icon: 'X/' },
+  { key: 'splitHappens', name: 'Split Happens', desc: 'Picked up a split', frames: true, icon: 'S' },
+  { key: 'club200', name: '200 Club', desc: 'Bowled a 200 game', icon: '200' },
+  { key: 'club250', name: '250 Club', desc: 'Bowled a 250 game', icon: '250' },
+  { key: 'perfect', name: 'Perfect Game', desc: 'Bowled a 300', icon: '300', gold: true },
+  { key: 'series600', name: '600 Series', desc: 'Three games totaling 600', icon: '600' },
+  { key: 'series700', name: '700 Series', desc: 'Three games totaling 700', icon: '700', gold: true },
+  { key: 'hatTrick', name: 'Hat Trick', desc: 'All three games above your average', icon: '3↑' },
+  { key: 'triplicate', name: 'Triplicate', desc: 'The same score all three games', icon: '=' },
+  { key: 'cleanSweep', name: 'Clean Sweep', desc: 'Top score in all three games of a night', icon: '1·1·1' },
+  { key: 'giantKiller', name: 'Giant Killer', desc: 'Outscored the league leader’s series', icon: 'GK' },
+  { key: 'comeback', name: 'Comeback King', desc: 'Game 3 at least 50 pins better than game 1', icon: '↗' },
+  { key: 'heater', name: 'Heater', desc: 'Three winning nights in a row', icon: '🔥' },
+  { key: 'tenWins', name: 'Ten Winning Nights', desc: 'Every 10 nights beating more of the field than not', icon: '10' },
+  { key: 'strikeMachine', name: 'Strike Machine', desc: 'Every 50 career strikes', frames: true, icon: '50X' },
+  { key: 'rivalry', name: 'Rivalry Dominator', desc: 'Won 10+ games against one bowler, 75% or more of them', icon: 'VS' },
+  // league
+  { key: 'firstChamp', name: 'Champion', desc: 'Won a monthly championship', icon: '★', gold: true },
+  { key: 'threeChamp', name: 'Dynasty', desc: 'Every three monthly championships', icon: '★★★', gold: true },
+  { key: 'improved', name: 'Most Improved', desc: 'Won a weekly Most Improved award', icon: '↑' },
+  // Cereal Bowlers originals
+  { key: 'completeBreakfast', name: 'Complete Breakfast', desc: 'Bowled every night of a month', icon: '🥣' },
+  { key: 'bowlOfWeek', name: 'Bowl of the Week', desc: 'Every three Bowler of the Week wins', icon: 'BOW' },
+  { key: 'milkRun', name: 'Milk Run', desc: 'Five weeks in a row improving your series', icon: '🥛' },
+  // hall of shame
+  { key: 'soggy', name: 'Soggy Cereal', desc: 'A game under 100', tone: 'shame', icon: '<100' },
+  { key: 'gutterBunny', name: 'Gutter Bunny', desc: 'Three or more gutter balls in one game', frames: true, tone: 'shame', icon: 'G' },
+  { key: 'heartbreaker', name: 'Heartbreaker', desc: 'Lost a game to someone by 1 pin', tone: 'shame', icon: '−1' },
+  { key: 'fade', name: 'The Fade', desc: 'Each game worse than the last, down 50+ pins', tone: 'shame', icon: '↘' },
+  { key: 'bridesmaid', name: 'Bridesmaid', desc: 'Every three 2nd-place nights', tone: 'shame', icon: '2nd' },
+  // commissioner picks
+  { key: 'bestDressed', name: 'Best Dressed', desc: 'Commissioner’s pick for best bowling apparel', manual: true, icon: '👕' },
+  { key: 'fanFavorite', name: 'Fan Favorite', desc: 'Commissioner’s pick', manual: true, icon: '♥' },
+  { key: 'rookie', name: 'Rookie of the Month', desc: 'Commissioner’s pick', manual: true, icon: 'R' },
 ];
+
+/**
+ * Badges can be earned again and again. Returns earned[pid][key] = { count, first, last }.
+ * Manual badges come from data.badges = [{ pid, key, date, note? }].
+ */
 export function achievements(data, nights, champs) {
   const agg = aggregate(data, nights);
   const earned = Object.fromEntries(data.players.map(p => [p.id, {}]));
-  const give = (pid, key, date) => { if (earned[pid] && !earned[pid][key]) earned[pid][key] = date || true; };
-  for (const n of nights) for (const r of n.rows) {
-    r.games.forEach(g => {
-      if (!g) return;
-      if (g.total >= 200) give(r.pid, 'club200', n.date);
-      if (g.total >= 250) give(r.pid, 'club250', n.date);
-      if (g.total === 300) give(r.pid, 'perfect', n.date);
-      if (g.frames) {
-        if (g.frames.strikes) give(r.pid, 'firstStrike', n.date);
-        if (g.frames.longestStrikeRun >= 3) give(r.pid, 'turkey', n.date);
-        if (g.frames.longestStrikeRun >= 5) give(r.pid, 'fiveBagger', n.date);
+  const give = (pid, key, date, times = 1) => {
+    if (!earned[pid] || times <= 0) return;
+    const e = earned[pid][key] ||= { count: 0, first: date || null, last: null };
+    e.count += times; if (date) { e.last = date; e.first ||= date; }
+  };
+  const strikeRuns = g => {           // lengths of every run of strikes across the game
+    const p = parseFrames(g.str); if (p.error) return [];
+    const runs = []; let run = 0;
+    for (const f of p.frames) for (const b of f.balls) if (b.full) { if (b.ch === 'X') run++; else { if (run) runs.push(run); run = 0; } }
+    if (run) runs.push(run);
+    return runs;
+  };
+  const leaderBefore = idx => { if (idx < 1) return null; const t = standings(data, nights.slice(0, idx), 'points').filter(r => r.games); return t[0]?.id || null; };
+  const seconds = {}, botw = {};
+  nights.forEach((n, idx) => {
+    const leader = leaderBefore(idx), leaderRow = leader && n.byPid[leader];
+    const top = [0, 1, 2].map(k => Math.max(...n.rows.map(r => r.totals[k] ?? -1)));
+    for (const r of n.rows) {
+      r.games.forEach((g, k) => {
+        if (!g) return;
+        if (g.total >= 200) give(r.pid, 'club200', n.date);
+        if (g.total >= 250) give(r.pid, 'club250', n.date);
+        if (g.total === 300) give(r.pid, 'perfect', n.date);
+        if (g.total < 100) give(r.pid, 'soggy', n.date);
+        if (n.rows.some(o => o !== r && o.totals[k] != null && o.totals[k] - g.total === 1)) give(r.pid, 'heartbreaker', n.date);
+        if (g.frames && g.str) {
+          const runs = strikeRuns(g);
+          if (g.frames.strikes) give(r.pid, 'firstStrike', n.date);
+          give(r.pid, 'turkey', n.date, runs.filter(x => x >= 3).length);
+          give(r.pid, 'hambone', n.date, runs.filter(x => x >= 4).length);
+          give(r.pid, 'fiveBagger', n.date, runs.filter(x => x >= 5).length);
+          const p = parseFrames(g.str);
+          if (p.frames[9].balls.length === 3 && p.frames[9].balls.every(b => b.ch === 'X')) give(r.pid, 'wildTurkey', n.date);
+          if (g.frames.open === 0) give(r.pid, 'cleanGame', n.date);
+          const mark = f => f.strike || f.balls[1]?.ch === '/';
+          if (g.total === 200 && p.frames.every(mark) && p.frames.every((f, i) => i === 0 || f.strike !== p.frames[i - 1].strike)) give(r.pid, 'dutch200', n.date);
+          give(r.pid, 'splitHappens', n.date, g.frames.splitsMade);
+          if (g.frames.gutters >= 3) give(r.pid, 'gutterBunny', n.date);
+        }
+      });
+      if (r.n === 3) {
+        if (r.series >= 600) give(r.pid, 'series600', n.date);
+        if (r.series >= 700) give(r.pid, 'series700', n.date);
+        if (r.totals[2] - r.totals[0] >= 50) give(r.pid, 'comeback', n.date);
+        if (r.avgIn != null && r.totals.every(t => t > r.avgIn)) give(r.pid, 'hatTrick', n.date);
+        if (r.totals[0] === r.totals[1] && r.totals[1] === r.totals[2]) give(r.pid, 'triplicate', n.date);
+        if (r.totals.every((t, k) => t === top[k]) && n.rows.length > 1) give(r.pid, 'cleanSweep', n.date);
+        if (r.totals[0] > r.totals[1] && r.totals[1] > r.totals[2] && r.totals[0] - r.totals[2] >= 50) give(r.pid, 'fade', n.date);
       }
-    });
-    if (r.n === 3 && r.series >= 600) give(r.pid, 'series600', n.date);
-    if (r.n === 3 && r.totals[2] - r.totals[0] >= 50) give(r.pid, 'comeback', n.date);
-  }
-  for (const s of Object.values(agg)) {
-    if (s.nightWins >= 10) give(s.id, 'tenWins');
-    if (s.strikes >= 50) give(s.id, 'strikeMachine');
+      if (leaderRow && r.pid !== leader && r.series > leaderRow.series && r.n >= leaderRow.n) give(r.pid, 'giantKiller', n.date);
+      if (r.place === 2) { seconds[r.pid] = (seconds[r.pid] || 0) + 1; if (seconds[r.pid] % 3 === 0) give(r.pid, 'bridesmaid', n.date); }
+    }
+    const aw = weeklyAwards(data, nights, idx);
+    const imp = aw.find(x => x.key === 'improved'); if (imp?.winner) give(imp.winner.pid, 'improved', n.date);
+    const b = aw.find(x => x.key === 'botw'); if (b?.winner) { botw[b.winner.pid] = (botw[b.winner.pid] || 0) + 1; if (botw[b.winner.pid] % 3 === 0) give(b.winner.pid, 'bowlOfWeek', n.date); }
+  });
+  for (const p of data.players) {
+    const s = agg[p.id];
+    if (s.nightWins >= 10) give(p.id, 'tenWins', null, Math.floor(s.nightWins / 10));
+    if (s.strikes >= 50) give(p.id, 'strikeMachine', null, Math.floor(s.strikes / 50));
+    // streaks across the nights they bowled
+    let heat = 0, up = 0, prev = null;
+    for (const n of nights) {
+      const r = n.byPid[p.id]; if (!r) continue;
+      if (r.w > r.l) { heat++; if (heat === 3) { give(p.id, 'heater', n.date); heat = 0; } } else heat = 0;
+      if (r.n === 3) { if (prev != null && r.series > prev) { up++; if (up === 5) { give(p.id, 'milkRun', n.date); up = 0; } } else up = 0; prev = r.series; }
+    }
   }
   if (champs) {
-    for (const [id, ms] of Object.entries(champs.counts)) { give(id, 'firstChamp', ms[0]); if (ms.length >= 3) give(id, 'threeChamp', ms[2]); }
-    for (const m of champs.months.filter(m => m.done)) for (const r of m.table) if (r.nights === m.nights.length && m.nights.length >= 3) give(r.id, 'ironman', m.key);
+    for (const [id, ms] of Object.entries(champs.counts)) {
+      ms.forEach((m, i) => { give(id, 'firstChamp', m); if ((i + 1) % 3 === 0) give(id, 'threeChamp', m); });
+    }
+    for (const m of champs.months.filter(m => m.done)) for (const r of m.table) if (r.nights === m.nights.length && m.nights.length >= 3) give(r.id, 'completeBreakfast', m.key);
   }
   const ids = data.players.map(p => p.id);
   for (const a of ids) for (const b of ids) if (a !== b) { const h = headToHead(nights, a, b); if (h.w >= 10 && h.w / h.games >= .75) give(a, 'rivalry'); }
-  nights.forEach((n, i) => { const imp = weeklyAwards(data, nights, i).find(x => x.key === 'improved'); if (imp?.winner) give(imp.winner.pid, 'improved', n.date); });
+  for (const m of data.badges || []) if (BADGES.some(b => b.key === m.key)) give(m.pid, m.key, m.date);
   return earned;
 }
 

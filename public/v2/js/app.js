@@ -1,4 +1,4 @@
-import * as E from '../../js/engine.js';
+import * as E from './engine.js';
 import { lineChart, barChart, PALETTE } from './charts.js';
 
 /* ================================================================== *

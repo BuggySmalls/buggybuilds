@@ -393,16 +393,17 @@ pages.players = () => {
   const agg = memo('aggAll', () => E.aggregate(S.data, S.nights));
   const list = [...S.active].sort((a, b) => (rank[a.id] || 999) - (rank[b.id] || 999) || a.name.localeCompare(b.name));
   const badgeCount = id => Object.keys(S.achievements[id] || {}).length;
-  const leaders = [...S.data.players].map(p => ({ id: p.id, n: badgeCount(p.id) })).filter(x => x.n).sort((a, b) => b.n - a.n).slice(0, 8);
+  const unlocks = id => Object.values(S.achievements[id] || {}).reduce((a, e) => a + e.count, 0);
+  const leaders = [...S.data.players].map(p => ({ id: p.id, n: unlocks(p.id), d: badgeCount(p.id) })).filter(x => x.n).sort((a, b) => b.n - a.n || b.d - a.d).slice(0, 8);
   return `
   <div><h1 class="page-title">Players</h1><p class="page-intro">${list.length} active bowlers, ranked by season points.</p></div>
   <div class="player-grid">
     ${list.map(p => { const s = agg[p.id]; return `<a class="pcard" href="#/player/${esc(p.id)}" style="--av-bg:${avColor(p.id)}">
-      <div class="pcard-top">${avatar(p, 52)}<div style="min-width:0"><div style="font:800 21px/1.05 var(--display)">${esc(p.name)}</div>${p.nickname ? `<div class="small muted">“${esc(p.nickname)}”</div>` : ''}<div class="small faint">${badgeCount(p.id)} badges</div></div>${rank[p.id] ? `<span class="pcard-rank">${rank[p.id]}</span>` : ''}</div>
+      <div class="pcard-top">${avatar(p, 52)}<div style="min-width:0"><div style="font:800 21px/1.05 var(--display)">${esc(p.name)}</div>${p.nickname ? `<div class="small muted">“${esc(p.nickname)}”</div>` : ''}<div class="small faint">${badgeCount(p.id)} badges · ${unlocks(p.id)} unlocks</div></div>${rank[p.id] ? `<span class="pcard-rank">${rank[p.id]}</span>` : ''}</div>
       <div class="pcard-stats"><div><b>${s.avg ?? '—'}</b><span>Average</span></div><div><b>${s.hg?.v ?? '—'}</b><span>High game</span></div><div><b>${s.games}</b><span>Games</span></div></div></a>`; }).join('')}
   </div>
-  <section class="panel"><div class="panel-head"><h2>Most badges unlocked</h2></div>
-    ${leaders.length ? `<div class="list">${leaders.map((l, i) => `<div class="list-row">${medal(i + 1)}<div class="grow">${who(l.id, { size: 30 })}</div><span class="val">${l.n}</span><span class="small muted">of ${E.BADGES.length}</span></div>`).join('')}</div>` : empty('No badges yet', 'Bowl a 200, string three strikes, or win a month.')}
+  <section class="panel"><div class="panel-head"><h2>Badge leaders</h2></div>
+    ${leaders.length ? `<div class="list">${leaders.map((l, i) => `<div class="list-row">${medal(i + 1)}<div class="grow">${who(l.id, { size: 30 })}</div><span class="small muted">${l.d} different</span><span class="val">${l.n}</span></div>`).join('')}</div><p class="small faint">Ranked by total unlocks. Badges can be earned again and again.</p>` : empty('No badges yet', 'Bowl a 200, string three strikes, or win a month.')}
   </section>`;
 };
 
@@ -467,8 +468,8 @@ pages.player = id => {
     <section class="panel"><div class="panel-head"><h2>Best and worst nights</h2></div>
       ${nightsSorted.length ? `<div class="list">${[...nightsSorted.slice(0, 3).map(n => ['Best', n]), ...nightsSorted.slice(-2).reverse().filter(n => !nightsSorted.slice(0, 3).includes(n)).map(n => ['Worst', n])].map(([t, n]) => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none"><span class="small ${t === 'Best' ? 'up' : 'down'}" style="width:44px">${t}</span><div class="grow small muted">${fmtDate(n.date, { weekday: 'short', month: 'short', day: 'numeric' })}</div>${frames(n.byPid[id].totals)}<span class="val">${n.byPid[id].series}</span></a>`).join('')}</div>` : empty('No full nights yet')}
     </section>
-    <section class="panel"><div class="panel-head"><h2>Badges</h2><span class="small muted">${Object.keys(earned).length} of ${E.BADGES.length}</span></div>
-      <div class="badges">${E.BADGES.map(b => badgeHTML(b, earned[b.key])).join('')}</div>
+    <section class="panel"><div class="panel-head"><h2>Badges</h2><span class="small muted">${Object.keys(earned).length} of ${E.BADGES.length} · ${Object.values(earned).reduce((a, e) => a + e.count, 0)} unlocks</span></div>
+      ${badgeGroups(earned)}
     </section>
   </div>
 
@@ -487,11 +488,22 @@ pages.player = id => {
   </section>`;
 };
 
+function badgeGroups(earned) {
+  const groups = [['Skill', b => !b.tone && !b.manual && !['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
+    ['Cereal Bowlers originals', b => ['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
+    ['Hall of Shame', b => b.tone === 'shame'], ['Commissioner’s picks', b => b.manual]];
+  return groups.map(([title, f]) => {
+    const list = E.BADGES.filter(f).sort((a, b) => (earned[b.key]?.count ? 1 : 0) - (earned[a.key]?.count ? 1 : 0));
+    return `<div class="badge-group"><h3>${title}</h3><div class="badges">${list.map(b => badgeHTML(b, earned[b.key])).join('')}</div></div>`;
+  }).join('');
+}
 function badgeHTML(b, got) {
-  const icon = { perfect: '300', club250: '250', club200: '200', series600: '600', turkey: 'XXX', fiveBagger: '5X', firstStrike: 'X', strikeMachine: '50X' }[b.key];
-  const svg = `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2l15 8v20l-15 8-15-8V10z" fill="${got ? (/champ|threeChamp/i.test(b.key) || b.key === 'perfect' ? 'var(--gold)' : 'var(--red)') : 'var(--line)'}"/><path d="M20 6l11.5 6v16L20 34 8.5 28V12z" fill="none" stroke="rgba(255,255,255,.35)"/>
-    ${icon ? `<text x="20" y="25" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="900" font-size="${icon.length > 2 ? 12 : 15}" fill="#fff">${icon}</text>` : `<path d="M20 11l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6-4.5-4.1 6-.7z" fill="#fff"/>`}</svg>`;
-  return `<div class="badge${got ? '' : ' locked'}" title="${esc(b.desc)}">${svg}<div style="min-width:0"><b>${esc(b.name)}</b><span>${got && got !== true ? (got.length === 7 ? E.monthName(got, true) : fmtDate(got)) : esc(b.desc)}</span></div></div>`;
+  const n = got?.count || 0;
+  const cls = b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
+  const when = got?.last ? (got.last.length === 7 ? E.monthName(got.last, true) : fmtDate(got.last)) : '';
+  return `<div class="badge ${cls}${n ? '' : ' locked'}" title="${esc(b.desc)}">
+    <div class="hex"><span class="hex-icon">${esc(b.icon || '')}</span><span class="hex-n">${n ? (n < 10 ? '×' + n : n) : '0'}</span></div>
+    <div style="min-width:0"><b>${esc(b.name)}</b><span>${esc(b.desc)}${n && when ? ` · last ${esc(when)}` : ''}</span></div></div>`;
 }
 
 /* ---------------- Statistics ---------------- */
@@ -693,7 +705,7 @@ pages.faq = () => {
     qa('How does the purse work?', `<p>${S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
     qa('Can I get league nights in my calendar?', `<p>Yes. Tap <b>Add league nights to my calendar</b> on the home or schedule page. Your phone subscribes to the schedule, so skipped weeks or time changes update on their own, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through.</p>`),
     qa('What counts as a record?', `<p>The Hall of Fame and Hall of Shame update themselves the moment a mark is beaten. The Leaderboards page keeps the top 25 games and series ever bowled, plus the full history of who held each record. Nick can also add custom awards.</p>`),
-    qa('How do badges work?', `<p>They unlock automatically. Examples: 200 Club, 250 Club, Perfect Game, 600 Series, Turkey (three strikes in a row), Champion, Comeback King (game 3 at least 50 pins better than game 1), Iron Man (every night of a month) and Rivalry Dominator. Every bowler's profile shows the ones they've earned and the ones still locked.</p>`),
+    qa('How do badges work?', `<p>Badges unlock automatically from the scores, and you can earn each one again and again. The number in the middle is how many times you've earned it. Hall of Shame badges show up in their own color. Best Dressed, Fan Favorite and Rookie of the Month are handed out by Nick.</p><p>A few to chase: Dutch 200 (strike, spare, strike, spare all game for exactly 200), Triplicate (the same score three games in a row), Clean Sweep (top score in all three games), and Giant Killer (outscore the league leader). And a few to avoid: Soggy Cereal (a game under 100) and Heartbreaker (losing by a single pin).</p>`),
   ])}`;
 };
 

@@ -84,5 +84,19 @@ eq(agg.ben.strikePct, null, 'no strike % without frames');
 const nn = E.nextNight({ league: { seasons: [{ start: '2026-10-21' }], startTime: '19:15', timezone: 'America/New_York' }, events: [] }, new Date('2026-10-14T19:00:00Z'));
 eq(nn.start.toISOString(), '2026-10-21T23:15:00.000Z', '7:15 PM EDT on Oct 21');
 
+// --- handicap months rank weekly finish on handicap series
+d = base();
+d.league.handicap = { basis: 220, percent: 90 };
+d.league.championship.handicapFrom = '2026-11';
+d.events.push({ date: '2026-10-28', status: 'completed', scores: { amy: [200, 200, 200], ben: [120, 120, 120] } });
+d.events.push({ date: '2026-11-04', status: 'completed', scores: { amy: [190, 190, 190], ben: [140, 140, 140] } });
+n = E.buildNights(d);
+eq([n[0].handicap, n[1].handicap], [false, true], 'October scratch, November handicap');
+eq([n[1].byPid.amy.hdcp, n[1].byPid.ben.hdcp], [18, 90], 'handicap = 90% of (220 - average going in)');
+eq([n[1].byPid.amy.hdcpSeries, n[1].byPid.ben.hdcpSeries], [624, 690], 'handicap series');
+eq([n[1].byPid.ben.points, n[1].byPid.amy.points], [10, 8], 'handicap winner takes the points');
+eq([n[1].byPid.amy.place, n[1].byPid.ben.place], [1, 2], 'scratch places unchanged');
+eq(n[0].byPid.ben.hdcp, 90, 'first night handicap comes from that night');
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

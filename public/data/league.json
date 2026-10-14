@@ -23,7 +23,7 @@
       "percent": 90
     },
     "championship": {
-      "method": "weekly finish, scratch series",
+      "method": "weekly finish",
       "points": [
         20,
         17,
@@ -42,8 +42,10 @@
         2,
         1
       ],
-      "minimum": 1
-    }
+      "minimum": 1,
+      "handicapFrom": "2026-11"
+    },
+    "gamesPerNight": 3
   },
   "players": [
     {

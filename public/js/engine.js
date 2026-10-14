@@ -108,12 +108,21 @@ export function monthName(key, short = false) {
 const trunc = x => x == null ? null : Math.floor(x);
 
 /** Rank rows by key desc; ties share the better place. */
-function placeBy(rows, key) {
+function placeBy(rows, key, prop = 'place') {
   const sorted = [...rows].sort((a, b) => b[key] - a[key]);
   let place = 0, prev = null;
-  sorted.forEach((r, i) => { if (r[key] !== prev) { place = i + 1; prev = r[key]; } r.place = place; });
+  sorted.forEach((r, i) => { if (r[key] !== prev) { place = i + 1; prev = r[key]; } r[prop] = place; });
   return sorted;
 }
+
+/** Handicap per game from an average: a percentage of the gap to the basis, never below zero. */
+export function handicapFor(avg, cfg) {
+  if (avg == null) return 0;
+  const basis = cfg?.basis ?? 220, pct = (cfg?.percent ?? 90) / 100;
+  return Math.max(0, Math.floor((basis - avg) * pct));
+}
+/** Does this month rank weekly finishes on handicap series? */
+export const usesHandicap = (data, month) => !!data.league?.championship?.handicapFrom && month >= data.league.championship.handicapFrom;
 
 /* ------------------------------------------------------------------ *
  * Nights
@@ -127,6 +136,8 @@ export function champPointsFor(place, field, cfg) {
 export function buildNights(data) {
   const players = new Set(data.players.map(p => p.id));
   const champCfg = data.league?.championship || {};
+  const hcCfg = data.league?.handicap || {};
+  const run = {};   // pins and games bowled before each night, for handicaps
   return (data.events || [])
     .filter(e => e.status === 'completed' && e.scores && Object.keys(e.scores).length)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -157,14 +168,24 @@ export function buildNights(data) {
           if (a.totals[k] > b.totals[k]) a.w++; else if (a.totals[k] < b.totals[k]) a.l++; else a.t++;
         }
       }
+      // handicap: from the average going into the night; a first-timer's own night sets it
+      for (const r of rows) {
+        const prior = run[r.pid];
+        r.avgIn = prior?.games ? Math.floor(prior.pins / prior.games) : null;
+        r.hdcp = handicapFor(r.avgIn ?? Math.floor(r.series / r.n), hcCfg);
+        r.hdcpSeries = r.series + r.hdcp * r.n;
+      }
+      const month = monthKey(e.date);
+      const handicap = usesHandicap(data, month);
       const ranked = placeBy(rows, 'series');
+      placeBy(rows, handicap ? 'hdcpSeries' : 'series', 'pointsPlace');
       for (const r of ranked) {
-        r.points = champPointsFor(r.place, ranked.length, champCfg);
+        r.points = champPointsFor(r.pointsPlace, ranked.length, champCfg);
         r.nightWin = r.w > r.l;           // a winning night
       }
       // shared places split the points evenly
       const byPlace = {};
-      ranked.forEach(r => (byPlace[r.place] ||= []).push(r));
+      ranked.forEach(r => (byPlace[r.pointsPlace] ||= []).push(r));
       for (const [place, group] of Object.entries(byPlace)) {
         if (group.length > 1) {
           const pts = group.map((_, i) => champPointsFor(+place + i, ranked.length, champCfg));
@@ -172,7 +193,8 @@ export function buildNights(data) {
           group.forEach(r => r.points = share);
         }
       }
-      return { id: e.id || e.date, idx, date: e.date, month: monthKey(e.date), note: e.note || '', rows: ranked,
+      for (const r of rows) { const a = run[r.pid] ||= { pins: 0, games: 0 }; a.pins += r.series; a.games += r.n; }
+      return { id: e.id || e.date, idx, date: e.date, month, handicap, note: e.note || '', rows: ranked,
         byPid: Object.fromEntries(ranked.map(r => [r.pid, r])), raw: e };
     });
 }
@@ -259,7 +281,7 @@ export function currentSeason(data, today) {
  * ------------------------------------------------------------------ */
 export const SORTS = {
   avg: s => s.avgExact ?? -1, pins: s => s.pins, games: s => s.games, w: s => s.w, l: s => -s.l, winPct: s => s.winPct ?? -1,
-  points: s => s.points, strikePct: s => s.strikePct ?? -1, sparePct: s => s.sparePct ?? -1, hg: s => s.hg?.v ?? -1, hs: s => s.hs?.v ?? -1,
+  points: s => s.points, hdcp: s => s.avgExact == null ? -999 : -s.avgExact, strikePct: s => s.strikePct ?? -1, sparePct: s => s.sparePct ?? -1, hg: s => s.hg?.v ?? -1, hs: s => s.hs?.v ?? -1,
 };
 export function standings(data, nights, sortKey = 'points') {
   const agg = aggregate(data, nights);

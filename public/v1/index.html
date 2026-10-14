@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>League Night · Version 1</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Standings, stats, monthly championships, power rankings and rivalries for our Wednesday bowling league at Kingstown Bowl.">
+<meta name="theme-color" content="#0B1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="../img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../img/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <a class="logo" href="#/" aria-label="Home">
+        <svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="19" fill="#E5383B"/>
+          <path d="M20 6c2.6 0 3.6 2.4 3 5.2-.5 2.2-1.6 3.4-1.4 5.3.3 2.6 3.8 5.3 3.8 10.5 0 4.6-2.2 7-5.4 7s-5.4-2.4-5.4-7c0-5.2 3.5-7.9 3.8-10.5.2-1.9-.9-3.1-1.4-5.3-.6-2.8.4-5.2 3-5.2z" fill="#fff"/>
+          <path d="M16.7 15.6h6.6M16.2 18h7.6" stroke="#E5383B" stroke-width="1.4"/>
+        </svg>
+        <span><span class="logo-name" id="logoName">League Night</span><span class="logo-sub">Kingstown Bowl · Wednesdays</span></span>
+      </a>
+      <a class="top-next" id="topNext" href="#/schedule"></a>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/">Home</a>
+      <a href="#/standings">Standings</a>
+      <a href="#/players">Players</a>
+      <a href="#/stats">Statistics</a>
+      <a href="#/schedule">Schedule &amp; Results</a>
+      <a href="#/championships">Monthly Championships</a>
+      <a href="#/power">Power Rankings</a>
+      <a href="#/leaderboards">Leaderboards</a>
+      <a href="#/purse">Purse</a>
+      <a href="#/records">League Records</a>
+      <a href="#/rivalries">Rivalries</a>
+    </nav>
+  </div>
+  <div class="lane-band" aria-hidden="true"></div>
+</header>
+<div class="sample-bar" id="sampleBar" hidden><div class="wrap"><b>Preview mode.</b> These are our real bowlers, but every score is made up so you can see how the site works. Real stats start after opening night.</div></div>
+<main class="wrap" id="app" tabindex="-1">
+  <div class="empty"><strong>Loading the scoresheet…</strong></div>
+</main>
+<footer class="site"><div class="wrap">
+  <a class="foot-faq" href="#/faq"><b>League rules &amp; FAQ</b><span>How scoring, points and the handicap work</span></a>
+  <div class="foot-meta"><span id="footLeague">League Night</span><span>Kingstown Bowl, North Kingstown, RI · <a href="https://buggybuilds.org">buggybuilds.org</a></span></div>
+</div></footer>
+<div class="tip" id="tip" hidden></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -642,6 +642,7 @@ pages.faq = () => {
   <div><h1 class="page-title">League rules &amp; FAQ</h1><p class="page-intro">Everything we've decided about how the league works. If something here doesn't match how a night was scored, tell Nick.</p></div>
   ${sec('The basics', [
     qa('When and where do we bowl?', `<p>Every ${esc(L.weekday)} at ${esc(L.venue)} in ${esc(L.town)}. Drinks and hanging out from ${fmtTime(L.socialTime)}, first ball at ${fmtTime(L.startTime)}. ${first ? `Opening night is ${esc(dayName(first.start))}.` : ''}</p>`),
+    qa('Is there a dress code?', `<p>Yes. <b>Bowling apparel is mandatory</b> every league night. Show up dressed for the lanes.</p>`),
     qa('How many games is a night?', `<p>Three games. Your three games added together are your <b>series</b> for the night.</p>`),
     qa('How do scores get on the site?', `<p>Nick sends a photo of the alley's scoring screen (or the scores) after each night, and the site updates within a minute or two. Every stat, ranking and record is recalculated from the raw scores, so if a score gets fixed later, everything that depends on it fixes itself.</p>`),
     qa('Do I need an account?', `<p>No. The site is public and read-only. Want a nickname, a photo, or a correction? Text Nick.</p>`),

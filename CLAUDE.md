@@ -39,6 +39,7 @@ Add (or update) one entry in `events`, keyed by date:
 - Monthly championship: points by weekly finish using `championship.points`; ties split points; tiebreak game wins, then pins.
 - October 2026 (month 1) is scratch. From `championship.handicapFrom` ("2026-11") weekly finish/points use handicap series (Nick, Oct 14 — Claude's reading of "month 1 will be scratch"; confirm if he says otherwise).
 - Handicap per game = floor(percent% × (basis − average going into the night)), min 0; basis 220, 90%. First night uses that night's own average. Everything else (averages, W/L, records, leaderboards) is scratch.
+- Bowling apparel is mandatory on league nights (in the FAQ).
 - The FAQ page (`pages.faq` in app.js) explains all of this to the league — update it whenever a rule changes.
 - Averages truncate like a league sheet.
 

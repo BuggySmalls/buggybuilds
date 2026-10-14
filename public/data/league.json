@@ -45,7 +45,24 @@
       "minimum": 1,
       "handicapFrom": "2026-11"
     },
-    "gamesPerNight": 3
+    "gamesPerNight": 3,
+    "address": "6125 Post Road, North Kingstown, RI 02852",
+    "purse": {
+      "confirmed": false,
+      "buyIn": 5,
+      "payouts": [
+        {
+          "key": "highGame",
+          "label": "High game",
+          "share": 0.5
+        },
+        {
+          "key": "highSeries",
+          "label": "High series",
+          "share": 0.5
+        }
+      ]
+    }
   },
   "players": [
     {
@@ -188,5 +205,7 @@
   "powerRankings": {},
   "awards": {},
   "customRecords": [],
-  "photos": []
+  "photos": [],
+  "purseAdjustments": [],
+  "matchesToWatch": {}
 }

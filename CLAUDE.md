@@ -30,6 +30,9 @@ Add (or update) one entry in `events`, keyed by date:
 - Weekly award picks override the automatic ones: `awards["<date>"][<awardKey>] = "<id>"` or `{pid, why}`. Keys: botw, improved, strikeKing, spareMaster, clutch, upset, choke, inconsistent, worst, fraud.
 - Custom records: `customRecords[] {kind: "fame"|"shame", title, holder, value, date, detail?}`.
 - Photos for the home gallery: `photos[] {src: "img/gallery/…", caption, date}`.
+- Purse: `league.purse {confirmed, buyIn, payouts:[{key,label,share}]}`; keys highGame, highSeries, hdcpSeries, overAverage. Payouts are computed from results; anything paid by hand goes in `purseAdjustments[] {date, pid, amount, note}`. Rules are PROPOSED ($5, 50% high game / 50% high series) until Nick confirms — then set `confirmed: true`.
+- Matches to watch are computed for the next night; override with `matchesToWatch["<date>"] = [{a, b, why}]` (first one is Match of the Week).
+- Calendar: `public/calendar.ics` is generated from the real schedule by `scripts/make-calendar.mjs` (validate.mjs runs it). Commit it whenever the schedule, times or skip dates change. Venue address is `league.address`.
 
 ## League rules (approved by Nick, Oct 14 2026)
 - Wins/losses: every game against every other bowler that night (game 1 vs game 1, etc.).

@@ -34,6 +34,8 @@ async function load() {
   S.seasonNights = S.season ? S.nights.filter(n => n.date >= S.season.start && (!S.season.end || n.date <= S.season.end)) : S.nights;
   S.achievements = E.achievements(data, S.nights, S.champs);
   S.attendance = E.attendance(data, S.nights);
+  S.purse = E.purse(data, S.nights);
+  S.next = E.nextNight(data, new Date());
   S.cache = {};
 }
 
@@ -75,6 +77,47 @@ function frameSheet(g) {
   }).join('');
   return `<div class="tbl" style="margin-inline:0;padding-inline:0"><div class="sheet-frames">${cells}</div></div>`;
 }
+const money = x => (x < 0 ? '−' : '') + '$' + Math.abs(x).toFixed(Math.abs(x) % 1 ? 2 : 0);
+function calButtons(small) {
+  const host = location.host || 'buggybuilds.org';
+  return `<div class="controls"${small ? ' style="gap:8px"' : ''}><a class="btn primary" href="webcal://${host}/calendar.ics">Add league nights to my calendar</a><a class="btn" href="calendar.ics" download="league-night.ics">Download .ics file</a></div>`;
+}
+const matches = () => memo('mtw', () => E.matchesToWatch(S.data, S.nights, S.seasonNights, S.todayISO, S.next?.date));
+function matchCards(list, { compact = false } = {}) {
+  if (!list.length) return empty('Matches to watch start after week 1', 'Once there are results, the three most interesting pairings for the next night show up here.');
+  return `<div class="mtw">${list.map(m => { const h = m.h || E.headToHead(S.nights, m.a, m.b); return `
+    <a class="mtw-card${m.motw ? ' motw' : ''}" href="#/rivalries?a=${esc(m.a)}&b=${esc(m.b)}">
+      <span class="mtw-tag">${m.motw ? 'Match of the week' : 'Match to watch'}</span>
+      <div class="mtw-vs"><div>${avatar(P(m.a), m.motw ? 56 : 44)}<b>${esc(P(m.a).name)}</b></div><span>${h.games ? `${h.w}–${h.l}${h.t ? '–' + h.t : ''}` : 'vs'}</span><div>${avatar(P(m.b), m.motw ? 56 : 44)}<b>${esc(P(m.b).name)}</b></div></div>
+      <p>${esc((compact ? m.reasons.slice(0, 1) : m.reasons.slice(0, 3)).join(' '))}</p>
+    </a>`; }).join('')}</div>`;
+}
+function recapText(idx) {
+  const n = S.nights[idx], L = S.data.league; if (!n) return '';
+  const lines = [];
+  lines.push(`🎳 ${L.name}: week ${weekNo(n)} (${fmtDate(n.date, { weekday: 'short', month: 'short', day: 'numeric' })})`);
+  const [a, b, c] = n.rows;
+  lines.push(`🏆 ${P(a.pid).name} wins with ${a.series} (${a.totals.map(t => t ?? '–').join('/')})`);
+  if (b) lines.push(`🥈 ${P(b.pid).name} ${b.series}${c ? `   🥉 ${P(c.pid).name} ${c.series}` : ''}`);
+  if (n.handicap) { const hw = n.rows.find(r => r.pointsPlace === 1); if (hw) lines.push(`⚖️ Handicap winner: ${P(hw.pid).name} ${hw.hdcpSeries}`); }
+  const hiG = n.rows.flatMap(r => r.totals.map(t => ({ pid: r.pid, t }))).filter(x => x.t != null).sort((x, y) => y.t - x.t)[0];
+  if (hiG) lines.push(`🔥 High game: ${P(hiG.pid).name} ${hiG.t}`);
+  const pn = S.purse.nights.find(x => x.date === n.date);
+  if (pn && pn.payouts.length) lines.push(`💰 Purse ($${pn.pot}): ${pn.payouts.map(po => `${po.label} ${po.winners.map(id => P(id).name).join(' & ')} ${money(po.each)}`).join(', ')}`);
+  const aw = awardsFor(idx).filter(x => ['improved', 'clutch', 'choke', 'fraud'].includes(x.key));
+  if (aw.length) lines.push('', ...aw.map(x => `${x.tone === 'shame' ? '🫠' : '⭐️'} ${x.name}: ${P(x.winner.pid).name} (${x.winner.why})`));
+  const broken = recordsBrokenAt(idx).filter(r => r.kind === 'fame').slice(0, 2);
+  if (broken.length) lines.push('', ...broken.map(r => `📈 New league record, ${r.title.toLowerCase()}: ${P(r.holder).name} ${r.value}`));
+  if (idx === S.nights.length - 1) {
+    const mw = matches();
+    if (mw.length) lines.push('', `👀 Match of the week: ${P(mw[0].a).name} vs ${P(mw[0].b).name}. ${mw[0].reasons[0]}`);
+    if (S.next) lines.push(`📅 Next: ${dayName(S.next.date)}, ${fmtTime(L.startTime)} at ${L.venue}`);
+  }
+  lines.push('', `Full results: https://buggybuilds.org/#/night/${n.date}`);
+  return lines.join('\n');
+}
+function recapButton(idx) { return `<button class="btn" data-recap="${idx}">Copy recap for the group chat</button>`; }
+
 function empty(title, body) { return `<div class="empty"><strong>${esc(title)}</strong>${body ? `<span>${body}</span>` : ''}</div>`; }
 function streakTag(s) { return s ? `<span class="streak ${s.kind}">${s.kind}${s.len}</span>` : '<span class="faint">—</span>'; }
 function q() { const [, query = ''] = location.hash.split('?'); return Object.fromEntries(new URLSearchParams(query)); }
@@ -198,7 +241,7 @@ pages.home = () => {
         <h1>${esc(L.name)}</h1>
         <p class="where">${esc(L.weekday)}s at ${esc(L.venue)}, ${esc(L.town)}. ${S.active.length} active bowlers.</p>
       </div>
-      <div class="board" id="countdown">${countdownHTML(next)}</div>
+      <div style="display:flex;flex-direction:column;gap:10px"><div class="board" id="countdown">${countdownHTML(next)}</div><a class="btn" style="align-self:flex-start;background:rgba(7,11,22,.8)" href="webcal://${location.host || 'buggybuilds.org'}/calendar.ics">Add league nights to my calendar</a></div>
     </div>
   </section>
 
@@ -209,12 +252,15 @@ pages.home = () => {
     <a class="kpi" href="#/stats"><span class="lbl">Top average</span>${(() => { const t = [...table].filter(r => r.games >= 3).sort((a, b) => b.avgExact - a.avgExact)[0]; return t ? `<span class="v">${t.avg}</span><span class="who">${esc(P(t.id).name)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'; })()}</a>
   </section>
 
+  <section class="panel"><div class="panel-head"><h2>Matches to watch${next ? ` · ${fmtDate(next.date, { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}</h2><a href="#/rivalries">All rivalries</a></div>${matchCards(matches())}</section>
+
   <div class="grid g-side">
     <div class="grid" style="align-content:start">
       ${last ? `
       <section class="panel">
         <div class="panel-head"><h2>Week ${weekNo(last)} results</h2><a href="#/night/${last.date}">Full results for ${fmtDate(last.date)}</a></div>
         <p class="muted">${esc(recap(lastIdx))}</p>
+        <div class="controls">${recapButton(lastIdx)}</div>
         <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th><th>Pts</th></tr></thead><tbody>
         ${last.rows.slice(0, 5).map(r => `<tr><td class="l">${medal(r.place)}</td><td class="l">${who(r.pid, { size: 28 })}</td><td class="l">${frames(r.totals, r.series)}</td><td>${r.points}</td></tr>`).join('')}
         </tbody></table></div>
@@ -289,7 +335,7 @@ function raceChart(m, top = 5) {
 
 /* ---------------- Standings ---------------- */
 const COLS = [
-  ['points', 'Pts'], ['avg', 'Avg'], ['hdcp', 'Hdcp'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Pins'],
+  ['points', 'Pts'], ['avg', 'Avg'], ['hdcp', 'Hdcp'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Total score'], ['pinsDown', 'Pins down'],
   ['strikePct', 'Strike %'], ['sparePct', 'Spare %'], ['streak', 'Streak'], ['monthPts', 'Month pts'],
 ];
 pages.standings = () => {
@@ -301,10 +347,10 @@ pages.standings = () => {
   if (sort === 'monthPts') rows.sort((a, b) => (monthPts[b.id] || 0) - (monthPts[a.id] || 0));
   if (sort === 'streak') rows.sort((a, b) => ((b.streak?.kind === 'W' ? 1 : -1) * (b.streak?.len || 0)) - ((a.streak?.kind === 'W' ? 1 : -1) * (a.streak?.len || 0)));
   const hasFrames = rows.some(r => r.hasFrames);
-  const cols = COLS.filter(([k]) => hasFrames || !['strikePct', 'sparePct'].includes(k));
+  const cols = COLS.filter(([k]) => hasFrames || !['strikePct', 'sparePct', 'pinsDown'].includes(k));
   const cell = (r, k) => ({
     games: r.games, pins: r.pins.toLocaleString(), avg: `<b>${r.avg ?? '—'}</b>`, hdcp: r.avg == null ? '—' : E.handicapFor(r.avg, S.data.league.handicap), w: r.w, l: r.l, winPct: pct(r.winPct), points: `<b>${r.points}</b>`,
-    strikePct: pct(r.strikePct), sparePct: pct(r.sparePct), streak: streakTag(r.streak), monthPts: monthPts[r.id] ?? 0,
+    strikePct: pct(r.strikePct), sparePct: pct(r.sparePct), pinsDown: r.hasFrames ? r.pinsDown.toLocaleString() : '—', streak: streakTag(r.streak), monthPts: monthPts[r.id] ?? 0,
   })[k];
   const views = [['week', 'This week'], ['month', 'This month'], ['season', 'Season'], ['all', 'All-time']];
   return `
@@ -382,6 +428,8 @@ pages.player = id => {
     ${stat(career.hg?.v ?? '—', 'High game', career.hg ? fmtDate(career.hg.date) : '')}${stat(career.lg?.v ?? '—', 'Low game', career.lg ? fmtDate(career.lg.date) : '')}
     ${stat(career.hs?.v ?? '—', 'High series', career.hs ? fmtDate(career.hs.date) : '')}${stat(career.games, 'Games bowled')}
     ${stat(`${career.w}-${career.l}${career.t ? '-' + career.t : ''}`, 'Game record vs field', pct(career.winPct))}${stat(season.points, 'Season points')}
+    ${stat(career.pins.toLocaleString(), 'Total score')}${fr ? stat(career.pinsDown.toLocaleString(), 'Pins knocked down', `${career.frameGames} games with frames`) + stat(career.bonusPins.toLocaleString(), 'Bonus pins', `${pct(career.bonusShare, 0)} of score from strikes and spares`) : ''}
+    ${S.purse.enabled ? stat(money(S.purse.totals[id].won), 'Purse winnings', `net ${money(S.purse.totals[id].net)}`) : ''}
     ${stat(career.nightWins, 'Winning nights')}${stat(att.streak, 'Attendance streak', `best ${att.best}`)}
     ${fr ? stat(career.strikes, 'Strikes') + stat(career.spares, 'Spares') + stat(career.gutters, 'Gutter balls') + stat(pct(career.strikePct), 'Strike %') + stat(pct(career.sparePct), 'Spare %') + stat(career.longestStrikeRun, 'Most strikes in a row') : ''}
   </div>
@@ -436,7 +484,10 @@ const LEADERS = [
   ['strikePct', 'Strike %', s => s.strikePct, v => pct(v), 1, true],
   ['sparePct', 'Spare conversion', s => s.sparePct, v => pct(v), 1, true],
   ['firstBall', 'First-ball average', s => s.firstBallAvg, v => n1(v), 1, true],
-  ['ppf', 'Pins per frame', s => s.pinsPerFrame, v => n1(v), 3],
+  ['ppf', 'Score per frame', s => s.pinsPerFrame, v => n1(v), 3],
+  ['pinsDown', 'Pins knocked down', s => s.hasFrames ? s.pinsDown : null, v => v.toLocaleString(), 1, true],
+  ['pinsDownPG', 'Pins knocked down per game', s => s.pinsDownPerGame, v => n1(v), 3, true],
+  ['bonus', 'Bonus pins per game', s => s.frameGames ? s.bonusPins / s.frameGames : null, v => n1(v), 3, true],
   ['run', 'Most strikes in a row', s => s.longestStrikeRun || null, v => v, 1, true],
   ['open', 'Fewest open frames per game', s => s.frameGames ? -s.open / s.frameGames : null, v => n1(-v), 1, true],
   ['gutters', 'Gutter balls', s => s.gutters || null, v => v, 1, true],
@@ -475,7 +526,7 @@ pages.stats = () => {
     <div class="panel-head"><h2>Leaderboard</h2>
       <label class="field">Category<select data-qsel="cat">${cats.map(x => `<option value="${x[0]}" ${x[0] === c[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label></div>
     ${rows.length ? `<div class="list">${rows.map((s, i) => `<div class="list-row">${medal(i + 1)}<div class="grow" style="display:flex;flex-direction:column;gap:5px">${who(s.id, { size: 28 })}<div style="height:5px;border-radius:3px;background:var(--panel-2)"><div style="height:100%;width:${Math.max(4, Math.abs(c[2](s)) / maxV * 100)}%;border-radius:3px;background:${i === 0 ? 'var(--maple)' : 'var(--red)'}"></div></div></div><span class="val">${c[3](c[2](s))}</span></div>`).join('')}</div>` : empty('Not enough games yet', c[4] > 1 ? `Needs at least ${c[4]} games.` : '')}
-    <p class="small faint">${{ consistency: 'Consistency is the spread of a bowler’s game scores. Smaller is steadier.', g3: 'Final-game delta compares game 3 with the bowler’s overall average. It’s the closest thing to performance under pressure the scores can show.' }[c[0]] || ''}</p>
+    <p class="small faint">${{ pinsDown: 'Pins knocked down counts every pin that actually fell, with no strike or spare bonuses. A 300 game is 120 pins.', pinsDownPG: 'Pins actually knocked down per game. Compare it with the bowler\u2019s average to see how much strikes and spares add.', bonus: 'How many points per game came from strike and spare bonuses rather than pins knocked down.', consistency: 'Consistency is the spread of a bowler’s game scores. Smaller is steadier.', g3: 'Final-game delta compares game 3 with the bowler’s overall average. It’s the closest thing to performance under pressure the scores can show.' }[c[0]] || ''}</p>
   </section>
 
   <section class="panel">
@@ -551,6 +602,32 @@ pages.leaderboards = () => {
   <section class="panel">${body}</section>`;
 };
 
+/* ---------------- Purse ---------------- */
+pages.purse = () => {
+  const pu = S.purse, cfg = pu.cfg;
+  if (!pu.enabled) return `<div><h1 class="page-title">Purse</h1></div><section class="panel">${empty('No purse set up')}</section>`;
+  const rows = Object.values(pu.totals).filter(t => t.nights).sort((a, b) => b.won - a.won || b.net - a.net);
+  const totalPot = pu.nights.reduce((a, n) => a + n.pot, 0);
+  const rules = `$${cfg.buyIn} a night from everyone who bowls. ${cfg.payouts.map(p => `${Math.round(p.share * 100)}% to ${p.label.toLowerCase()}`).join(', ')}. Ties split the payout.`;
+  return `
+  <div><h1 class="page-title">Purse</h1><p class="page-intro">Who's taken home the money. ${esc(rules)}</p></div>
+  ${cfg.confirmed ? '' : '<p class="small" style="color:var(--maple)">Proposed rules, not final yet. Amounts will update automatically if the buy-in or payouts change.</p>'}
+  <section class="kpis">
+    <div class="kpi"><span class="lbl">Paid out so far</span><span class="v">${money(totalPot)}</span><span class="who muted">${pu.nights.length} nights</span></div>
+    <div class="kpi"><span class="lbl">Biggest earner</span>${rows[0] ? `<span class="v">${money(rows[0].won)}</span><span class="who">${esc(P(rows[0].id).name)}</span>` : '<span class="v">—</span>'}</div>
+    <div class="kpi"><span class="lbl">Most cashes</span>${(() => { const r = [...rows].sort((a, b) => b.cashes - a.cashes)[0]; return r ? `<span class="v">${r.cashes}</span><span class="who">${esc(P(r.id).name)}</span>` : '<span class="v">—</span>'; })()}</div>
+    <div class="kpi"><span class="lbl">Last pot</span>${pu.nights.at(-1) ? `<span class="v">${money(pu.nights.at(-1).pot)}</span><span class="who muted">${fmtDate(pu.nights.at(-1).date)}</span>` : '<span class="v">—</span>'}</div>
+  </section>
+  <section class="panel"><div class="panel-head"><h2>Lifetime winnings</h2></div>
+    ${rows.length ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>Won</th><th>Cashes</th><th>Paid in</th><th>Net</th></tr></thead><tbody>
+    ${rows.map((t, i) => `<tr class="${i < 3 && t.won ? `top3 p${i + 1}` : ''}"><td class="l">${t.won ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l">${who(t.id, { size: 28 })}</td><td class="big">${money(t.won)}</td><td>${t.cashes}</td><td>${money(t.paidIn)}</td><td class="${t.net > 0 ? 'up' : t.net < 0 ? 'down' : ''}">${t.net > 0 ? '+' : ''}${money(t.net)}</td></tr>`).join('')}
+    </tbody></table></div>` : empty('No money has changed hands yet')}
+  </section>
+  <section class="panel"><div class="panel-head"><h2>Payout history</h2></div>
+    ${pu.nights.length ? `<div class="list">${pu.nights.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)} · ${money(n.pot)} pot</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${esc(po.label)}${po.value != null ? ` · ${po.value}` : ''}</span><span>${po.winners.map(id => esc(P(id).name)).join(' &amp; ')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
+  </section>`;
+};
+
 /* ---------------- FAQ ---------------- */
 pages.faq = () => {
   const L = S.data.league, hc = L.handicap, cfg = L.championship, pct = hc.percent;
@@ -573,6 +650,7 @@ pages.faq = () => {
   ])}
   ${sec('How scoring works', [
     qa('How is a game scored?', `<p>Standard tenpin scoring. You get two balls per frame to knock down ten pins.</p><ul><li><b>Strike (X):</b> all ten on the first ball. Worth 10 plus your next two balls.</li><li><b>Spare (/):</b> all ten using both balls. Worth 10 plus your next ball.</li><li><b>Open frame:</b> pins left standing. Worth the pins you knocked down.</li><li>Strike or spare in the 10th frame and you get bonus balls. Twelve strikes in a row is a perfect 300.</li></ul>`),
+    qa('What\u2019s the difference between total score and pins knocked down?', `<p><b>Total score</b> is what's on the scoreboard, strike and spare bonuses included. <b>Pins knocked down</b> counts only the pins that actually fell. A perfect 300 is just 120 pins (12 balls of 10), because the other 180 points are bonuses. A game of all 9-misses is a 90 and exactly 90 pins.</p><p>Pins knocked down needs frame-by-frame scores, so it only counts games where the scoring screen was logged. The gap between the two is <b>bonus pins</b>, which shows how much of someone's score comes from marking.</p>`),
     qa('How is my average calculated?', `<p>Total pins divided by games bowled, with the decimals dropped, the way league sheets do it. 487 pins over 3 games is a 162 average, not 162.3.</p>`),
     qa('What do wins and losses mean?', `<p>Every game, you play everyone else who bowled that game. Beat someone and it's a win, lose to them and it's a loss, same score is a tie. Game 1 is compared with game 1, game 2 with game 2, and so on.</p><p>With ${S.active.length || 16} bowlers, that's up to ${opp} matchups a game and ${opp * 3} a night. Win % counts ties as half a win. A <b>winning night</b> means more wins than losses that night. Wins and losses are always scratch, with no handicap.</p>`),
     qa('How do league points work?', `<p>Each week everyone is ranked by series, and points go by finishing place:</p><p class="faq-points">${cfg.points.map((p, i) => `<span><b>${E.ordinal(i + 1)}</b>${p}</span>`).join('')}<span><b>${E.ordinal(cfg.points.length + 1)}+</b>${cfg.minimum}</span></p><p>Everyone who bowls gets at least ${cfg.minimum} point. If two people tie, they split the points for the places they share. Two bowlers tied for 2nd each get ${(cfg.points[1] + cfg.points[2]) / 2}.</p>`),
@@ -589,6 +667,9 @@ pages.faq = () => {
     qa('How do power rankings work?', `<p>They're a "who's hot right now" ranking: last three nights' average 35%, season average 25%, game wins against the field 20%, consistency 10%, and whether you're trending up or down 10%. Nick can override the order and adds the commentary.</p>`),
     qa('How are weekly awards picked?', `<p>The site nominates winners from the scores. Bowler of the Week is the top series. Most Improved is the biggest jump over your average. Clutch is the best final game. Biggest Choke is furthest under your average. Biggest Fraud is a top-third average bowler who finished in the bottom half. Strike King and Spare Master need frame-by-frame scores. Nick can hand out any award manually instead.</p>`),
     qa('Where do strike and spare stats come from?', `<p>The photo of the scoring screen. When frames are logged, the site tracks strikes, spares, strike % and spare conversion %, gutter balls, splits, open frames and strike streaks. Games logged with just a total don't count toward those stats. Nothing is estimated.</p>`),
+    qa('How are the matches to watch picked?', `<p>Before each night the site scores every possible pairing. It looks at how close their head-to-head record is, how close their averages are, whether they're next to each other in the standings, whether both are in the monthly title race, revenge after a blowout, and win streaks. The top pairing is the Match of the Week, and each match lists the reasons it was picked. Nick can pick them by hand instead.</p>`),
+    qa('How does the purse work?', `<p>${S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
+    qa('Can I get league nights in my calendar?', `<p>Yes. Tap <b>Add league nights to my calendar</b> on the home or schedule page. Your phone subscribes to the schedule, so skipped weeks or time changes update on their own, with a reminder 3 hours before.</p>`),
     qa('What counts as a record?', `<p>The Hall of Fame and Hall of Shame update themselves the moment a mark is beaten. The Leaderboards page keeps the top 25 games and series ever bowled, plus the full history of who held each record. Nick can also add custom awards.</p>`),
     qa('How do badges work?', `<p>They unlock automatically. Examples: 200 Club, 250 Club, Perfect Game, 600 Series, Turkey (three strikes in a row), Champion, Comeback King (game 3 at least 50 pins better than game 1), Iron Man (every night of a month) and Rivalry Dominator. Every bowler's profile shows the ones they've earned and the ones still locked.</p>`),
   ])}`;
@@ -605,6 +686,8 @@ pages.schedule = () => {
   return `
   <div><h1 class="page-title">Schedule &amp; results</h1><p class="page-intro">Every ${esc(L.weekday)} at ${esc(L.venue)}, ${esc(L.town)}. Drinks from ${fmtTime(L.socialTime)}, first ball at ${fmtTime(L.startTime)}.</p></div>
   <section class="panel"><div class="panel-head"><h2>Coming up</h2></div>
+    ${calButtons()}
+    <p class="small faint">"Add to my calendar" subscribes your phone to the schedule, so changes and cancellations show up automatically, with a reminder 3 hours before. The .ics file is a one-time copy.</p>
     ${upcoming.length ? `<div class="cal">${upcoming.slice(0, 12).map(d => `<div class="cal-day${d === next?.date ? ' next' : ''}">
       <div class="cal-date"><span>${fmtDate(d, { month: 'short' }).toUpperCase()}</span><b>${fmtDate(d, { day: 'numeric' })}</b></div>
       <div class="info"><b>${d === next?.date ? 'Next up' : fmtDate(d, { weekday: 'long' })}${lastOfMonth.has(d) ? ' · Championship night' : ''}</b>${fmtTime(L.startTime)} · ${esc(L.venue)}${lastOfMonth.has(d) ? `<br>Last night of the ${esc(E.monthName(d.slice(0, 7)).split(' ')[0])} race` : '<br>Everyone bowls the field'}</div></div>`).join('')}</div>` : empty('No more nights scheduled')}
@@ -630,7 +713,7 @@ pages.night = date => {
   return `
   <div class="controls" style="justify-content:space-between">
     <div><h1 class="page-title">Week ${weekNo(n)}</h1><p class="page-intro">${esc(dayName(n.date))} at ${esc(S.data.league.venue)}. ${n.rows.length} bowlers.</p></div>
-    <div class="controls">${idx > 0 ? `<a class="btn" href="#/night/${S.nights[idx - 1].date}">← Week ${idx}</a>` : ''}${idx < S.nights.length - 1 ? `<a class="btn" href="#/night/${S.nights[idx + 1].date}">Week ${idx + 2} →</a>` : ''}<button class="btn primary" data-share="${idx}">Share results image</button></div>
+    <div class="controls">${idx > 0 ? `<a class="btn" href="#/night/${S.nights[idx - 1].date}">← Week ${idx}</a>` : ''}${idx < S.nights.length - 1 ? `<a class="btn" href="#/night/${S.nights[idx + 1].date}">Week ${idx + 2} →</a>` : ''}${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
   <section class="panel"><p>${esc(recap(idx))}</p>${n.note ? `<p class="small muted">${esc(n.note)}</p>` : ''}</section>
   <section class="panel"><div class="panel-head"><h2>Results</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap a bowler with frames to see every frame.</span></div>
@@ -647,6 +730,7 @@ pages.night = date => {
       <div class="list-row"><div class="grow small muted">High series</div>${who(n.rows[0].pid, { size: 26 })}<span class="val">${n.rows[0].series}</span></div>
       ${strikeLead ? `<div class="list-row"><div class="grow small muted">Most strikes</div>${who(strikeLead.pid, { size: 26 })}<span class="val">${strikeLead.s}</span></div>` : ''}
       <div class="list-row"><div class="grow small muted">200 games</div><span class="val">${two.length}</span></div>
+      ${(() => { const pn = S.purse.nights.find(x => x.date === n.date); return pn ? pn.payouts.map(po => `<div class="list-row"><div class="grow small muted">Purse: ${esc(po.label)}${po.value != null ? ` (${po.value})` : ''}</div><span class="small">${po.winners.map(id => esc(P(id).name)).join(' &amp; ')}</span><span class="val">${money(po.each)}</span></div>`).join('') : ''; })()}
     </div>
     ${broken.length ? `<h3 style="margin-top:6px">Records broken</h3><div class="rec-list">${broken.map(r => `<div class="rec stack"><div class="t">${esc(r.title)}</div>${who(r.holder, { size: 24 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : ''}
     </section>
@@ -822,6 +906,15 @@ async function shareNight(idx) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.append(a); a.click(); a.remove();
 }
 
+async function copyRecap(btn, idx) {
+  const text = recapText(idx);
+  const done = msg => { const t = btn.textContent; btn.textContent = msg; setTimeout(() => btn.textContent = t, 2200); };
+  try { await navigator.clipboard.writeText(text); done('Copied. Paste it in the group chat'); return; } catch (_) {}
+  try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  const ta = document.createElement('textarea'); ta.value = text; ta.rows = 12; ta.style.cssText = 'width:100%;margin-top:10px;font:14px var(--body);background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px';
+  btn.closest('.controls,section,div').append(ta); ta.select(); done('Select and copy the text below');
+}
+
 /* ================================================================== *
  * Router
  * ================================================================== */
@@ -841,7 +934,7 @@ function route() {
     const k = a.getAttribute('href').slice(2) || 'home';
     if (k === navKey) { a.setAttribute('aria-current', 'page'); a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
   });
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', faq: 'League Rules & FAQ' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
@@ -849,7 +942,8 @@ let lastPath = null;
 window.addEventListener('hashchange', () => { const p = location.hash.split('?')[0]; route(); if (p !== lastPath) { window.scrollTo(0, 0); lastPath = p; } });
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-q],[data-toggle-player],[data-share]'); if (!b) return;
+  const b = e.target.closest('[data-q],[data-toggle-player],[data-share],[data-recap]'); if (!b) return;
+  if (b.dataset.recap) { copyRecap(b, +b.dataset.recap); return; }
   if (b.dataset.q) { const [k, v] = b.dataset.q.split('='); setQ({ [k]: v }); }
   if (b.dataset.togglePlayer) {
     const id = b.dataset.togglePlayer; const cur = (q().players || seasonTable().slice(0, 3).map(r => r.id).join(',')).split(',').filter(Boolean);

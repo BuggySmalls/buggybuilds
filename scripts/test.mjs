@@ -98,5 +98,31 @@ eq([n[1].byPid.ben.points, n[1].byPid.amy.points], [10, 8], 'handicap winner tak
 eq([n[1].byPid.amy.place, n[1].byPid.ben.place], [1, 2], 'scratch places unchanged');
 eq(n[0].byPid.ben.hdcp, 90, 'first night handicap comes from that night');
 
+// --- pins knocked down vs score
+eq(E.frameStats(E.parseFrames('X X X X X X X X X XXX')).pinsDown, 120, 'a 300 knocks down 120 pins');
+eq(E.frameStats(E.parseFrames('9- 9- 9- 9- 9- 9- 9- 9- 9- 9-')).pinsDown, 90, 'no marks: pins down equals score');
+
+// --- purse: buy-ins paid out by rule, ties split
+d = base();
+d.league.purse = { buyIn: 5, payouts: [{ key: 'highGame', label: 'High game', share: .5 }, { key: 'highSeries', label: 'High series', share: .5 }] };
+d.events.push({ date: '2026-10-21', status: 'completed', scores: { amy: [210, 100, 100], ben: [150, 150, 160], cal: [210, 90, 90], dee: [100, 100, 100] } });
+n = E.buildNights(d);
+const pu = E.purse(d, n);
+eq(pu.nights[0].pot, 20, 'pot is 4 x $5');
+eq([pu.totals.amy.won, pu.totals.cal.won, pu.totals.ben.won], [5, 5, 10], 'tied high game splits $10; high series takes $10');
+eq(pu.totals.dee.net, -5, 'net = won minus buy-ins');
+
+// --- matches to watch picks three distinct pairings with reasons
+d = base();
+d.players.push({ id: 'eve', name: 'eve' }, { id: 'fay', name: 'fay' });
+for (const [date, s] of [['2026-10-21', [150, 152, 180, 181, 120, 200]], ['2026-10-28', [151, 150, 182, 179, 125, 198]], ['2026-11-04', [149, 153, 178, 183, 118, 202]]])
+  d.events.push({ date, status: 'completed', scores: Object.fromEntries(['amy', 'ben', 'cal', 'dee', 'eve', 'fay'].map((id, i) => [id, [s[i], s[i], s[i]]])) });
+n = E.buildNights(d);
+const mw = E.matchesToWatch(d, n, n, '2026-11-05', '2026-11-11');
+eq(mw.length, 3, 'three matches');
+eq(mw.filter(m => m.motw).length, 1, 'one match of the week');
+ok(mw.every(m => m.reasons.length), 'each match has a reason');
+ok(new Set(mw.flatMap(m => [m.a, m.b])).size === 6, 'nobody appears twice');
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

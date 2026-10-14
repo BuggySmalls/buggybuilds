@@ -71,7 +71,8 @@ export function parseFrames(str) {
 /** Per-game frame stats. */
 export function frameStats(parsed) {
   const s = { strikes: 0, strikeOpp: 0, spares: 0, spareOpp: 0, open: 0, splits: 0, splitsMade: 0, gutters: 0,
-    firstBallPins: 0, firstBalls: 0, longestStrikeRun: 0, frames: 10 };
+    firstBallPins: 0, firstBalls: 0, longestStrikeRun: 0, frames: 10,
+    pinsDown: parsed.frames.reduce((a, f) => a + f.balls.reduce((x, b) => x + b.pins, 0), 0) };
   let run = 0;
   parsed.frames.forEach((f, i) => {
     const b = f.balls;
@@ -207,7 +208,8 @@ export function aggregate(data, nights) {
   for (const p of data.players) {
     out[p.id] = { id: p.id, games: 0, pins: 0, w: 0, l: 0, t: 0, points: 0, nights: 0, nightWins: 0, hg: null, lg: null, hs: null, ls: null,
       gameTotals: [], byGame: [[], [], []], seriesList: [], frameGames: 0,
-      strikes: 0, strikeOpp: 0, spares: 0, spareOpp: 0, open: 0, splits: 0, splitsMade: 0, gutters: 0, firstBallPins: 0, firstBalls: 0, longestStrikeRun: 0, framesBowled: 0 };
+      strikes: 0, strikeOpp: 0, spares: 0, spareOpp: 0, open: 0, splits: 0, splitsMade: 0, gutters: 0, firstBallPins: 0, firstBalls: 0, longestStrikeRun: 0, framesBowled: 0,
+      pinsDown: 0, frameScore: 0, hiPinsDown: null };
   }
   for (const n of nights) for (const r of n.rows) {
     const s = out[r.pid]; if (!s) continue;
@@ -219,7 +221,9 @@ export function aggregate(data, nights) {
       if (s.lg == null || g.total < s.lg.v) s.lg = { v: g.total, date: n.date, game: k + 1 };
       if (g.frames) {
         s.frameGames++; s.framesBowled += 10;
-        for (const key of ['strikes', 'strikeOpp', 'spares', 'spareOpp', 'open', 'splits', 'splitsMade', 'gutters', 'firstBallPins', 'firstBalls']) s[key] += g.frames[key];
+        for (const key of ['strikes', 'strikeOpp', 'spares', 'spareOpp', 'open', 'splits', 'splitsMade', 'gutters', 'firstBallPins', 'firstBalls', 'pinsDown']) s[key] += g.frames[key];
+        s.frameScore += g.total;
+        if (!s.hiPinsDown || g.frames.pinsDown > s.hiPinsDown.v) s.hiPinsDown = { v: g.frames.pinsDown, score: g.total, date: n.date, game: k + 1 };
         s.longestStrikeRun = Math.max(s.longestStrikeRun, g.frames.longestStrikeRun);
       }
     });
@@ -240,6 +244,9 @@ export function aggregate(data, nights) {
     s.sparePct = s.spareOpp ? s.spares / s.spareOpp : null;
     s.firstBallAvg = s.firstBalls ? s.firstBallPins / s.firstBalls : null;
     s.pinsPerFrame = s.games ? s.pins / s.games / 10 : null;
+    s.pinsDownPerGame = s.frameGames ? s.pinsDown / s.frameGames : null;
+    s.bonusPins = s.frameGames ? s.frameScore - s.pinsDown : null;          // what strikes and spares added on top
+    s.bonusShare = s.frameScore ? (s.frameScore - s.pinsDown) / s.frameScore : null;
   }
   return out;
 }
@@ -281,7 +288,7 @@ export function currentSeason(data, today) {
  * ------------------------------------------------------------------ */
 export const SORTS = {
   avg: s => s.avgExact ?? -1, pins: s => s.pins, games: s => s.games, w: s => s.w, l: s => -s.l, winPct: s => s.winPct ?? -1,
-  points: s => s.points, hdcp: s => s.avgExact == null ? -999 : -s.avgExact, strikePct: s => s.strikePct ?? -1, sparePct: s => s.sparePct ?? -1, hg: s => s.hg?.v ?? -1, hs: s => s.hs?.v ?? -1,
+  points: s => s.points, pinsDown: s => s.hasFrames ? s.pinsDown : -1, hdcp: s => s.avgExact == null ? -999 : -s.avgExact, strikePct: s => s.strikePct ?? -1, sparePct: s => s.sparePct ?? -1, hg: s => s.hg?.v ?? -1, hs: s => s.hs?.v ?? -1,
 };
 export function standings(data, nights, sortKey = 'points') {
   const agg = aggregate(data, nights);
@@ -660,4 +667,104 @@ export function validate(data) {
     for (const pid of Object.keys(e.frames || {})) if (!e.scores?.[pid]) errors.push(`${e.date}: frames for ${pid} but no scores`);
   }
   return errors;
+}
+
+/* ------------------------------------------------------------------ *
+ * Purse: each night's buy-ins paid out by the league's payout rules
+ * league.purse = { buyIn, payouts: [{ key, label, share }] }
+ * keys: highGame, highSeries, hdcpSeries, overAverage
+ * data.purseAdjustments = [{ date, pid, amount, note }] for anything paid by hand
+ * ------------------------------------------------------------------ */
+export function purse(data, nights) {
+  const cfg = data.league?.purse;
+  const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0 }]));
+  if (!cfg) return { nights: [], totals, enabled: false };
+  const rows = [];
+  const cents = x => Math.round(x * 100) / 100;
+  for (const n of nights) {
+    if (cfg.start && n.date < cfg.start) continue;
+    const pot = cents((cfg.buyIn || 0) * n.rows.length);
+    for (const r of n.rows) if (totals[r.pid]) { totals[r.pid].paidIn += cfg.buyIn || 0; totals[r.pid].nights++; }
+    const payouts = [];
+    for (const po of cfg.payouts || []) {
+      let cands;
+      if (po.key === 'highGame') cands = n.rows.map(r => ({ pid: r.pid, v: Math.max(...r.totals.filter(t => t != null)) }));
+      else if (po.key === 'highSeries') cands = n.rows.map(r => ({ pid: r.pid, v: r.series }));
+      else if (po.key === 'hdcpSeries') cands = n.rows.map(r => ({ pid: r.pid, v: r.hdcpSeries }));
+      else if (po.key === 'overAverage') cands = n.rows.filter(r => r.avgIn != null).map(r => ({ pid: r.pid, v: r.series - r.avgIn * r.n }));
+      else continue;
+      if (!cands.length) continue;
+      const top = Math.max(...cands.map(c => c.v));
+      const winners = cands.filter(c => c.v === top).map(c => c.pid);
+      const each = cents(pot * po.share / winners.length);
+      winners.forEach(pid => { totals[pid].won = cents(totals[pid].won + each); totals[pid].cashes++; });
+      payouts.push({ key: po.key, label: po.label, value: top, winners, each });
+    }
+    for (const a of (data.purseAdjustments || []).filter(a => a.date === n.date)) {
+      if (!totals[a.pid]) continue;
+      totals[a.pid].won = cents(totals[a.pid].won + a.amount);
+      payouts.push({ key: 'manual', label: a.note || 'Adjustment', winners: [a.pid], each: a.amount });
+    }
+    rows.push({ date: n.date, idx: n.idx, pot, payouts });
+  }
+  for (const t of Object.values(totals)) t.net = cents(t.won - t.paidIn);
+  return { nights: rows, totals, enabled: true, cfg };
+}
+
+/* ------------------------------------------------------------------ *
+ * Matches to watch: the three most interesting pairings for the next night.
+ * Scored on head-to-head closeness, how close their averages are, standings
+ * neighbours, the month race, revenge and streaks. Each comes with reasons.
+ * data.matchesToWatch["<date>"] = [{ a, b, why }] overrides (first = Match of the Week).
+ * ------------------------------------------------------------------ */
+export function matchesToWatch(data, nights, seasonNights, today, forDate) {
+  const manual = forDate && data.matchesToWatch?.[forDate];
+  if (Array.isArray(manual) && manual.length) return manual.slice(0, 3).map((m, i) => ({ a: m.a, b: m.b, reasons: [m.why], motw: i === 0, manual: true }));
+  if (!nights.length) return [];
+  const pool = seasonNights.length ? seasonNights : nights;
+  const agg = aggregate(data, pool);
+  const table = standings(data, pool, 'points').filter(r => r.games);
+  const rank = Object.fromEntries(table.map((r, i) => [r.id, i + 1]));
+  const ms = months(data, nights, today);
+  const race = ms.at(-1) && !ms.at(-1).done ? ms.at(-1) : null;
+  const raceTop = race ? race.table.slice(0, 3).map(r => r.id) : [];
+  const ids = data.players.filter(p => p.active !== false && agg[p.id].games).map(p => p.id);
+  const name = id => data.players.find(p => p.id === id)?.name || id;
+  const cands = [];
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    const a = ids[i], b = ids[j], A = agg[a], B = agg[b];
+    const h = headToHead(nights, a, b);
+    let score = 0; const why = [];
+    if (h.games >= 3) {
+      const close = 1 - Math.abs(h.w - h.l) / h.games;
+      score += 3 * close + Math.min(h.games, 30) / 15;
+      if (close >= .8) why.push(h.w === h.l ? `Dead even at ${h.w}-${h.l}${h.t ? '-' + h.t : ''} in head-to-head games.` : `${name(h.w > h.l ? a : b)} leads the head-to-head just ${Math.max(h.w, h.l)}-${Math.min(h.w, h.l)} over ${h.games} games.`);
+    }
+    const gap = Math.abs(A.avgExact - B.avgExact);
+    score += Math.max(0, 2 - gap / 6);
+    if (gap <= 5) why.push(`Their averages are ${gap < 1 ? 'basically identical' : `only ${Math.round(gap)} pin${Math.round(gap) === 1 ? '' : 's'} apart`} (${A.avg} and ${B.avg}).`);
+    if (rank[a] && rank[b] && Math.abs(rank[a] - rank[b]) === 1) {
+      score += 1.5;
+      const hi = rank[a] < rank[b] ? a : b, lo = hi === a ? b : a;
+      const ptsGap = Math.abs(table[rank[a] - 1].points - table[rank[b] - 1].points);
+      why.push(`Back to back in the standings: ${name(hi)} is ${ordinal(rank[hi])}, ${name(lo)} is ${ptsGap} point${ptsGap === 1 ? '' : 's'} behind in ${ordinal(rank[lo])}.`);
+    }
+    if (raceTop.includes(a) && raceTop.includes(b)) { score += 2; why.push(`Both are top three in the ${monthName(race.key).split(' ')[0]} title race with ${race.remaining} night${race.remaining === 1 ? '' : 's'} left.`); }
+    const last = h.matchups.at(-1);
+    if (last) {
+      const m = last.aSeries - last.bSeries;
+      if (Math.abs(m) >= 60) { score += 1; why.push(`Revenge night: ${name(m > 0 ? b : a)} lost their last meeting by ${Math.abs(m)} pins (${Math.max(last.aSeries, last.bSeries)} to ${Math.min(last.aSeries, last.bSeries)}).`); }
+    }
+    if (h.streak && h.streak.kind !== 'T' && h.streak.len >= 3) { score += 1; why.push(`${name(h.streak.kind === 'W' ? a : b)} has won the last ${h.streak.len} games between them.`); }
+    if (why.length) cands.push({ a, b, score, reasons: why, h });
+  }
+  cands.sort((x, y) => y.score - x.score);
+  const out = [], used = new Set();
+  for (const c of cands) {
+    if (out.length === 3) break;
+    if (used.has(c.a) || used.has(c.b)) continue;
+    out.push(c); used.add(c.a); used.add(c.b);
+  }
+  out.forEach((m, i) => m.motw = i === 0);
+  return out;
 }

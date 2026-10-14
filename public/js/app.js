@@ -17,7 +17,7 @@ async function load() {
     data = {
       ...data,
       league: { ...raw.league, seasons: [...sm.seasons, ...raw.league.seasons] },
-      players: sm.players, events: sm.events,
+      events: sm.events,
       announcements: [...(raw.announcements || []), ...(sm.announcements || [])],
       powerRankings: sm.powerRankings || {}, awards: sm.awards || {}, customRecords: sm.customRecords || [], photos: sm.photos || [],
     };

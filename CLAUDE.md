@@ -4,7 +4,7 @@ Nick runs a Wednesday bowling league at Kingstown Bowl (North Kingstown, RI) and
 
 ## Files
 - `public/data/league.json` — the only real data. League settings, roster, events, announcements, power-ranking commentary, manual awards, custom records, photos.
-- `public/data/sample.json` — fictional preview data. Shown only while `"sampleMode": true` in league.json. **Set `sampleMode` to `false` before the first real night (Oct 21, 2026)** unless Nick says otherwise.
+- `public/data/sample.json` — preview data: the real roster with made-up scores (`node scripts/make-sample.mjs` rebuilds it from the current roster). Shown only while `"sampleMode": true` in league.json. **Set `sampleMode` to `false` before the first real night (Oct 21, 2026)** unless Nick says otherwise.
 - `public/js/engine.js` — every stat is derived here from raw results. Never store computed stats in the data files.
 - `public/js/app.js`, `public/js/charts.js`, `public/css/site.css` — the site.
 - `scripts/validate.mjs` — run before every push. `scripts/test.mjs` — run after any engine change.

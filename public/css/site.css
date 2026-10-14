@@ -352,3 +352,6 @@ footer.site .wrap{padding-block:18px;display:flex;flex-direction:column;gap:14px
 .motw .mtw-vs>span{font-size:34px;color:var(--text)}
 .mtw-card p{font-size:13.5px;color:var(--muted)}
 .motw p{font-size:14.5px;color:var(--text)}
+
+.controls>.seg,.controls>label{min-width:0;max-width:100%}
+html,body{overflow-x:clip}

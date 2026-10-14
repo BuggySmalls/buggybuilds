@@ -19,8 +19,8 @@
     ],
     "skipDates": [],
     "handicap": {
-      "basis": 220,
-      "percent": 90
+      "basis": 200,
+      "percent": 70
     },
     "championship": {
       "method": "weekly finish",

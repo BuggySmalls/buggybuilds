@@ -667,7 +667,7 @@ pages.faq = () => {
   const first = (L.seasons.find(x => !x.name?.startsWith('Sample')) || L.seasons.at(-1));
   const hFrom = cfg.handicapFrom ? E.monthName(cfg.handicapFrom).split(' ')[0] : null;
   const firstMonth = first ? E.monthName(first.start.slice(0, 7)).split(' ')[0] : 'the first month';
-  const ex = [120, 150, 180, 200, 230].map(a => ({ a, h: E.handicapFor(a, hc) }));
+  const ex = [100, 120, 130, 150, 180].map(a => ({ a, h: E.handicapFor(a, hc) }));
   const opp = Math.max(0, (S.active.length || 16) - 1);
   const qa = (qn, ans) => `<details class="faq"><summary>${qn}</summary><div class="faq-a">${ans}</div></details>`;
   const sec = (title, items) => `<section class="panel"><h2>${title}</h2><div class="faq-list">${items.join('')}</div></section>`;
@@ -692,7 +692,7 @@ pages.faq = () => {
     qa(`Is the first month scratch or handicap?`, `<p>${esc(firstMonth)} is <b>scratch</b>: weekly finishes and points go by actual pins. ${hFrom ? `Starting in <b>${esc(hFrom)}</b>, weekly finishes and championship points go by <b>handicap series</b>.` : ''} By then everyone has an average, so the handicap is fair.</p>`),
   ])}
   ${sec('Handicap', [
-    qa('What is a handicap?', `<p>Free pins added to your score, based on how far your average is below a target, so bowlers of different levels can compete for the weekly win. A 140 bowler having a great night can beat a 200 bowler having an average one.</p>`),
+    qa('What is a handicap?', `<p>Free pins added to your score, based on how far your average is below a target, so bowlers of different levels can compete for the weekly win. We use 70% on purpose: it closes most of the gap between bowlers but not all of it, so the better bowler still keeps an edge. Skill still matters, but a newer bowler having a great night can beat a stronger bowler having an off one.</p>`),
     qa('How is mine calculated?', `<p><b>Handicap per game = ${pct}% of (${hc.basis} − your average)</b>, with decimals dropped and never below zero.</p><div class="tbl" style="margin-inline:0;padding-inline:0"><table style="max-width:460px"><thead><tr><th class="l">Average</th><th>Per game</th><th>Per 3-game series</th></tr></thead><tbody>${ex.map(x => `<tr><td class="l">${x.a}</td><td>+${x.h}</td><td>+${x.h * 3}</td></tr>`).join('')}</tbody></table></div><p>Anyone averaging ${hc.basis} or more gets no handicap.</p>`),
     qa('Which average is used?', `<p>Your league average going into that night, across every league game you've bowled. It updates every week. On your very first night you don't have an average yet, so that night's own scores set it.</p>`),
     qa('What does handicap affect?', `<p>Only the weekly finishing order and the championship points it awards${hFrom ? `, from ${esc(hFrom)} on` : ''}. Averages, high games, records, wins and losses, power rankings and leaderboards are all scratch. The standings page shows everyone's current handicap.</p>`),

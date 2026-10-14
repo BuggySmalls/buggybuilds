@@ -9,6 +9,11 @@
   },
   "players": [
     {
+      "id": "adam",
+      "name": "Adam",
+      "active": true
+    },
+    {
       "id": "anthony",
       "name": "Anthony",
       "active": true
@@ -81,11 +86,6 @@
     {
       "id": "ryan",
       "name": "Ryan",
-      "active": true
-    },
-    {
-      "id": "the-gazelle",
-      "name": "The Gazelle",
       "active": true
     }
   ],

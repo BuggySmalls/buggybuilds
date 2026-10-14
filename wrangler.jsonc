@@ -1,0 +1,9 @@
+{
+  // Static site: everything in ./public is served as-is at buggybuilds.org
+  "name": "buggybuilds",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  }
+}

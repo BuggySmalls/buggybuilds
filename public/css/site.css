@@ -742,6 +742,14 @@ footer.site{background:#111;border-top:4px solid #111}
 .mini b{font:400 16px/.9 var(--pixel)}
 .mini.gold{background:var(--maple);color:#111} .mini.shame{background:#4A3A5C;color:#FFB3C8} .mini.pick{background:var(--cyan);color:#111}
 .mini.more{background:#111;color:#fff;font:400 13px var(--pixel);width:34px}
+.head-badges{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:14px;border-top:3px dashed rgba(17,17,17,.35)}
+.hb-label{font:400 13px var(--display);color:#fff;text-shadow:2px 2px 0 #111;letter-spacing:.03em}
+.hb-label b{font:400 20px var(--pixel);color:var(--lime);margin-left:4px}
+.head-badges .mini-badges{flex:1 1 auto;flex-basis:auto;margin-top:0;gap:6px}
+.head-badges .mini{width:36px;height:41px}
+.head-badges .mini i{font-size:8px;max-width:29px}
+.head-badges .mini b{font-size:19px}
+.head-badges .mini-badges.empty-b{color:#EDE6FF}
 
 /* home: compact results that fit a phone */
 .rgrid{display:flex;flex-direction:column;border:3px solid #111;border-radius:14px;overflow:hidden;background:#fff}

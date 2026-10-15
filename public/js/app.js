@@ -448,6 +448,7 @@ pages.player = id => {
       <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span></div>
     </div>
     <div class="big-rank"><b>${rank ?? '–'}</b><span>Season rank</span></div>
+    <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16)}</div>
   </section>
 
   <div class="controls"><a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a></div>

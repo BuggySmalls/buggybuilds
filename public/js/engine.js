@@ -626,10 +626,12 @@ export const BADGES = [
 export function achievements(data, nights, champs) {
   const agg = aggregate(data, nights);
   const earned = Object.fromEntries(data.players.map(p => [p.id, {}]));
-  const give = (pid, key, date, times = 1) => {
+  // log: every time it was earned → {date, game (1-3 or null), times, detail}
+  const give = (pid, key, date, times = 1, info = {}) => {
     if (!earned[pid] || times <= 0) return;
-    const e = earned[pid][key] ||= { count: 0, first: date || null, last: null };
+    const e = earned[pid][key] ||= { count: 0, first: date || null, last: null, log: [] };
     e.count += times; if (date) { e.last = date; e.first ||= date; }
+    e.log.push({ date: date || null, game: info.game ?? null, times, detail: info.detail ?? null });
   };
   const strikeRuns = g => {           // lengths of every run of strikes across the game
     const p = parseFrames(g.str); if (p.error) return [];
@@ -646,63 +648,64 @@ export function achievements(data, nights, champs) {
     for (const r of n.rows) {
       r.games.forEach((g, k) => {
         if (!g) return;
-        if (g.total >= 200) give(r.pid, 'club200', n.date);
-        if (g.total >= 250) give(r.pid, 'club250', n.date);
-        if (g.total === 300) give(r.pid, 'perfect', n.date);
-        if (g.total < 100) give(r.pid, 'soggy', n.date);
-        if (n.rows.some(o => o !== r && o.totals[k] != null && o.totals[k] - g.total === 1)) give(r.pid, 'heartbreaker', n.date);
+        const G = (detail = `scored ${g.total}`) => ({ game: k + 1, detail });
+        if (g.total >= 200) give(r.pid, 'club200', n.date, 1, G());
+        if (g.total >= 250) give(r.pid, 'club250', n.date, 1, G());
+        if (g.total === 300) give(r.pid, 'perfect', n.date, 1, G());
+        if (g.total < 100) give(r.pid, 'soggy', n.date, 1, G());
+        { const o = n.rows.find(o => o !== r && o.totals[k] != null && o.totals[k] - g.total === 1); if (o) give(r.pid, 'heartbreaker', n.date, 1, G(`${g.total} to ${o.totals[k]} vs ${data.players.find(p => p.id === o.pid)?.name || o.pid}`)); }
         if (g.frames && g.str) {
           const runs = strikeRuns(g);
-          if (g.frames.strikes) give(r.pid, 'firstStrike', n.date);
-          give(r.pid, 'turkey', n.date, runs.filter(x => x >= 3).length);
-          give(r.pid, 'hambone', n.date, runs.filter(x => x >= 4).length);
-          give(r.pid, 'fiveBagger', n.date, runs.filter(x => x >= 5).length);
+          if (g.frames.strikes) give(r.pid, 'firstStrike', n.date, 1, G(`${g.frames.strikes} strike${g.frames.strikes === 1 ? '' : 's'}`));
+          give(r.pid, 'turkey', n.date, runs.filter(x => x >= 3).length, G());
+          give(r.pid, 'hambone', n.date, runs.filter(x => x >= 4).length, G());
+          give(r.pid, 'fiveBagger', n.date, runs.filter(x => x >= 5).length, G());
           const p = parseFrames(g.str);
-          if (p.frames[9].balls.length === 3 && p.frames[9].balls.every(b => b.ch === 'X')) give(r.pid, 'wildTurkey', n.date);
-          if (g.frames.open === 0) give(r.pid, 'cleanGame', n.date);
+          if (p.frames[9].balls.length === 3 && p.frames[9].balls.every(b => b.ch === 'X')) give(r.pid, 'wildTurkey', n.date, 1, G());
+          if (g.frames.open === 0) give(r.pid, 'cleanGame', n.date, 1, G());
           const mark = f => f.strike || f.balls[1]?.ch === '/';
-          if (g.total === 200 && p.frames.every(mark) && p.frames.every((f, i) => i === 0 || f.strike !== p.frames[i - 1].strike)) give(r.pid, 'dutch200', n.date);
-          give(r.pid, 'splitHappens', n.date, g.frames.splitsMade);
-          if (g.frames.gutters >= 3) give(r.pid, 'gutterBunny', n.date);
+          if (g.total === 200 && p.frames.every(mark) && p.frames.every((f, i) => i === 0 || f.strike !== p.frames[i - 1].strike)) give(r.pid, 'dutch200', n.date, 1, G());
+          give(r.pid, 'splitHappens', n.date, g.frames.splitsMade, G());
+          if (g.frames.gutters >= 3) give(r.pid, 'gutterBunny', n.date, 1, G(`${g.frames.gutters} gutters`));
         }
       });
       if (r.n === 3) {
-        if (r.series >= 600) give(r.pid, 'series600', n.date);
-        if (r.series >= 700) give(r.pid, 'series700', n.date);
-        if (r.totals[2] - r.totals[0] >= 50) give(r.pid, 'comeback', n.date);
-        if (r.avgIn != null && r.totals.every(t => t > r.avgIn)) give(r.pid, 'hatTrick', n.date);
-        if (r.totals[0] === r.totals[1] && r.totals[1] === r.totals[2]) give(r.pid, 'triplicate', n.date);
-        if (r.totals.every((t, k) => t === top[k]) && n.rows.length > 1) give(r.pid, 'cleanSweep', n.date);
-        if (r.totals[0] > r.totals[1] && r.totals[1] > r.totals[2] && r.totals[0] - r.totals[2] >= 50) give(r.pid, 'fade', n.date);
+        if (r.series >= 600) give(r.pid, 'series600', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
+        if (r.series >= 700) give(r.pid, 'series700', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
+        if (r.totals[2] - r.totals[0] >= 50) give(r.pid, 'comeback', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
+        if (r.avgIn != null && r.totals.every(t => t > r.avgIn)) give(r.pid, 'hatTrick', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
+        if (r.totals[0] === r.totals[1] && r.totals[1] === r.totals[2]) give(r.pid, 'triplicate', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
+        if (r.totals.every((t, k) => t === top[k]) && n.rows.length > 1) give(r.pid, 'cleanSweep', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
+        if (r.totals[0] > r.totals[1] && r.totals[1] > r.totals[2] && r.totals[0] - r.totals[2] >= 50) give(r.pid, 'fade', n.date, 1, { detail: `${r.totals.join(' / ')} · ${r.series} series` });
       }
-      if (leaderRow && r.pid !== leader && r.series > leaderRow.series && r.n >= leaderRow.n) give(r.pid, 'giantKiller', n.date);
-      if (r.place === 2) { seconds[r.pid] = (seconds[r.pid] || 0) + 1; if (seconds[r.pid] % 3 === 0) give(r.pid, 'bridesmaid', n.date); }
+      if (leaderRow && r.pid !== leader && r.series > leaderRow.series && r.n >= leaderRow.n) give(r.pid, 'giantKiller', n.date, 1, { detail: `${r.series} series beat leader ${data.players.find(p => p.id === leader)?.name || leader}'s ${leaderRow.series}` });
+      if (r.place === 2) { seconds[r.pid] = (seconds[r.pid] || 0) + 1; if (seconds[r.pid] % 3 === 0) give(r.pid, 'bridesmaid', n.date, 1, { detail: `2nd place for the ${ordinal(seconds[r.pid])} time` }); }
     }
     const aw = weeklyAwards(data, nights, idx);
-    const imp = aw.find(x => x.key === 'improved'); if (imp?.winner) give(imp.winner.pid, 'improved', n.date);
-    const b = aw.find(x => x.key === 'botw'); if (b?.winner) { botw[b.winner.pid] = (botw[b.winner.pid] || 0) + 1; if (botw[b.winner.pid] % 3 === 0) give(b.winner.pid, 'bowlOfWeek', n.date); }
+    const imp = aw.find(x => x.key === 'improved'); if (imp?.winner) give(imp.winner.pid, 'improved', n.date, 1, { detail: 'Most Improved that night' });
+    const b = aw.find(x => x.key === 'botw'); if (b?.winner) { botw[b.winner.pid] = (botw[b.winner.pid] || 0) + 1; if (botw[b.winner.pid] % 3 === 0) give(b.winner.pid, 'bowlOfWeek', n.date, 1, { detail: `Bowler of the Week #${botw[b.winner.pid]}` }); }
   });
   for (const p of data.players) {
     const s = agg[p.id];
-    if (s.nightWins >= 10) give(p.id, 'tenWins', null, Math.floor(s.nightWins / 10));
-    if (s.strikes >= 50) give(p.id, 'strikeMachine', null, Math.floor(s.strikes / 50));
+    if (s.nightWins >= 10) give(p.id, 'tenWins', null, Math.floor(s.nightWins / 10), { detail: `${s.nightWins} winning nights so far` });
+    if (s.strikes >= 50) give(p.id, 'strikeMachine', null, Math.floor(s.strikes / 50), { detail: `${s.strikes} career strikes so far` });
     // streaks across the nights they bowled
     let heat = 0, up = 0, prev = null;
     for (const n of nights) {
       const r = n.byPid[p.id]; if (!r) continue;
-      if (r.w > r.l) { heat++; if (heat === 3) { give(p.id, 'heater', n.date); heat = 0; } } else heat = 0;
-      if (r.n === 3) { if (prev != null && r.series > prev) { up++; if (up === 5) { give(p.id, 'milkRun', n.date); up = 0; } } else up = 0; prev = r.series; }
+      if (r.w > r.l) { heat++; if (heat === 3) { give(p.id, 'heater', n.date, 1, { detail: '3rd straight winning night' }); heat = 0; } } else heat = 0;
+      if (r.n === 3) { if (prev != null && r.series > prev) { up++; if (up === 5) { give(p.id, 'milkRun', n.date, 1, { detail: `5th straight better series (${r.series})` }); up = 0; } } else up = 0; prev = r.series; }
     }
   }
   if (champs) {
     for (const [id, ms] of Object.entries(champs.counts)) {
-      ms.forEach((m, i) => { give(id, 'firstChamp', m); if ((i + 1) % 3 === 0) give(id, 'threeChamp', m); });
+      ms.forEach((m, i) => { give(id, 'firstChamp', m, 1, { detail: 'Monthly champion' }); if ((i + 1) % 3 === 0) give(id, 'threeChamp', m, 1, { detail: `Title #${i + 1}` }); });
     }
-    for (const m of champs.months.filter(m => m.done)) for (const r of m.table) if (r.nights === m.nights.length && m.nights.length >= 3) give(r.id, 'completeBreakfast', m.key);
+    for (const m of champs.months.filter(m => m.done)) for (const r of m.table) if (r.nights === m.nights.length && m.nights.length >= 3) give(r.id, 'completeBreakfast', m.key, 1, { detail: `Bowled all ${m.nights.length} nights` });
   }
   const ids = data.players.map(p => p.id);
-  for (const a of ids) for (const b of ids) if (a !== b) { const h = headToHead(nights, a, b); if (h.w >= 10 && h.w / h.games >= .75) give(a, 'rivalry'); }
-  for (const m of data.badges || []) if (BADGES.some(b => b.key === m.key)) give(m.pid, m.key, m.date);
+  for (const a of ids) for (const b of ids) if (a !== b) { const h = headToHead(nights, a, b); if (h.w >= 10 && h.w / h.games >= .75) give(a, 'rivalry', null, 1, { detail: `${h.w}-${h.l}${h.t ? '-' + h.t : ''} vs ${data.players.find(p => p.id === b)?.name || b}` }); }
+  for (const m of data.badges || []) if (BADGES.some(b => b.key === m.key)) give(m.pid, m.key, m.date, 1, { detail: m.note || 'Given by the commissioner' });
   return earned;
 }
 

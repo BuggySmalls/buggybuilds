@@ -448,7 +448,7 @@ pages.player = id => {
       <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span></div>
     </div>
     <div class="big-rank"><b>${rank ?? '–'}</b><span>Season rank</span></div>
-    <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16)}</div>
+    <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16, true)}</div>
   </section>
 
   <div class="controls"><a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a></div>
@@ -476,8 +476,8 @@ pages.player = id => {
     <section class="panel"><div class="panel-head"><h2>Best and worst nights</h2></div>
       ${nightsSorted.length ? `<div class="list">${[...nightsSorted.slice(0, 3).map(n => ['Best', n]), ...nightsSorted.slice(-2).reverse().filter(n => !nightsSorted.slice(0, 3).includes(n)).map(n => ['Worst', n])].map(([t, n]) => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none"><span class="small ${t === 'Best' ? 'up' : 'down'}" style="width:44px">${t}</span><div class="grow small muted">${fmtDate(n.date, { weekday: 'short', month: 'short', day: 'numeric' })}</div>${frames(n.byPid[id].totals)}<span class="val">${n.byPid[id].series}</span></a>`).join('')}</div>` : empty('No full nights yet')}
     </section>
-    <section class="panel"><div class="panel-head"><h2>Badges</h2><span class="small muted">${Object.keys(earned).length} of ${E.BADGES.length} · ${Object.values(earned).reduce((a, e) => a + e.count, 0)} unlocks</span></div>
-      ${badgeGroups(earned)}
+    <section class="panel" id="badges"><div class="panel-head"><h2>Badges</h2><span class="small muted">${Object.keys(earned).length} of ${E.BADGES.length} · ${Object.values(earned).reduce((a, e) => a + e.count, 0)} unlocks</span></div>
+      ${badgeGroups(earned, id)}
     </section>
   </div>
 
@@ -496,30 +496,63 @@ pages.player = id => {
   </section>`;
 };
 
-function miniBadges(id, max = 7) {
+function miniBadges(id, max = 7, clickable = false) {
   const earned = S.achievements[id] || {};
   const list = E.BADGES.filter(b => earned[b.key]?.count).sort((a, b) => earned[b.key].count - earned[a.key].count);
   if (!list.length) return '<div class="mini-badges empty-b">No badges yet</div>';
   const cls = b => b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
-  return `<div class="mini-badges">${list.slice(0, max).map(b => `<span class="mini ${cls(b)}" title="${esc(b.name)} ×${earned[b.key].count}"><i>${esc(b.icon || '')}</i><b>${earned[b.key].count}</b></span>`).join('')}${list.length > max ? `<span class="mini more">+${list.length - max}</span>` : ''}</div>`;
+  return `<div class="mini-badges">${list.slice(0, max).map(b => (clickable ? `<button type="button" class="mini ${cls(b)}" data-badge="${esc(id)}:${esc(b.key)}" aria-label="${esc(b.name)}, earned ${earned[b.key].count} time${earned[b.key].count === 1 ? '' : 's'}">` : `<span class="mini ${cls(b)}" title="${esc(b.name)} ×${earned[b.key].count}">`) + `<i>${esc(b.icon || '')}</i><b>${earned[b.key].count}</b>` + (clickable ? '</button>' : '</span>')).join('')}${list.length > max ? (clickable ? `<button type="button" class="mini more" data-all-badges aria-label="See all badges">+${list.length - max}</button>` : `<span class="mini more">+${list.length - max}</span>`) : ''}</div>`;
 }
-function badgeGroups(earned) {
+function badgeGroups(earned, pid) {
   const groups = [['Skill', b => !b.tone && !b.manual && !['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
     ['Cereal Bowlers originals', b => ['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
     ['Hall of Shame', b => b.tone === 'shame'], ['Commissioner’s picks', b => b.manual]];
   return groups.map(([title, f]) => {
     const list = E.BADGES.filter(f).sort((a, b) => (earned[b.key]?.count ? 1 : 0) - (earned[a.key]?.count ? 1 : 0));
-    return `<div class="badge-group"><h3>${title}</h3><div class="badges">${list.map(b => badgeHTML(b, earned[b.key])).join('')}</div></div>`;
+    return `<div class="badge-group"><h3>${title}</h3><div class="badges">${list.map(b => badgeHTML(b, earned[b.key], pid)).join('')}</div></div>`;
   }).join('');
 }
-function badgeHTML(b, got) {
+function badgeHTML(b, got, pid) {
   const n = got?.count || 0;
   const cls = b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
   const when = got?.last ? (got.last.length === 7 ? E.monthName(got.last, true) : fmtDate(got.last)) : '';
-  return `<div class="badge ${cls}${n ? '' : ' locked'}" title="${esc(b.desc)}">
+  const tag = pid ? 'button' : 'div';
+  return `<${tag} ${pid ? `type="button" data-badge="${esc(pid)}:${esc(b.key)}"` : `title="${esc(b.desc)}"`} class="badge ${cls}${n ? '' : ' locked'}">
     <div class="hex"><span class="hex-icon">${esc(b.icon || '')}</span><span class="hex-n">${n ? (n < 10 ? '×' + n : n) : '0'}</span></div>
-    <div style="min-width:0"><b>${esc(b.name)}</b><span>${esc(b.desc)}${n && when ? ` · last ${esc(when)}` : ''}</span></div></div>`;
+    <div style="min-width:0"><b>${esc(b.name)}</b><span>${esc(b.desc)}${n && when ? ` · last ${esc(when)}` : ''}</span></div></${tag}>`;
 }
+
+/* ---------------- Badge detail popup ---------------- */
+function badgeWhen(d) { return !d ? '' : d.length === 7 ? E.monthName(d) : fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' }); }
+function openBadge(pid, key) {
+  const b = E.BADGES.find(x => x.key === key), p = S.players[pid]; if (!b || !p) return;
+  const got = (S.achievements[pid] || {})[key];
+  const cls = b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
+  const log = [...(got?.log || [])].sort((x, y) => (y.date || '').localeCompare(x.date || '') || (y.game || 0) - (x.game || 0));
+  const night = d => d && d.length === 10 && S.nights.some(n => n.date === d);
+  const rows = log.map(e => {
+    const when = e.date ? badgeWhen(e.date) : 'Career';
+    const inner = `<span class="bd-when">${esc(when)}</span><span class="bd-what">${e.game ? `<b>Game ${e.game}</b> · ` : ''}${esc(e.detail || '')}</span>${e.times > 1 ? `<span class="bd-x">×${e.times}</span>` : ''}`;
+    return night(e.date) ? `<a class="bd-row" href="#/night/${e.date}">${inner}<span class="bd-go">›</span></a>` : `<div class="bd-row">${inner}</div>`;
+  }).join('');
+  let dlg = document.getElementById('badgeDlg');
+  if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'badgeDlg'; dlg.className = 'badge-dlg'; document.body.appendChild(dlg);
+    dlg.addEventListener('click', e => { if (e.target === dlg || e.target.closest('[data-close-badge]') || e.target.closest('a')) dlg.close(); }); }
+  dlg.innerHTML = `<div class="bd-card">
+    <button type="button" class="bd-close" data-close-badge aria-label="Close">×</button>
+    <div class="bd-top"><div class="badge ${cls}${got ? '' : ' locked'}"><div class="hex"><span class="hex-icon">${esc(b.icon || '')}</span><span class="hex-n">${got?.count || 0}</span></div></div>
+      <div style="min-width:0"><h2>${esc(b.name)}</h2><p>${esc(b.desc)}</p></div></div>
+    <div class="bd-sub">${esc(p.name)} · ${got ? `earned ${got.count} time${got.count === 1 ? '' : 's'}` : 'not earned yet'}</div>
+    ${rows ? `<div class="bd-list">${rows}</div>` : `<p class="small muted">${b.manual ? 'Handed out by Nick.' : 'Nothing yet — keep bowling.'}</p>`}
+  </div>`;
+  if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-badge],[data-all-badges]'); if (!t) return;
+  e.preventDefault();
+  if (t.dataset.badge) { const [pid, key] = t.dataset.badge.split(':'); openBadge(pid, key); }
+  else document.getElementById('badges')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 /* ---------------- Statistics ---------------- */
 const LEADERS = [

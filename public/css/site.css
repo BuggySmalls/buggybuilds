@@ -776,3 +776,26 @@ a.rg-row:hover{background:#FFF7C2}
   .rg-ser{font-size:20px!important}
   .rg-head{font-size:8.5px}
 }
+
+/* badge buttons + detail popup */
+button.mini{border:0;padding:0;cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+button.mini:hover,button.mini:focus-visible{transform:scale(1.12)}
+button.badge{font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}
+button.badge:focus-visible,button.mini:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+.badge-dlg{border:0;padding:0;background:transparent;max-width:min(440px,calc(100vw - 32px));width:100%;margin:auto;color:#fff}
+.badge-dlg::backdrop{background:rgba(10,6,20,.72)}
+.bd-card{position:relative;background:#1B1530;border:4px solid #111;border-radius:22px;box-shadow:8px 8px 0 #111;padding:20px 18px 16px;max-height:80vh;overflow:auto}
+.bd-close{position:absolute;top:10px;right:12px;width:36px;height:36px;border-radius:50%;border:3px solid #111;background:var(--maple);color:#111;font:400 22px/1 var(--display);cursor:pointer}
+.bd-top{display:flex;gap:14px;align-items:center;padding-right:40px}
+.bd-top .badge{width:auto;padding:0;background:none;border:0;box-shadow:none}
+.bd-top h2{font:400 22px/1.1 var(--display);margin:0 0 4px}
+.bd-top p{margin:0;font-size:14px;color:#D8CEF0}
+.bd-sub{margin:14px 0 8px;font:400 13px var(--display);color:var(--lime);letter-spacing:.03em}
+.bd-list{display:flex;flex-direction:column;gap:6px}
+.bd-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#2A2245;color:#fff;text-decoration:none;font-size:14px}
+a.bd-row:hover{background:#352B57}
+.bd-when{flex:0 0 auto;min-width:92px;font:400 18px/1 var(--pixel);color:var(--cyan)}
+.bd-what{flex:1;min-width:0;color:#EDE6FF}
+.bd-what b{color:#fff}
+.bd-x{font:400 18px var(--pixel);color:var(--maple)}
+.bd-go{font-size:20px;color:#9A8CC0}

@@ -116,6 +116,14 @@ function recapText(idx) {
   lines.push('', `Full results: https://buggybuilds.org/#/night/${n.date}`);
   return lines.join('\n');
 }
+function resultsGrid(n, limit) {
+  const rows = [...n.rows].sort((a, b) => a.pointsPlace - b.pointsPlace || b.series - a.series).slice(0, limit || n.rows.length);
+  const g = v => v == null ? '<span class="faint">–</span>' : v >= 200 ? `<span class="hi">${v}</span>` : v;
+  return `<div class="rgrid${n.handicap ? ' hc' : ''}" role="table" aria-label="Week ${weekNo(n)} results">
+    <div class="rg-row rg-head" role="row"><span>#</span><span>Bowler</span><span>G1</span><span>G2</span><span>G3</span><span>Series</span>${n.handicap ? '<span>Hdcp</span>' : ''}<span>Pts</span></div>
+    ${rows.map(r => `<a class="rg-row${r.pointsPlace <= 3 ? ' p' + r.pointsPlace : ''}" role="row" href="#/player/${esc(r.pid)}"><span class="rg-place">${r.pointsPlace}</span><span class="rg-name">${esc(P(r.pid).name)}</span>${r.totals.map(t => `<span>${g(t)}</span>`).join('')}<span class="rg-ser">${r.series}</span>${n.handicap ? `<span>${r.hdcpSeries}</span>` : ''}<span class="rg-pts">${r.points}</span></a>`).join('')}
+  </div>${limit && n.rows.length > limit ? `<a class="rg-more" href="#/night/${n.date}">All ${n.rows.length} bowlers →</a>` : ''}`;
+}
 function recapButton(idx) { return `<button class="btn" data-recap="${idx}">Copy recap for the group chat</button>`; }
 
 function empty(title, body) { return `<div class="empty"><strong>${esc(title)}</strong>${body ? `<span>${body}</span>` : ''}</div>`; }
@@ -257,13 +265,11 @@ pages.home = () => {
   <div class="grid g-side">
     <div class="grid" style="align-content:start">
       ${last ? `
-      <section class="panel">
+      <section class="panel edge">
         <div class="panel-head"><h2>Week ${weekNo(last)} results</h2><a href="#/night/${last.date}">Full results for ${fmtDate(last.date)}</a></div>
         <p class="muted">${esc(recap(lastIdx))}</p>
         <div class="controls">${recapButton(lastIdx)}</div>
-        <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th><th>Pts</th></tr></thead><tbody>
-        ${last.rows.slice(0, 5).map(r => `<tr><td class="l">${medal(r.place)}</td><td class="l">${who(r.pid, { size: 28 })}</td><td class="l">${frames(r.totals, r.series)}</td><td>${r.points}</td></tr>`).join('')}
-        </tbody></table></div>
+        ${resultsGrid(last, 6)}
       </section>` : `<section class="panel">${empty('Opening night is ' + fmtDate(next?.date || L.seasons?.at(-1)?.start, { month: 'long', day: 'numeric' }), 'Results, standings and awards fill in here the morning after.')}</section>`}
 
       <section class="panel">
@@ -370,7 +376,7 @@ pages.standings = () => {
   const hasFrames = rows.some(r => r.hasFrames);
   const cols = COLS.filter(([k]) => hasFrames || !['strikePct', 'sparePct', 'pinsDown'].includes(k));
   const cell = (r, k) => ({
-    games: r.games, pins: r.pins.toLocaleString(), avg: `<b>${r.avg ?? '—'}</b>`, hdcp: r.avg == null ? '—' : E.handicapFor(r.avg, S.data.league.handicap), w: r.w, l: r.l, winPct: pct(r.winPct), points: `<b>${r.points}</b>`,
+    games: r.games, pins: r.pins.toLocaleString(), avg: `<b>${r.avg ?? '—'}</b>`, hdcp: E.currentHandicap(S.data, S.nights, r.id)?.hdcp ?? '—', w: r.w, l: r.l, winPct: pct(r.winPct), points: `<b>${r.points}</b>`,
     strikePct: pct(r.strikePct), sparePct: pct(r.sparePct), pinsDown: r.hasFrames ? r.pinsDown.toLocaleString() : '—', streak: streakTag(r.streak), monthPts: monthPts[r.id] ?? 0,
   })[k];
   const views = [['week', 'This week'], ['month', 'This month'], ['season', 'Season'], ['all', 'All-time']];
@@ -399,7 +405,8 @@ pages.players = () => {
   <div><h1 class="page-title">Players</h1><p class="page-intro">${list.length} active bowlers, ranked by season points.</p></div>
   <div class="player-grid">
     ${list.map(p => { const s = agg[p.id]; return `<a class="pcard" href="#/player/${esc(p.id)}" style="--av-bg:${avColor(p.id)}">
-      <div class="pcard-top">${avatar(p, 52)}<div style="min-width:0"><div style="font:800 21px/1.05 var(--display)">${esc(p.name)}</div>${p.nickname ? `<div class="small muted">“${esc(p.nickname)}”</div>` : ''}<div class="small faint">${badgeCount(p.id)} badges · ${unlocks(p.id)} unlocks</div></div>${rank[p.id] ? `<span class="pcard-rank">${rank[p.id]}</span>` : ''}</div>
+      <div class="pcard-top">${avatar(p, 52)}<div style="min-width:0"><div style="font:800 21px/1.05 var(--display)">${esc(p.name)}</div>${p.nickname ? `<div class="small muted">“${esc(p.nickname)}”</div>` : ''}<div class="pcard-wins"><b>${s.w}-${s.l}${s.t ? '-' + s.t : ''}</b> game wins · <b>${s.nightWins}</b> winning night${s.nightWins === 1 ? '' : 's'}</div></div>${rank[p.id] ? `<span class="pcard-rank">${rank[p.id]}</span>` : ''}
+        ${miniBadges(p.id)}</div>
       <div class="pcard-stats"><div><b>${s.avg ?? '—'}</b><span>Average</span></div><div><b>${s.hg?.v ?? '—'}</b><span>High game</span></div><div><b>${s.games}</b><span>Games</span></div></div></a>`; }).join('')}
   </div>
   <section class="panel"><div class="panel-head"><h2>Badge leaders</h2></div>
@@ -488,6 +495,13 @@ pages.player = id => {
   </section>`;
 };
 
+function miniBadges(id, max = 7) {
+  const earned = S.achievements[id] || {};
+  const list = E.BADGES.filter(b => earned[b.key]?.count).sort((a, b) => earned[b.key].count - earned[a.key].count);
+  if (!list.length) return '<div class="mini-badges empty-b">No badges yet</div>';
+  const cls = b => b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
+  return `<div class="mini-badges">${list.slice(0, max).map(b => `<span class="mini ${cls(b)}" title="${esc(b.name)} ×${earned[b.key].count}"><i>${esc(b.icon || '')}</i><b>${earned[b.key].count}</b></span>`).join('')}${list.length > max ? `<span class="mini more">+${list.length - max}</span>` : ''}</div>`;
+}
 function badgeGroups(earned) {
   const groups = [['Skill', b => !b.tone && !b.manual && !['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
     ['Cereal Bowlers originals', b => ['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
@@ -667,7 +681,7 @@ pages.faq = () => {
   const first = (L.seasons.find(x => !x.name?.startsWith('Sample')) || L.seasons.at(-1));
   const hFrom = cfg.handicapFrom ? E.monthName(cfg.handicapFrom).split(' ')[0] : null;
   const firstMonth = first ? E.monthName(first.start.slice(0, 7)).split(' ')[0] : 'the first month';
-  const ex = [100, 120, 130, 150, 180].map(a => ({ a, h: E.handicapFor(a, hc) }));
+  const ex = [85, 100, 120, 130, 150, 170].map(a => ({ a, h: E.handicapFor(a, hc) }));
   const opp = Math.max(0, (S.active.length || 16) - 1);
   const qa = (qn, ans) => `<details class="faq"><summary>${qn}</summary><div class="faq-a">${ans}</div></details>`;
   const sec = (title, items) => `<section class="panel"><h2>${title}</h2><div class="faq-list">${items.join('')}</div></section>`;
@@ -692,9 +706,9 @@ pages.faq = () => {
     qa(`Is the first month scratch or handicap?`, `<p>${esc(firstMonth)} is <b>scratch</b>: weekly finishes and points go by actual pins. ${hFrom ? `Starting in <b>${esc(hFrom)}</b>, weekly finishes and championship points go by <b>handicap series</b>.` : ''} By then everyone has an average, so the handicap is fair.</p>`),
   ])}
   ${sec('Handicap', [
-    qa('What is a handicap?', `<p>Free pins added to your score, based on how far your average is below a target, so bowlers of different levels can compete for the weekly win. We use 70% on purpose: it closes most of the gap between bowlers but not all of it, so the better bowler still keeps an edge. Skill still matters, but a newer bowler having a great night can beat a stronger bowler having an off one.</p>`),
+    qa('What is a handicap?', `<p>Free pins added to your score, based on how far your average is below a target, so bowlers of different levels can compete for the weekly win. We use ${pct}% of ${hc.basis} on purpose. Our averages run from the 80s to the 150s, and the best game anyone has bowled is a 214. At ${pct}%, a beginner having a great night can beat a strong bowler having an off one, but over a season the better bowler still keeps an edge. Skill still matters.</p>`),
     qa('How is mine calculated?', `<p><b>Handicap per game = ${pct}% of (${hc.basis} − your average)</b>, with decimals dropped and never below zero.</p><div class="tbl" style="margin-inline:0;padding-inline:0"><table style="max-width:460px"><thead><tr><th class="l">Average</th><th>Per game</th><th>Per 3-game series</th></tr></thead><tbody>${ex.map(x => `<tr><td class="l">${x.a}</td><td>+${x.h}</td><td>+${x.h * 3}</td></tr>`).join('')}</tbody></table></div><p>Anyone averaging ${hc.basis} or more gets no handicap.</p>`),
-    qa('Which average is used?', `<p>Your league average going into that night, across every league game you've bowled. It updates every week. On your very first night you don't have an average yet, so that night's own scores set it.</p>`),
+    qa('Which average is used?', `<p>${hc.games ? `Your average over your <b>last ${hc.games} games</b> (about ${Math.round(hc.games / 3)} nights) going into that night. Using recent games keeps handicaps fair while everyone is still improving: if you jump from a 90 to a 130, your handicap catches up within a few weeks instead of dragging all season.` : 'Your league average going into that night, across every league game you\u2019ve bowled.'} It updates every week. On your very first night you don't have an average yet, so that night's own scores set it.</p>`),
     qa('What does handicap affect?', `<p>Only the weekly finishing order and the championship points it awards${hFrom ? `, from ${esc(hFrom)} on` : ''}. Averages, high games, records, wins and losses, power rankings and leaderboards are all scratch. The standings page shows everyone's current handicap.</p>`),
   ])}
   ${sec('Rankings, records and awards', [

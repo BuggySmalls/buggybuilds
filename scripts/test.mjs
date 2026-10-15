@@ -145,5 +145,18 @@ d.events[1].scores.amy[0] = 200;
 ach = E.achievements(d, E.buildNights(d), null);
 eq(ach.amy.dutch200.count, 1, 'Dutch 200 detected');
 
+// --- handicap uses the most recent N games when set
+d = base();
+d.league.handicap = { basis: 200, percent: 80, games: 3 };
+d.events.push({ date: '2026-10-21', status: 'completed', scores: { amy: [90, 90, 90] } });
+d.events.push({ date: '2026-10-28', status: 'completed', scores: { amy: [150, 150, 150] } });
+d.events.push({ date: '2026-11-04', status: 'completed', scores: { amy: [150, 150, 150] } });
+n = E.buildNights(d);
+eq(n[2].byPid.amy.avgIn, 150, 'last 3 games only');
+eq(n[2].byPid.amy.hdcp, 40, '80% of (200 - 150)');
+eq(E.currentHandicap(d, n, 'amy').hdcp, 40, 'current handicap matches');
+d.league.handicap.games = 0;
+eq(E.buildNights(d)[2].byPid.amy.avgIn, 120, 'all games when no window');
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

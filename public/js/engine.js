@@ -138,7 +138,8 @@ export function buildNights(data) {
   const players = new Set(data.players.map(p => p.id));
   const champCfg = data.league?.championship || {};
   const hcCfg = data.league?.handicap || {};
-  const run = {};   // pins and games bowled before each night, for handicaps
+  const run = {};   // games bowled before each night, for handicaps
+  const window = hcCfg.games || 0;   // 0 = every game; otherwise the most recent N games
   return (data.events || [])
     .filter(e => e.status === 'completed' && e.scores && Object.keys(e.scores).length)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -172,7 +173,8 @@ export function buildNights(data) {
       // handicap: from the average going into the night; a first-timer's own night sets it
       for (const r of rows) {
         const prior = run[r.pid];
-        r.avgIn = prior?.games ? Math.floor(prior.pins / prior.games) : null;
+        const recent = prior ? (window ? prior.slice(-window) : prior) : [];
+        r.avgIn = recent.length ? Math.floor(sum(recent) / recent.length) : null;
         r.hdcp = handicapFor(r.avgIn ?? Math.floor(r.series / r.n), hcCfg);
         r.hdcpSeries = r.series + r.hdcp * r.n;
       }
@@ -194,7 +196,7 @@ export function buildNights(data) {
           group.forEach(r => r.points = share);
         }
       }
-      for (const r of rows) { const a = run[r.pid] ||= { pins: 0, games: 0 }; a.pins += r.series; a.games += r.n; }
+      for (const r of rows) { const a = run[r.pid] ||= []; a.push(...r.totals.filter(t => t != null)); }
       return { id: e.id || e.date, idx, date: e.date, month, handicap, note: e.note || '', rows: ranked,
         byPid: Object.fromEntries(ranked.map(r => [r.pid, r])), raw: e };
     });
@@ -848,4 +850,14 @@ export function matchesToWatch(data, nights, seasonNights, today, forDate) {
   }
   out.forEach((m, i) => m.motw = i === 0);
   return out;
+}
+
+/** A bowler's handicap going into the next night, using the same rule as buildNights. */
+export function currentHandicap(data, nights, pid) {
+  const cfg = data.league?.handicap || {}, win = cfg.games || 0;
+  const games = nights.flatMap(n => n.byPid[pid]?.totals.filter(t => t != null) || []);
+  if (!games.length) return null;
+  const recent = win ? games.slice(-win) : games;
+  const avg = Math.floor(sum(recent) / recent.length);
+  return { avg, hdcp: handicapFor(avg, cfg), games: recent.length };
 }

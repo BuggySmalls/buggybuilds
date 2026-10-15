@@ -11,7 +11,7 @@ const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 214748364
 // Scores are fictional; names come from league.json so everyone sees themselves in the preview.
 const roster = JSON.parse(readFileSync(new URL('../public/data/league.json', import.meta.url))).players.filter(p => p.active !== false);
 const tiers = [[.26, 7.9, .52], [.23, 7.8, .48], [.21, 7.7, .45], [.19, 7.6, .42], [.18, 7.5, .40], [.16, 7.4, .38], [.15, 7.3, .36], [.14, 7.3, .34],
-  [.13, 7.2, .32], [.12, 7.1, .30], [.11, 7.0, .29], [.10, 6.9, .27], [.09, 6.8, .25], [.08, 6.7, .23], [.08, 6.6, .21], [.07, 6.5, .19], [.06, 6.4, .17]];
+  [.13, 7.2, .32], [.12, 7.1, .30], [.11, 7.0, .29], [.10, 6.9, .27], [.09, 6.8, .25], [.08, 6.7, .23], [.05, 6.1, .14], [.03, 5.8, .11], [.03, 5.5, .09]];
 const shuffled = [...roster].sort((a, b) => a.id.localeCompare(b.id)).map((p, i, arr) => arr[(i * 7 + 3) % arr.length]);
 const bowlers = shuffled.map((p, i) => [p.id, p.name, '', '', ...tiers[i % tiers.length]]);
 const [ROLE_TOP, ROLE_SLIDER, ROLE_RISER, ROLE_EARLY, ROLE_LOW] = [bowlers[0][0], bowlers[2][0], bowlers[8][0], bowlers[12][0], bowlers[bowlers.length - 1][0]];

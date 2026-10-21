@@ -528,7 +528,7 @@ function miniBadges(id, max = 7, clickable = false) {
 function badgeGroups(earned, pid) {
   const groups = [['Skill', b => !b.tone && !b.manual && !['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
     ['Cereal Bowlers originals', b => ['completeBreakfast', 'bowlOfWeek', 'milkRun'].includes(b.key)],
-    ['Hall of Shame', b => b.tone === 'shame'], ['Commissioner’s picks', b => b.manual]];
+    ['Hall of Shame', b => b.tone === 'shame']];
   return groups.map(([title, f]) => {
     const list = E.BADGES.filter(f).sort((a, b) => (earned[b.key]?.count ? 1 : 0) - (earned[a.key]?.count ? 1 : 0));
     return `<div class="badge-group"><h3>${title}</h3><div class="badges">${list.map(b => badgeHTML(b, earned[b.key], pid)).join('')}</div></div>`;
@@ -779,7 +779,7 @@ pages.faq = () => {
     qa('How does the purse work?', `<p>${S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
     qa('Can I get league nights in my calendar?', `<p>Yes. Tap <b>Add league nights to my calendar</b> on the home or schedule page. Your phone subscribes to the schedule, so skipped weeks or time changes update on their own, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through.</p>`),
     qa('What counts as a record?', `<p>The Hall of Fame and Hall of Shame update themselves the moment a mark is beaten. The Leaderboards page keeps the top 25 games and series ever bowled, plus the full history of who held each record. Nick can also add custom awards.</p>`),
-    qa('How do badges work?', `<p>Badges unlock automatically from the scores, and you can earn each one again and again. The number in the middle is how many times you've earned it. Hall of Shame badges show up in their own color. Best Dressed, Fan Favorite and Rookie of the Month are handed out by Nick.</p><p>A few to chase: Dutch 200 (strike, spare, strike, spare all game for exactly 200), Triplicate (the same score three games in a row), Clean Sweep (top score in all three games), and Giant Killer (outscore the league leader). And a few to avoid: Soggy Cereal (a game under 100) and Heartbreaker (losing by a single pin).</p>`),
+    qa('How do badges work?', `<p>Badges unlock automatically from the scores, and you can earn each one again and again. The number in the middle is how many times you've earned it. Hall of Shame badges show up in their own color.</p><p>A few to chase: Dutch 200 (strike, spare, strike, spare all game for exactly 200), Triplicate (the same score three games in a row), Clean Sweep (top score in all three games), and Giant Killer (outscore the league leader). And a few to avoid: Soggy Cereal (a game under 100) and Heartbreaker (losing by a single pin).</p>`),
   ])}`;
 };
 

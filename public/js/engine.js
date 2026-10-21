@@ -622,10 +622,6 @@ export const BADGES = [
   { key: 'heartbreaker', name: 'Heartbreaker', desc: 'Lost a game to someone by 1 pin', tone: 'shame', icon: '−1' },
   { key: 'fade', name: 'The Fade', desc: 'Each game worse than the last, down 50+ pins', tone: 'shame', icon: '↘' },
   { key: 'bridesmaid', name: 'Bridesmaid', desc: 'Every three 2nd-place nights', tone: 'shame', icon: '2nd' },
-  // commissioner picks
-  { key: 'bestDressed', name: 'Best Dressed', desc: 'Commissioner’s pick for best bowling apparel', manual: true, icon: '👕' },
-  { key: 'fanFavorite', name: 'Fan Favorite', desc: 'Commissioner’s pick', manual: true, icon: '♥' },
-  { key: 'rookie', name: 'Rookie of the Month', desc: 'Commissioner’s pick', manual: true, icon: 'R' },
 ];
 
 /**
@@ -714,7 +710,6 @@ export function achievements(data, nights, champs) {
   }
   const ids = data.players.map(p => p.id);
   for (const a of ids) for (const b of ids) if (a !== b) { const h = headToHead(nights, a, b); if (h.w >= 10 && h.w / h.games >= .75) give(a, 'rivalry', null, 1, { detail: `${h.w}-${h.l}${h.t ? '-' + h.t : ''} vs ${data.players.find(p => p.id === b)?.name || b}` }); }
-  for (const m of data.badges || []) if (BADGES.some(b => b.key === m.key)) give(m.pid, m.key, m.date, 1, { detail: m.note || 'Given by the commissioner' });
   return earned;
 }
 

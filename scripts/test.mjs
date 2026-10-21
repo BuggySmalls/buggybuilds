@@ -126,7 +126,6 @@ ok(new Set(mw.flatMap(m => [m.a, m.b])).size === 6, 'nobody appears twice');
 
 // --- badges can be earned more than once
 d = base();
-d.badges = [{ pid: 'dee', key: 'bestDressed', date: '2026-10-21' }, { pid: 'dee', key: 'bestDressed', date: '2026-10-28' }];
 d.events.push({ date: '2026-10-21', status: 'completed', scores: { amy: [201, 99, 150], ben: [150, 150, 150], cal: [202, 151, 151], dee: [90, 90, 90] } });
 d.events.push({ date: '2026-10-28', status: 'completed', scores: { amy: [210, 205, 95], ben: [180, 160, 120], cal: [100, 100, 100], dee: [100, 100, 100] },
   frames: { amy: ['X 9/ X 9/ X 9/ X 9/ X 9/X', null, null] } });
@@ -138,7 +137,6 @@ eq(ach.dee.triplicate.count, 2, 'triplicate both weeks');
 eq(ach.cal.cleanSweep.count, 1, 'clean sweep on week 1');
 eq(ach.amy.heartbreaker.count, 2, 'lost by one pin twice in week 1');
 eq(ach.ben.fade.count, 1, 'the fade');
-eq(ach.dee.bestDressed.count, 2, 'manual badge given twice');
 eq(ach.amy.dutch200, undefined, 'Dutch 200 needs a 200 score');
 eq(E.parseFrames('X 9/ X 9/ X 9/ X 9/ X 9/X').score, 200, 'a Dutch 200 scores 200');
 d.events[1].scores.amy[0] = 200;

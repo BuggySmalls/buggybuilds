@@ -48,7 +48,9 @@ function avColor(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt
 function initials(name) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
 function avatar(p, size = 36) {
   const st = `--av:${size}px;--av-fs:${Math.round(size * .42)}px;--av-bg:${avColor(p.id)}`;
-  return `<span class="avatar" style="${st}">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : esc(initials(p.name))}</span>`;
+  // no photo yet: bowler silhouette placeholder, with initials once there's room to read them
+  return p.photo ? `<span class="avatar" style="${st}"><img src="${esc(p.photo)}" alt=""></span>`
+    : `<span class="avatar ph" style="${st}" title="Photo coming soon">${size >= 44 ? `<i>${esc(initials(p.name))}</i>` : ''}</span>`;
 }
 function who(id, { size = 32, link = true, nick = true } = {}) {
   const p = P(id);

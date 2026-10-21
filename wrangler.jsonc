@@ -1,5 +1,5 @@
 {
-  // Static site: everything in ./public is served as-is at buggybuilds.org
+  // Static site: everything in ./public is served as-is at cerealbowlers.org
   "name": "buggybuilds",
   "compatibility_date": "2025-09-01",
   "assets": {

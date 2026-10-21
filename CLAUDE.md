@@ -1,4 +1,4 @@
-# buggybuilds.org — league commissioner playbook
+# cerealbowlers.org — league commissioner playbook
 
 Nick runs Cereal Bowlers, a Wednesday bowling league at Kingstown Bowl (North Kingstown, RI) and manages it entirely by chatting with Claude. Claude is the admin: Nick sends scores (often a photo of the scoring screen), roster changes, nicknames, commentary and award picks; Claude edits the data files, checks them, and pushes to `main`. Cloudflare Workers Builds deploys `public/` automatically about a minute after each push.
 
@@ -6,7 +6,7 @@ Nick runs Cereal Bowlers, a Wednesday bowling league at Kingstown Bowl (North Ki
 - `public/data/league.json` — the only real data. League settings, roster, events, announcements, power-ranking commentary, manual awards, custom records, photos.
 - `public/data/sample.json` — preview data: the real roster with made-up scores (`node scripts/make-sample.mjs` rebuilds it from the current roster). Shown only while `"sampleMode": true` in league.json. **Set `sampleMode` to `false` before the first real night (Oct 21, 2026)** unless Nick says otherwise.
 - `public/js/engine.js` — every stat is derived here from raw results. Never store computed stats in the data files.
-- `public/js/app.js`, `public/js/charts.js`, `public/css/site.css` — the site (version 3, 90s bowling alley design, live since Oct 14 2026). Served at buggybuilds.org and cerealbowlers.org.
+- `public/js/app.js`, `public/js/charts.js`, `public/css/site.css` — the site (version 3, 90s bowling alley design, live since Oct 14 2026). Served at cerealbowlers.org (never link to buggybuilds.org anywhere on the site).
 - `public/v1/` and `public/v2/` — earlier designs kept viewable at /v1/ and /v2/, reading the same live data. The `version-1` branch is the exact saved copy of version 1. Don't change these unless Nick asks.
 - `scripts/validate.mjs` — run before every push. `scripts/test.mjs` — run after any engine change.
 
@@ -34,7 +34,7 @@ Add (or update) one entry in `events`, keyed by date:
 - Photos for the home gallery: `photos[] {src: "img/gallery/…", caption, date}`.
 - Purse: `league.purse {confirmed, buyIn, payouts:[{key,label,share}]}`; keys highGame, highSeries, hdcpSeries, overAverage. Payouts are computed from results; anything paid by hand goes in `purseAdjustments[] {date, pid, amount, note}`. Rules are PROPOSED ($5, 50% high game / 50% high series) until Nick confirms — then set `confirmed: true`.
 - Matches to watch are computed for the next night; override with `matchesToWatch["<date>"] = [{a, b, why}]` (first one is Match of the Week).
-- Calendar: links point to cerealbowlers.org. Never change UIDs; when event details change, bump `REVISION`/`REVISED_AT` in the script so re-imported copies replace old events. `public/calendar.ics` is generated from the real schedule by `scripts/make-calendar.mjs` (validate.mjs runs it). Commit it whenever the schedule, times or skip dates change. Venue address is `league.address`.
+- Calendar: links point to cerealbowlers.org. Never change UIDs (they still end in @buggybuilds.org on purpose — changing them would duplicate events in subscribed calendars); when event details change, bump `REVISION`/`REVISED_AT` in the script so re-imported copies replace old events. `public/calendar.ics` is generated from the real schedule by `scripts/make-calendar.mjs` (validate.mjs runs it). Commit it whenever the schedule, times or skip dates change. Venue address is `league.address`.
 
 ## League rules (approved by Nick, Oct 14 2026)
 - Wins/losses: every game against every other bowler that night (game 1 vs game 1, etc.).
@@ -50,4 +50,4 @@ Add (or update) one entry in `events`, keyed by date:
 ```
 node scripts/validate.mjs && node scripts/test.mjs
 ```
-Commit with a plain message ("Week 1 scores", "Add Rob"), push to `main`, then tell Nick it'll be live in about a minute. You can't load buggybuilds.org from the sandbox (Cloudflare blocks bots), so ask Nick to confirm visually when it matters.
+Commit with a plain message ("Week 1 scores", "Add Rob"), push to `main`, then tell Nick it'll be live in about a minute. You can't load cerealbowlers.org from the sandbox (Cloudflare blocks bots), so ask Nick to confirm visually when it matters.

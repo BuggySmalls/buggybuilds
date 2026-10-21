@@ -79,7 +79,7 @@ function frameSheet(g) {
 }
 const money = x => (x < 0 ? '−' : '') + '$' + Math.abs(x).toFixed(Math.abs(x) % 1 ? 2 : 0);
 function calButtons(small) {
-  const host = location.host || 'buggybuilds.org';
+  const host = 'cerealbowlers.org';
   return `<div class="controls"${small ? ' style="gap:8px"' : ''}><a class="btn primary" href="webcal://${host}/calendar.ics">Add league nights to my calendar</a><a class="btn" href="../calendar.ics" download="league-night.ics">Download .ics file</a></div>`;
 }
 const matches = () => memo('mtw', () => E.matchesToWatch(S.data, S.nights, S.seasonNights, S.todayISO, S.next?.date));
@@ -113,7 +113,7 @@ function recapText(idx) {
     if (mw.length) lines.push('', `👀 Match of the week: ${P(mw[0].a).name} vs ${P(mw[0].b).name}. ${mw[0].reasons[0]}`);
     if (S.next) lines.push(`📅 Next: ${dayName(S.next.date)}, ${fmtTime(L.startTime)} at ${L.venue}`);
   }
-  lines.push('', `Full results: https://buggybuilds.org/#/night/${n.date}`);
+  lines.push('', `Full results: https://cerealbowlers.org/#/night/${n.date}`);
   return lines.join('\n');
 }
 function recapButton(idx) { return `<button class="btn" data-recap="${idx}">Copy recap for the group chat</button>`; }
@@ -242,7 +242,7 @@ pages.home = () => {
         <h1 class="neon">${esc(L.name)}</h1>
         <p class="where">${esc(L.weekday)}s at ${esc(L.venue)}, ${esc(L.town)}</p>
       </div>
-      <div class="hero-side"><div class="board" id="countdown">${countdownHTML(next)}</div><a class="btn ghost-glow" href="webcal://${location.host || 'buggybuilds.org'}/calendar.ics">Add league nights to my calendar</a></div>
+      <div class="hero-side"><div class="board" id="countdown">${countdownHTML(next)}</div><a class="btn ghost-glow" href="webcal://cerealbowlers.org/calendar.ics">Add league nights to my calendar</a></div>
     </div>
   </section>
 
@@ -901,7 +901,7 @@ async function shareNight(idx) {
     x.fillStyle = '#9AA5BE'; x.font = `600 26px ${B}`; x.fillText(a.name, cx + 26, cy + 38);
     x.fillStyle = '#fff'; x.font = `800 40px ${D}`; x.fillText(P(a.winner.pid).name, cx + 26, cy + 84);
   });
-  x.fillStyle = '#6C7896'; x.font = `600 26px ${B}`; x.fillText(`${L.venue} · buggybuilds.org`, 60, 1305);
+  x.fillStyle = '#6C7896'; x.font = `600 26px ${B}`; x.fillText(`${L.venue} · cerealbowlers.org`, 60, 1305);
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   const file = new File([blob], `week-${weekNo(n)}-results.png`, { type: 'image/png' });
   try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: `${L.name} week ${weekNo(n)}` }); return; } } catch (e) { if (e.name === 'AbortError') return; }

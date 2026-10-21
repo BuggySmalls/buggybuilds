@@ -1,6 +1,6 @@
-# buggybuilds.org
+# cerealbowlers.org
 
-Home of Nick's projects. First up: the Wednesday bowling league at Kingstown Bowl.
+Cereal Bowlers — the Wednesday bowling league at Kingstown Bowl.
 
 The site is static (HTML, CSS, JS in `public/`) and every stat is calculated in the browser from the raw results in `public/data/league.json`. Cloudflare Workers serves `public/` and redeploys on every push to `main`.
 

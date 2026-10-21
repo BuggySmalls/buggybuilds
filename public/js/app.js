@@ -1,5 +1,6 @@
 import * as E from './engine.js';
 import { lineChart, barChart, PALETTE } from './charts.js';
+import { installAccount, fetchMe } from './account.js';
 
 /* ================================================================== *
  * Data loading
@@ -9,11 +10,15 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 async function load() {
-  const get = f => fetch(`data/${f}`, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(f); return r.json(); });
-  const raw = await get('league.json');
+  const get = f => fetch(f, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(f); return r.json(); });
+  // api/league.json is league.json with everyone's profile laid over the roster.
+  // If the account server is down, the plain file still has every score.
+  let raw;
+  try { raw = await get('api/league.json'); S.apiDown = false; }
+  catch { raw = await get('data/league.json'); S.apiDown = true; }
   let data = { ...raw, league: { ...raw.league } };
   if (raw.sampleMode) {
-    const sm = await get('sample.json');
+    const sm = await get('data/sample.json');
     data = {
       ...data,
       league: { ...raw.league, seasons: [...sm.seasons, ...raw.league.seasons] },
@@ -44,10 +49,11 @@ async function load() {
  * ================================================================== */
 const P = id => S.players[id] || { id, name: id, nickname: '' };
 const AV_COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D'];
+const colorOf = p => p.color || avColor(p.id);
 function avColor(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
 function initials(name) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
 function avatar(p, size = 36) {
-  const st = `--av:${size}px;--av-fs:${Math.round(size * .42)}px;--av-bg:${avColor(p.id)}`;
+  const st = `--av:${size}px;--av-fs:${Math.round(size * .42)}px;--av-bg:${colorOf(p)}`;
   // no photo yet: bowler silhouette placeholder, with initials once there's room to read them
   return p.photo ? `<span class="avatar" style="${st}"><img src="${esc(p.photo)}" alt=""></span>`
     : `<span class="avatar ph" style="${st}" title="Photo coming soon">${size >= 44 ? `<i>${esc(initials(p.name))}</i>` : ''}</span>`;
@@ -403,10 +409,13 @@ pages.players = () => {
   const badgeCount = id => Object.keys(S.achievements[id] || {}).length;
   const unlocks = id => Object.values(S.achievements[id] || {}).reduce((a, e) => a + e.count, 0);
   const leaders = [...S.data.players].map(p => ({ id: p.id, n: unlocks(p.id), d: badgeCount(p.id) })).filter(x => x.n).sort((a, b) => b.n - a.n || b.d - a.d).slice(0, 8);
+  const cta = S.apiDown || S.me ? '' : `<section class="join-cta"><div><b>Bowling with us?</b><span>Make your profile: photo, nickname, favorite cereal. Just a username and a code.</span></div><a class="btn primary" href="#/join">Make my profile</a></section>`;
+  if (!list.length) return `<div><h1 class="page-title">Players</h1></div>${cta}${empty('No bowlers yet', S.apiDown ? '' : 'Be the first. <a href="#/join">Make your profile</a>.')}`;
   return `
   <div><h1 class="page-title">Players</h1><p class="page-intro">${list.length} active bowlers, ranked by season points.</p></div>
+  ${cta}
   <div class="player-grid">
-    ${list.map(p => { const s = agg[p.id]; return `<a class="pcard" href="#/player/${esc(p.id)}" style="--av-bg:${avColor(p.id)}">
+    ${list.map(p => { const s = agg[p.id] || { w: 0, l: 0, t: 0, nightWins: 0, games: 0 }; return `<a class="pcard" href="#/player/${esc(p.id)}" style="--av-bg:${colorOf(p)}">
       <div class="pcard-top">${avatar(p, 52)}<div style="min-width:0"><div style="font:800 21px/1.05 var(--display)">${esc(p.name)}</div>${p.nickname ? `<div class="small muted">“${esc(p.nickname)}”</div>` : ''}<div class="pcard-wins"><b>${s.w}-${s.l}${s.t ? '-' + s.t : ''}</b> game wins · <b>${s.nightWins}</b> winning night${s.nightWins === 1 ? '' : 's'}</div></div>${rank[p.id] ? `<span class="pcard-rank">${rank[p.id]}</span>` : ''}
         ${miniBadges(p.id)}</div>
       <div class="pcard-stats"><div><b>${s.avg ?? '—'}</b><span>Average</span></div><div><b>${s.hg?.v ?? '—'}</b><span>High game</span></div><div><b>${s.games}</b><span>Games</span></div></div></a>`; }).join('')}
@@ -442,18 +451,19 @@ pages.player = id => {
 
   const stat = (v, l, sub = '') => `<div><b>${v}</b><span>${l}</span>${sub ? `<em>${sub}</em>` : ''}</div>`;
   return `
-  <section class="profile-head" style="--av-bg:${avColor(id)}">
+  <section class="profile-head" style="--av-bg:${colorOf(p)}">
     ${avatar(p, 92)}
     <div style="min-width:0">
       <h1>${esc(p.name)}</h1>
       ${p.nickname ? `<div style="font:700 20px var(--display);color:var(--maple)">“${esc(p.nickname)}”</div>` : ''}
-      <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span></div>
+      ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
+      <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span></div>
     </div>
     <div class="big-rank"><b>${rank ?? '–'}</b><span>Season rank</span></div>
     <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16, true)}</div>
   </section>
 
-  <div class="controls"><a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a></div>
+  <div class="controls">${S.me?.playerId === id ? '<a class="btn primary" href="#/me">Edit my profile</a>' : ''}<a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a>${!p.claimed && !S.apiDown && !S.me ? `<a class="btn" href="#/join?claim=${esc(id)}">This is me</a>` : ''}</div>
 
   <div class="statgrid">
     ${stat(season.avg ?? '—', 'Season average')}${stat(career.avg ?? '—', 'Career average')}
@@ -728,7 +738,9 @@ pages.faq = () => {
     qa('Is there a dress code?', `<p>Yes. <b>Bowling apparel is mandatory</b> every league night. Show up dressed for the lanes.</p>`),
     qa('How many games is a night?', `<p>Three games. Your three games added together are your <b>series</b> for the night.</p>`),
     qa('How do scores get on the site?', `<p>Nick sends a photo of the alley's scoring screen (or the scores) after each night, and the site updates within a minute or two. Every stat, ranking and record is recalculated from the raw scores, so if a score gets fixed later, everything that depends on it fixes itself.</p>`),
-    qa('Do I need an account?', `<p>No. The site is public and read-only. Want a nickname, a photo, or a correction? Text Nick.</p>`),
+    qa('Do I need an account?', `<p>Not to look around. Everything on the site is public. Make an account to set up your own profile: photo, nickname, favorite cereal, walk-up song, ball weight and a bio. <a href="#/join">Make your profile</a>.</p>`),
+    qa('How do I sign in?', `<p>A username plus a <b>4-digit code</b> or a <b>swipe pattern</b>, like a phone lock screen. No email, no phone number, nothing to verify. Five wrong tries locks the account for a while. Forgot yours? Text Nick and he’ll reset it, then sign in and set a new one.</p>`),
+    qa('I bowled before I made an account. Do my scores carry over?', `<p>Yes. Nick logs scores under the name on the lane screen. When you sign up, pick that name from the list (or later on your profile page) and those games become yours. If the wrong person grabs your name, tell Nick.</p>`),
     qa('What if I miss a night?', `<p>You don't earn points that night, and your attendance streak resets. A missed night doesn't break your winning or losing streak, and it doesn't change your average.</p>`),
     qa('What if I leave early?', `<p>The games you bowled count toward your average and your wins and losses. Your series for that night is just the games you bowled, so you'll likely finish lower. High series records only count full three-game nights.</p>`),
   ])}
@@ -902,6 +914,7 @@ pages.records = () => {
 /* ---------------- Rivalries ---------------- */
 pages.rivalries = () => {
   const ids = S.active.map(p => p.id);
+  if (ids.length < 2) return `<div><h1 class="page-title">Rivalries</h1></div>${empty('Need two bowlers first', 'Rivalries show up once at least two people are on the roster.')}`;
   let { a, b } = q();
   const riv = memo('riv', () => E.rivalries(S.data, S.nights, 6));
   if (!S.players[a]) a = riv[0]?.a || ids[0];
@@ -1013,7 +1026,10 @@ function route() {
   try { html = page(decodeURIComponent(parts[1] || '')); }
   catch (e) { console.error(e); html = empty('This page hit a snag', 'Refresh to try again.'); }
   $('#app').innerHTML = html;
-  const navKey = { player: 'players', night: 'schedule' }[key] || key;
+  $('#acct').innerHTML = ACCT.headerHTML();
+  const joinBar = $('#joinBar'); if (joinBar) joinBar.hidden = !!(S.me || S.apiDown || ['join', 'login', 'me'].includes(key));
+  try { ACCT.after(key); } catch (e) { console.error(e); }
+  const navKey = { player: 'players', night: 'schedule', me: 'players', join: 'players', login: 'players' }[key] || key;
   document.querySelectorAll('.nav a, .tabbar a, .sheet a').forEach(a => {
     const k = a.getAttribute('href').slice(2) || 'home';
     if (k === navKey) { a.setAttribute('aria-current', 'page'); if (a.closest('.nav') && innerWidth > 720) a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
@@ -1021,7 +1037,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'schedule'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
@@ -1045,9 +1061,15 @@ document.addEventListener('pointerover', e => { const t = e.target.closest?.('[d
 document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY - 36) + 'px'; } });
 
 /* ================================================================== *
+ * Accounts
+ * ================================================================== */
+async function reload() { await load(); route(); }
+const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
+
+/* ================================================================== *
  * Boot
  * ================================================================== */
-load().then(() => {
+Promise.all([load(), fetchMe().then(u => { S.me = u; })]).then(() => {
   const L = S.data.league;
   $('#logoName').textContent = L.name; $('#footLeague').textContent = `${L.name} · ${S.season?.name || ''}`;
   $('#sampleBar').hidden = !S.sample;

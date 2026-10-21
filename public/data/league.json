@@ -45,7 +45,12 @@
       ],
       "minimum": 1,
       "handicapFrom": "2026-11",
-      "combine": [["2026-10", "2026-11"]]
+      "combine": [
+        [
+          "2026-10",
+          "2026-11"
+        ]
+      ]
     },
     "gamesPerNight": 3,
     "address": "6125 Post Road, North Kingstown, RI 02852",
@@ -66,160 +71,7 @@
       ]
     }
   },
-  "players": [
-    {
-      "id": "adam",
-      "name": "Adam",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "anthony",
-      "name": "Anthony",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "buggy",
-      "name": "Buggy",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "c4m",
-      "name": "C4M",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "cam",
-      "name": "Cam",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "chris",
-      "name": "Chris",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "diandra",
-      "name": "Diandra",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "fontes",
-      "name": "Fontes",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "james",
-      "name": "James",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "jason",
-      "name": "Jason",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "kate",
-      "name": "Kate",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "liam-b",
-      "name": "Liam B.",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "liam-c",
-      "name": "Curran",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "matt",
-      "name": "Matt",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "n8",
-      "name": "N8",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "q",
-      "name": "Q",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "rob",
-      "name": "Rob",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "roy",
-      "name": "Roy",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    },
-    {
-      "id": "ryan",
-      "name": "Ryan",
-      "nickname": "",
-      "hand": "",
-      "joined": "2026-10-21",
-      "active": true
-    }
-  ],
+  "players": [],
   "events": [],
   "announcements": [
     {
@@ -233,5 +85,9 @@
   "customRecords": [],
   "photos": [],
   "purseAdjustments": [],
-  "matchesToWatch": {}
+  "matchesToWatch": {},
+  "accounts": {
+    "resets": {},
+    "hidden": []
+  }
 }

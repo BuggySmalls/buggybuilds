@@ -8,6 +8,8 @@ Nick runs Cereal Bowlers, a Wednesday bowling league at Kingstown Bowl (North Ki
 - `public/js/engine.js` — every stat is derived here from raw results. Never store computed stats in the data files.
 - `public/js/app.js`, `public/js/charts.js`, `public/css/site.css` — the site (version 3, 90s bowling alley design, live since Oct 14 2026). Served at cerealbowlers.org (never link to buggybuilds.org anywhere on the site).
 - `public/v1/` and `public/v2/` — earlier designs kept viewable at /v1/ and /v2/, reading the same live data. The `version-1` branch is the exact saved copy of version 1. Don't change these unless Nick asks.
+- `src/worker.js` — bowler accounts (Oct 21 2026). Only `/api/*` runs code; everything else is static. Accounts live in a Durable Object (SQLite) called `Accounts`, created by the `migrations` entry in `wrangler.jsonc` — never remove or rename that migration.
+- `public/js/account.js` — sign up (#/join), sign in (#/login) and edit profile (#/me) screens.
 - `scripts/validate.mjs` — run before every push. `scripts/test.mjs` — run after any engine change.
 
 ## Logging a night
@@ -23,8 +25,17 @@ Add (or update) one entry in `events`, keyed by date:
 - Reading a scoring-screen photo: transcribe every frame you can read. If a frame is unreadable, log the game total only (no frames) for that game rather than guessing. Tell Nick which games you couldn't read.
 - Use roster ids exactly. If a name in the photo isn't on the roster, ask before adding.
 
+## Bowler accounts (Nick, Oct 21 2026)
+Nick cleared the old roster: bowlers now make their own profiles on the site. Login is a username plus a 4-digit code or a swipe pattern — no email, no phone, never add them. Browsing never needs an account.
+- What a bowler sets themselves: name, nickname, hand, ball weight, favorite cereal, walk-up song, bio, color, photo. Don't edit those in league.json; the site lays each account's profile over the roster.
+- `players[]` in league.json is now "bowlers on the scoresheet". When logging scores, use the bowler's account id if they have one (Nick can see usernames on the Players page; `cerealbowlers.org/api/roster` lists them). If someone bowled without an account, add a placeholder `{id, name, joined, active: true}` from the lane-screen name; when they sign up they pick that name and the scores become theirs. If an account bowled, also add `{id: <their playerId>, name}` to `players[]` so the validator accepts the scores.
+- Forgot code/pattern: `accounts.resets["<username lowercase>"] = "<today YYYY-MM-DD>"`. Their next sign-in sets a new one. Remove the entry afterwards.
+- Remove a fake or duplicate account: add the lowercase username to `accounts.hidden`.
+- Five wrong tries locks an account for 15 min (longer each time). A reset also clears the lock.
+- Can't merge two accounts or move scores between ids from here without editing `events`; if someone claimed the wrong bowler, hide the account and have them sign up again.
+
 ## Other admin tasks (all in league.json)
-- Roster: `players[]` → `{id, name, nickname, hand, joined, active, photo?}`. Bench with `"active": false` (history stays). Photos go in `public/img/players/<id>.jpg` and `"photo": "img/players/<id>.jpg"`.
+- Roster: `players[]` → `{id, name, nickname, hand, joined, active, photo?}`. Bench with `"active": false` (history stays). Profile details now come from accounts (above).
 - League settings: `league.name`, `seasons[]`, `skipDates[]`, `startTime`, `socialTime`, `handicap`, `championship.points`.
 - Announcements: `announcements[] {date, title, body}`.
 - Power-ranking commentary: `powerRankings["<date>"].comments[<id>] = "text"`; optional `order: [ids]` to override the computed order. Keep it friendly ribbing.

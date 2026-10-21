@@ -1,9 +1,16 @@
 {
-  // Static site: everything in ./public is served as-is at cerealbowlers.org
+  // cerealbowlers.org: everything in ./public is served as-is.
+  // src/worker.js only handles /api/* (bowler accounts and profiles).
   "name": "buggybuilds",
+  "main": "src/worker.js",
   "compatibility_date": "2025-09-01",
   "assets": {
     "directory": "./public",
+    "binding": "ASSETS",
     "not_found_handling": "404-page"
-  }
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ACCOUNTS", "class_name": "Accounts" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Accounts"] }]
 }

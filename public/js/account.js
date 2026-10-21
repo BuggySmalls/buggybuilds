@@ -7,7 +7,7 @@ const HANDS = ['Right', 'Left', 'Two-handed'];
 
 let C; // context from app.js: { S, pages, esc, avatar, empty, reload, colorOf }
 
-async function api(path, { method = 'GET', body, raw } = {}) {
+export async function api(path, { method = 'GET', body, raw } = {}) {
   const init = { method, credentials: 'same-origin', headers: {} };
   if (body !== undefined) {
     if (raw) { init.body = body; init.headers['content-type'] = 'image/jpeg'; }

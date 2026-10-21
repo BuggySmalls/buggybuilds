@@ -34,6 +34,13 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - Five wrong tries locks an account for 15 min (longer each time). A reset also clears the lock.
 - Can't merge two accounts or move scores between ids from here without editing `events`; if someone claimed the wrong bowler, hide the account and have them sign up again.
 
+## Pick'em, call-outs, fun facts (Nick, Oct 21 2026)
+- Stored by the account server (`picks`, `callouts` tables); scored in the browser from real results (`public/js/games.js`). Nothing to log by hand.
+- Pick'em: top series 3 pts, lowest series 2 (full 3-game nights only, ties all count), any 200 game 1, each match to watch 1 (higher series). Picks lock at `league.startTime`; everyone's picks show after the lock.
+- Call-outs: one bowler calls out another for the next night, optional 100-char trash talk. Higher series wins; no contest if either doesn't bowl. Max 3 per bowler per night; can take back before first ball.
+- Ids matter: picks and call-outs use account player ids, so log scores under the same ids or they show as no contest / wrong.
+- Fun facts: `public/js/facts.js`. One random fact on the home page and ticker each load. Only add facts you're sure are true.
+
 ## Other admin tasks (all in league.json)
 - Roster: `players[]` → `{id, name, nickname, hand, joined, active, photo?}`. Bench with `"active": false` (history stays). Profile details now come from accounts (above).
 - League settings: `league.name`, `seasons[]`, `skipDates[]`, `startTime`, `socialTime`, `handicap`, `championship.points`.

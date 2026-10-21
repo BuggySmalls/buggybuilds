@@ -36,6 +36,15 @@ const slug = s => keyOf(s).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').s
 const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 const randHex = n => hex(crypto.getRandomValues(new Uint8Array(n)));
 const sha256 = async s => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+// Epoch ms for a wall-clock time in a time zone (handles daylight saving).
+function zonedMs(date, hm, tz = 'America/New_York') {
+  const guess = Date.parse(`${date}T${hm}:00Z`);
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const p = Object.fromEntries(f.formatToParts(new Date(guess)).map(x => [x.type, x.value]));
+  return guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess);
+}
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const PICK_KEY = /^(top|low|h200|m:[a-z0-9-]{1,30}~[a-z0-9-]{1,30})$/;
 const nyDate = t => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(t));
 
 async function hashSecret(secret, salt) {
@@ -97,6 +106,8 @@ export class Accounts extends DurableObject {
         photo BLOB, photo_v INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, ukey TEXT NOT NULL, created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS signups (ip TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS picks (date TEXT NOT NULL, ukey TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey, k));
+      CREATE TABLE IF NOT EXISTS callouts (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, msg TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
     `);
   }
 
@@ -189,8 +200,46 @@ export class Accounts extends DurableObject {
         return json({ ok: true }, 200, { 'set-cookie': `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0` });
       }
 
+      if (method === 'GET' && path === '/games') {
+        const L = await this.league(url.origin);
+        return json(this.games(L, await this.me(request)));
+      }
+
       const me = await this.me(request);
       if (!me) return fail(401, 'Sign in first.');
+      if (method === 'POST' && path === '/pick') {
+        const { date, key, value } = await request.json();
+        const L = await this.league(url.origin);
+        const bad = this.openNight(L, date); if (bad) return fail(400, bad);
+        if (!PICK_KEY.test(key || '')) return fail(400, 'That’s not a pick.');
+        if (value == null || value === '') this.sql.exec('DELETE FROM picks WHERE date = ? AND ukey = ? AND k = ?', date, me.ukey, key);
+        else {
+          const v = String(value);
+          if (key === 'h200' ? !['yes', 'no'].includes(v) : !this.merged(L).some(p => p.id === v)) return fail(400, 'That’s not one of the choices.');
+          if (key.startsWith('m:') && !key.slice(2).split('~').includes(v)) return fail(400, 'Pick one of the two bowlers.');
+          this.sql.exec('INSERT INTO picks (date, ukey, k, v, at) VALUES (?,?,?,?,?) ON CONFLICT(date, ukey, k) DO UPDATE SET v = excluded.v, at = excluded.at', date, me.ukey, key, v, now());
+        }
+        return json(this.games(L, me));
+      }
+      if (method === 'POST' && path === '/callout') {
+        const { date, to, msg } = await request.json();
+        const L = await this.league(url.origin);
+        const bad = this.openNight(L, date); if (bad) return fail(400, bad);
+        if (to === me.player_id) return fail(400, 'You can’t call yourself out.');
+        if (!this.merged(L).some(p => p.id === to && p.active !== false)) return fail(404, 'No bowler by that name.');
+        if (this.sql.exec('SELECT 1 FROM callouts WHERE date = ? AND from_ukey = ? AND to_pid = ?', date, me.ukey, to).toArray().length) return fail(409, 'You already called them out for that night.');
+        if (this.sql.exec('SELECT COUNT(*) AS n FROM callouts WHERE date = ? AND from_ukey = ?', date, me.ukey).one().n >= 3) return fail(429, 'Three call-outs a night. Pick your battles.');
+        this.sql.exec('INSERT INTO callouts (date, from_ukey, to_pid, msg, created_at) VALUES (?,?,?,?,?)', date, me.ukey, to, clean(msg, 100), now());
+        return json(this.games(L, me), 201);
+      }
+      if (method === 'DELETE' && path.startsWith('/callout/')) {
+        const c = this.sql.exec('SELECT * FROM callouts WHERE id = ?', +path.slice(9)).toArray()[0];
+        if (!c || c.from_ukey !== me.ukey) return fail(404, 'Not your call-out.');
+        const L = await this.league(url.origin);
+        if (now() >= this.lockAt(L, c.date)) return fail(400, 'Too late to back down now.');
+        this.sql.exec('DELETE FROM callouts WHERE id = ?', c.id);
+        return json(this.games(L, me));
+      }
       if (method === 'POST' && path === '/profile') {
         const body = await request.json();
         this.sql.exec('UPDATE accounts SET profile = ? WHERE ukey = ?', JSON.stringify(cleanProfile(body)), me.ukey);
@@ -230,6 +279,38 @@ export class Accounts extends DurableObject {
       console.error(e);
       return fail(500, 'Something broke. Try again.');
     }
+  }
+
+  // A league night that is still open for picks and call-outs. Returns an error string or null.
+  openNight(L, date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return 'Pick a league night.';
+    const lg = L.league || {};
+    if (WEEKDAYS[new Date(date + 'T12:00:00Z').getUTCDay()] !== (lg.weekday || 'Wednesday')) return 'That isn’t a league night.';
+    if ((lg.skipDates || []).includes(date)) return 'No bowling that night.';
+    if ((L.events || []).some(e => e.date === date && e.status === 'completed')) return 'That night is already scored.';
+    const lock = zonedMs(date, lg.startTime || '19:15', lg.timezone);
+    if (now() >= lock) return 'Too late. Picks lock at first ball.';
+    if (lock - now() > 8 * 86400e3) return 'Too early. Picks open the week of.';
+    return null;
+  }
+  lockAt(L, date) { const lg = L.league || {}; return zonedMs(date, lg.startTime || '19:15', lg.timezone); }
+
+  games(L, me) {
+    const { hidden } = this.admin(L);
+    const pidOf = Object.fromEntries(this.all().map(a => [a.ukey, a.player_id]));
+    const live = ukey => !hidden.has(ukey) && pidOf[ukey];
+    const nights = {};
+    for (const r of this.sql.exec('SELECT date, ukey, k, v FROM picks ORDER BY date').toArray()) {
+      if (!live(r.ukey)) continue;
+      const n = nights[r.date] ??= { lockAt: this.lockAt(L, r.date), counts: {}, byPlayer: {}, mine: {} };
+      ((n.counts[r.k] ??= {})[r.v] = ((n.counts[r.k] ?? {})[r.v] || 0) + 1);
+      if (now() >= n.lockAt) (n.byPlayer[pidOf[r.ukey]] ??= {})[r.k] = r.v;
+      if (me && r.ukey === me.ukey) n.mine[r.k] = r.v;
+    }
+    for (const n of Object.values(nights)) if (now() < n.lockAt) delete n.byPlayer;
+    const callouts = this.sql.exec('SELECT id, date, from_ukey, to_pid, msg, created_at FROM callouts ORDER BY created_at').toArray()
+      .filter(c => live(c.from_ukey)).map(c => ({ id: c.id, date: c.date, from: pidOf[c.from_ukey], to: c.to_pid, msg: c.msg, at: c.created_at }));
+    return { now: now(), picks: nights, callouts };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

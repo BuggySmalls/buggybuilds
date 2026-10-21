@@ -1,6 +1,8 @@
 import * as E from './engine.js';
 import { lineChart, barChart, PALETTE } from './charts.js';
 import { installAccount, fetchMe } from './account.js';
+import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable } from './games.js';
+import { randomFact } from './facts.js';
 
 /* ================================================================== *
  * Data loading
@@ -42,6 +44,8 @@ async function load() {
   S.purse = E.purse(data, S.nights);
   S.next = E.nextNight(data, new Date());
   S.cache = {};
+  S.games = S.apiDown ? null : await fetchGames();
+  S.fact ??= randomFact();
 }
 
 /* ================================================================== *
@@ -261,6 +265,8 @@ pages.home = () => {
     </div>
   </section>
 
+  ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
+
   <section class="kpis">
     <a class="kpi" href="#/standings"><span class="lbl">League leader</span>${leader ? `<span class="v">${leader.points} pts</span><span class="who">${esc(P(leader.id).name)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'}</a>
     <a class="kpi" href="#/championships"><span class="lbl">Reigning monthly champ</span>${lastChamp ? `<span class="v">${esc(E.monthName(lastChamp.key, true).split(' ')[0])}</span><span class="who">${esc(P(lastChamp.champion.id).name)}</span>` : '<span class="v">—</span><span class="who muted">Crowned at month\u2019s end</span>'}</a>
@@ -293,6 +299,8 @@ pages.home = () => {
     </div>
 
     <div class="grid" style="align-content:start">
+      <section class="panel fact-card"><div class="panel-head"><h2>Did you know?</h2><button type="button" class="linkish small" data-fact>Another one</button></div><p class="fact" id="fact">${esc(S.fact)}</p></section>
+      ${homeCallouts()}
       ${botw ? `<section class="panel">
         <div class="panel-head"><h2>Bowler of the week</h2></div>
         <div style="display:flex;gap:14px;align-items:center">${avatar(P(botw.winner.pid), 64)}<div><h3 style="font-size:28px">${esc(P(botw.winner.pid).name)}</h3><p class="muted">${esc(botw.winner.why)}</p></div></div>
@@ -344,7 +352,7 @@ function tickerHTML() {
   const mw = matches(); if (mw[0]) bits.push(`MATCH OF THE WEEK: ${P(mw[0].a).name.toUpperCase()} VS ${P(mw[0].b).name.toUpperCase()}`);
   const lead = seasonTable()[0]; if (lead) bits.push(`LEAGUE LEADER: ${P(lead.id).name.toUpperCase()} ${lead.points} PTS`);
   if (S.next) bits.push(`NEXT UP: ${fmtDate(S.next.date, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()} · ${fmtTime(S.data.league.startTime)}`);
-  bits.push('BOWLING APPAREL MANDATORY', 'NO SOCKS ON THE LANES');
+  bits.push('BOWLING APPAREL MANDATORY', 'NO SOCKS ON THE LANES', 'DID YOU KNOW? ' + S.fact.toUpperCase());
   const run = bits.map(b => `<span>${esc(b)}</span>`).join('<i>★</i>');
   return `<div class="ticker-track">${run}<i>★</i>${run}<i>★</i></div>`;
 }
@@ -458,13 +466,14 @@ pages.player = id => {
       <h1>${esc(p.name)}</h1>
       ${p.nickname ? `<div style="font:700 20px var(--display);color:var(--maple)">“${esc(p.nickname)}”</div>` : ''}
       ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
-      <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span></div>
+      <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span>${(() => { const r = S.games ? calloutRecord(id) : null; return r && r.w + r.l + r.t ? `<span>Call-outs <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>` : ''; })()}${(() => { const t = S.games ? pickTable().find(x => x.id === id) : null; return t ? `<span>Pick’em <b>${t.pts} pts</b></span>` : ''; })()}</div>
     </div>
     <div class="big-rank"><b>${rank ?? '–'}</b><span>Season rank</span></div>
     <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16, true)}</div>
   </section>
 
   <div class="controls"><a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a>${!p.claimed && !S.apiDown && !S.me ? `<a class="btn" href="#/join?claim=${esc(id)}">This is me</a>` : ''}</div>
+  ${profileCallouts(id)}
 
   <div class="statgrid">
     ${stat(season.avg ?? '—', 'Season average')}${stat(career.avg ?? '—', 'Career average')}
@@ -741,6 +750,8 @@ pages.faq = () => {
     qa('How do scores get on the site?', `<p>Nick sends a photo of the alley's scoring screen (or the scores) after each night, and the site updates within a minute or two. Every stat, ranking and record is recalculated from the raw scores, so if a score gets fixed later, everything that depends on it fixes itself.</p>`),
     qa('Do I need an account?', `<p>Not to look around. Everything on the site is public. Make an account to set up your own profile: photo, nickname, favorite cereal, walk-up song, ball weight and a bio. <a href="#/join">Make your profile</a>.</p>`),
     qa('How do I sign in?', `<p>A username plus a <b>4-digit code</b> or a <b>swipe pattern</b>, like a phone lock screen. No email, no phone number, nothing to verify. Five wrong tries locks the account for a while. Forgot yours? Text Nick and he’ll reset it, then sign in and set a new one.</p>`),
+    qa('How does Pick’em work?', `<p>Before first ball, signed-in bowlers pick who bowls the <b>top series</b> (3 points), the <b>lowest series</b> (2 points), whether anyone bowls a <b>200 game</b> (1 point), and the winner of each match to watch (1 point each, by series). Picks lock at ${fmtTime(L.startTime)}, and then everyone’s picks are visible. Ties count as right for everyone tied. Most points over the season wins. <a href="#/pickem">Make your picks</a>.</p>`),
+    qa('What’s a call-out?', `<p>Open another bowler’s profile and call them out for the next night, with an optional line of trash talk. Whoever bowls the higher series that night wins. If either of you doesn’t bowl, it’s no contest. Up to three call-outs a night, and you can take one back until first ball. Your call-out record shows on your profile.</p>`),
     qa('I bowled before I made an account. Do my scores carry over?', `<p>Yes. Nick logs scores under the name on the lane screen. When you sign up, pick that name from the list (or later on your profile page) and those games become yours. If the wrong person grabs your name, tell Nick.</p>`),
     qa('What if I miss a night?', `<p>You don't earn points that night, and your attendance streak resets. A missed night doesn't break your winning or losing streak, and it doesn't change your average.</p>`),
     qa('What if I leave early?', `<p>The games you bowled count toward your average and your wins and losses. Your series for that night is just the games you bowled, so you'll likely finish lower. High series records only count full three-game nights.</p>`),
@@ -832,7 +843,8 @@ pages.night = date => {
     ${broken.length ? `<h3 style="margin-top:6px">Records broken</h3><div class="rec-list">${broken.map(r => `<div class="rec stack"><div class="t">${esc(r.title)}</div>${who(r.holder, { size: 24 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : ''}
     </section>
     <section class="panel"><div class="panel-head"><h2>Weekly awards</h2></div><div class="awards">${aw.map(awardHTML).join('')}</div></section>
-  </div>`;
+  </div>
+  ${nightCallouts(n.date)}`;
 };
 
 /* ---------------- Monthly championships ---------------- */
@@ -1039,7 +1051,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'schedule'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
@@ -1067,6 +1079,8 @@ document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.lef
  * ================================================================== */
 async function reload() { await load(); route(); }
 const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
+installGames({ S, E, pages, esc, avatar, who, empty, fmtDate, fmtTime, P, matches, route });
+document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *
  * Boot

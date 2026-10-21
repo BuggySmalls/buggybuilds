@@ -187,7 +187,7 @@ function afterJoin() {
 
 function loginPage() {
   if (C.S.apiDown) return offline();
-  if (C.S.me) { location.replace('#/me'); return ''; }
+  if (C.S.me) { location.replace(`#/player/${encodeURIComponent(C.S.me.playerId)}`); return ''; }
   return shell('Sign in', 'Your username, then your code or pattern.', `
     <form class="acct-form" id="loginForm" autocomplete="off">
       <label class="field">Username<input class="txt" name="username" maxlength="20" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
@@ -207,7 +207,7 @@ function afterLogin() {
     msg(''); f.hidden = true;
     const step = document.getElementById('codeStep'); step.hidden = false;
     const back = () => { step.hidden = true; f.hidden = false; msg(''); };
-    const done = r => { try { localStorage.setItem('cb_user', info.username); } catch { } C.S.me = r.user; C.reload().then(() => location.hash = r.reset ? '#/me?reset=1' : '#/me'); };
+    const done = r => { try { localStorage.setItem('cb_user', info.username); } catch { } C.S.me = r.user; C.reload().then(() => location.hash = r.reset ? '#/me?reset=1' : `#/player/${encodeURIComponent(r.user.playerId)}`); };
     if (info.reset) {
       step.innerHTML = `<p class="acct-who"><b>${C.esc(info.username)}</b> · Nick reset your login. Set a new one. · <button type="button" class="linkish">back</button></p><div></div>`;
       step.querySelector('button').onclick = back;
@@ -236,7 +236,7 @@ function mePage() {
   const color = pr.color || C.colorOf({ id: S.me.playerId });
   const opt = (v, cur) => `<option value="${v}"${String(v) === String(cur ?? '') ? ' selected' : ''}>${v ? v + ' lb' : '—'}</option>`;
   return `
-  <div><h1 class="page-title">My profile</h1><p class="page-intro">${qp.welcome ? 'You’re in! Dress up your profile. Everything here is optional.' : qp.reset ? 'New login saved.' : `Signed in as <b>${esc(S.me.username)}</b>.`}</p></div>
+  <div><h1 class="page-title">Edit profile</h1><p class="page-intro">${qp.welcome ? 'You’re in! Dress up your profile. Everything here is optional.' : qp.reset ? 'New login saved.' : `Signed in as <b>${esc(S.me.username)}</b>.`}</p></div>
   <section class="panel acct-panel">
     <form class="acct-form" id="meForm" autocomplete="off">
       <div class="photo-row">
@@ -256,7 +256,7 @@ function mePage() {
       <div class="field"><span>How you bowl</span><div class="seg" role="group" id="handSeg">${['', ...HANDS].map(h => `<button type="button" data-hand="${h}" aria-pressed="${(pr.hand || '') === h}">${h || 'Not saying'}</button>`).join('')}</div></div>
       <div class="field"><span>Your color</span><div class="swatches" id="swatches">${COLORS.map(c => `<button type="button" data-color="${c}" style="--c:${c}" aria-label="Color ${c}" aria-pressed="${c === pr.color}"></button>`).join('')}</div></div>
       <label class="field">Bio<textarea class="txt" name="bio" maxlength="160" rows="3" placeholder="Trash talk goes here">${esc(pr.bio || '')}</textarea></label>
-      <div class="controls"><button class="btn primary" type="submit">Save profile</button><a class="btn" href="#/player/${esc(S.me.playerId)}">View my profile</a></div>
+      <div class="controls"><button class="btn primary" type="submit">Save profile</button><a class="btn" href="#/player/${esc(S.me.playerId)}">Done</a></div>
     </form>
     <p class="acct-msg" id="acctMsg" role="alert" hidden></p>
   </section>
@@ -352,7 +352,7 @@ export function installAccount(ctx) {
       if (S.apiDown) return '';
       if (!S.me) return `<a class="acct-btn" href="#/login">Sign in</a>`;
       const p = S.players[S.me.playerId] || { id: S.me.playerId, name: S.me.username };
-      return `<a class="acct-btn me" href="#/me" aria-label="My profile">${C.avatar(p, 26)}<span>${C.esc(p.name)}</span></a>`;
+      return `<a class="acct-btn me" href="#/player/${C.esc(S.me.playerId)}" aria-label="My profile">${C.avatar(p, 26)}<span>${C.esc(p.name)}</span></a>`;
     },
   };
 }

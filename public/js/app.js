@@ -452,6 +452,7 @@ pages.player = id => {
   const stat = (v, l, sub = '') => `<div><b>${v}</b><span>${l}</span>${sub ? `<em>${sub}</em>` : ''}</div>`;
   return `
   <section class="profile-head" style="--av-bg:${colorOf(p)}">
+    ${S.me?.playerId === id ? '<a class="edit-pill" href="#/me" aria-label="Edit my profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>Edit</a>' : ''}
     ${avatar(p, 92)}
     <div style="min-width:0">
       <h1>${esc(p.name)}</h1>
@@ -463,7 +464,7 @@ pages.player = id => {
     <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16, true)}</div>
   </section>
 
-  <div class="controls">${S.me?.playerId === id ? '<a class="btn primary" href="#/me">Edit my profile</a>' : ''}<a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a>${!p.claimed && !S.apiDown && !S.me ? `<a class="btn" href="#/join?claim=${esc(id)}">This is me</a>` : ''}</div>
+  <div class="controls"><a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a>${!p.claimed && !S.apiDown && !S.me ? `<a class="btn" href="#/join?claim=${esc(id)}">This is me</a>` : ''}</div>
 
   <div class="statgrid">
     ${stat(season.avg ?? '—', 'Season average')}${stat(career.avg ?? '—', 'Career average')}
@@ -1027,6 +1028,7 @@ function route() {
   catch (e) { console.error(e); html = empty('This page hit a snag', 'Refresh to try again.'); }
   $('#app').innerHTML = html;
   $('#acct').innerHTML = ACCT.headerHTML();
+  const mine = $('#sheetMine'); if (mine) { mine.hidden = !!S.apiDown; mine.href = S.me ? `#/player/${encodeURIComponent(S.me.playerId)}` : '#/login'; mine.textContent = S.me ? 'My profile' : 'Sign in'; }
   const joinBar = $('#joinBar'); if (joinBar) joinBar.hidden = !!(S.me || S.apiDown || ['join', 'login', 'me'].includes(key));
   try { ACCT.after(key); } catch (e) { console.error(e); }
   const navKey = { player: 'players', night: 'schedule', me: 'players', join: 'players', login: 'players' }[key] || key;

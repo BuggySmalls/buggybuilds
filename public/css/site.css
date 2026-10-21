@@ -861,3 +861,9 @@ textarea.txt{resize:vertical;font-size:16px}
 .swatches button[aria-pressed="true"]{outline:3px solid #fff;outline-offset:2px}
 .acct-form .seg{flex-wrap:wrap}
 .profile-head .bio{font:400 17px/1.35 var(--marker);color:#fff;margin:8px 0 0;text-shadow:2px 2px 0 #111;max-width:52ch}
+
+.profile-head{position:relative}
+.edit-pill{position:absolute;top:12px;right:12px;z-index:2;display:inline-flex;align-items:center;gap:5px;text-decoration:none;font:400 11px var(--display);text-transform:uppercase;letter-spacing:.03em;
+  color:#111;background:#fff;border:2px solid #111;border-radius:99px;box-shadow:2px 2px 0 #111;padding:4px 10px 4px 8px}
+.edit-pill svg{width:14px;height:14px;fill:none;stroke:#111;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+.edit-pill:hover{background:var(--maple)}

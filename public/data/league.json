@@ -44,7 +44,8 @@
         1
       ],
       "minimum": 1,
-      "handicapFrom": "2026-11"
+      "handicapFrom": "2026-11",
+      "combine": [["2026-10", "2026-11"]]
     },
     "gamesPerNight": 3,
     "address": "6125 Post Road, North Kingstown, RI 02852",

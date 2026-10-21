@@ -102,9 +102,18 @@ export const sum = a => a.reduce((x, y) => x + y, 0);
 export const mean = a => a.length ? sum(a) / a.length : null;
 export function stdev(a) { if (a.length < 2) return null; const m = mean(a); return Math.sqrt(sum(a.map(x => (x - m) ** 2)) / (a.length - 1)); }
 export const monthKey = d => d.slice(0, 7);
+/** Title-race key for a date: its month, or a combined key like "2026-10/11" when
+ *  league.championship.combine groups months into one race (Oct + Nov 2026). */
+export function periodKey(data, d) {
+  const k = monthKey(d), g = (data.league?.championship?.combine || []).find(a => a.includes(k));
+  return g ? `${g[0]}/${g.at(-1).slice(5)}` : k;
+}
+/** A month or combined-month key (not a full date). */
+export const isPeriodKey = k => typeof k === 'string' && /^\d{4}-\d{2}(\/\d{2})?$/.test(k);
 export function monthName(key, short = false) {
-  const [y, m] = key.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('en-US', { month: short ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' });
+  const [y, m, m2] = key.split(/[-/]/).map(Number);
+  const one = mm => new Date(Date.UTC(y, mm - 1, 15)).toLocaleDateString('en-US', { month: short ? 'short' : 'long', timeZone: 'UTC' });
+  return m2 ? `${one(m)}–${one(m2)} ${y}` : `${one(m)} ${y}`;
 }
 const trunc = x => x == null ? null : Math.floor(x);
 
@@ -197,7 +206,7 @@ export function buildNights(data) {
         }
       }
       for (const r of rows) { const a = run[r.pid] ||= []; a.push(...r.totals.filter(t => t != null)); }
-      return { id: e.id || e.date, idx, date: e.date, month, handicap, note: e.note || '', rows: ranked,
+      return { id: e.id || e.date, idx, date: e.date, month: periodKey(data, e.date), handicap, note: e.note || '', rows: ranked,
         byPid: Object.fromEntries(ranked.map(r => [r.pid, r])), raw: e };
     });
 }
@@ -310,8 +319,8 @@ export function months(data, nights, today) {
     const mNights = nights.filter(n => n.month === key);
     const table = standings(data, mNights, 'points').filter(r => r.nights);
     table.sort((a, b) => b.points - a.points || b.w - a.w || b.pins - a.pins);
-    const remaining = sched.filter(d => monthKey(d) === key && d > (mNights.at(-1)?.date || '') && d >= today.slice(0, 10)).length;
-    const lastSched = sched.filter(d => monthKey(d) === key).at(-1);
+    const remaining = sched.filter(d => periodKey(data, d) === key && d > (mNights.at(-1)?.date || '') && d >= today.slice(0, 10)).length;
+    const lastSched = sched.filter(d => periodKey(data, d) === key).at(-1);
     const done = remaining === 0 && (today.slice(0, 10) > (lastSched || mNights.at(-1).date) || keys.indexOf(key) < keys.length - 1);
     // cumulative points by night for the race chart
     const race = table.map(r => {
@@ -835,7 +844,7 @@ export function matchesToWatch(data, nights, seasonNights, today, forDate) {
       const ptsGap = Math.abs(table[rank[a] - 1].points - table[rank[b] - 1].points);
       why.push(`Back to back in the standings: ${name(hi)} is ${ordinal(rank[hi])}, ${name(lo)} is ${ptsGap} point${ptsGap === 1 ? '' : 's'} behind in ${ordinal(rank[lo])}.`);
     }
-    if (raceTop.includes(a) && raceTop.includes(b)) { score += 2; why.push(`Both are top three in the ${monthName(race.key).split(' ')[0]} title race with ${race.remaining} night${race.remaining === 1 ? '' : 's'} left.`); }
+    if (raceTop.includes(a) && raceTop.includes(b)) { score += 2; why.push(`Both are top three in the ${monthName(race.key).split(' ').slice(0, -1).join(' ')} title race with ${race.remaining} night${race.remaining === 1 ? '' : 's'} left.`); }
     const last = h.matchups.at(-1);
     if (last) {
       const m = last.aSeries - last.bSeries;

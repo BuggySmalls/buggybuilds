@@ -4,17 +4,17 @@
 // REVISION and REVISED_AT so re-imported one-time .ics copies replace the old events too.
 // Run after any schedule change: node scripts/make-calendar.mjs (validate.mjs runs it too).
 import { readFileSync, writeFileSync } from 'node:fs';
-import { scheduleDates, zonedTime, monthName } from '../public/js/engine.js';
+import { scheduleDates, zonedTime, monthName, periodKey } from '../public/js/engine.js';
 
 const SITE = 'https://cerealbowlers.org';
-const REVISION = 1, REVISED_AT = '20261021T101700Z'; // Oct 21 2026: link moved to cerealbowlers.org
+const REVISION = 2, REVISED_AT = '20261021T110000Z'; // Oct 21 2026: Oct + Nov combined into one title race
 
 export function buildCalendar() {
   const raw = JSON.parse(readFileSync(new URL('../public/data/league.json', import.meta.url)));
   const L = raw.league, tz = L.timezone || 'America/New_York';
   const data = { league: L, events: raw.events || [] };
   const dates = scheduleDates(data);
-  const lastOfMonth = new Set(Object.values(dates.reduce((m, d) => (m[d.slice(0, 7)] = d, m), {})));
+  const lastOfMonth = new Set(Object.values(dates.reduce((m, d) => (m[periodKey(raw, d)] = d, m), {})));
   const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const [sh, sm] = L.socialTime.split(':').map(Number), [bh, bm] = L.startTime.split(':').map(Number);
   const t12 = (h, m) => `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
@@ -25,7 +25,7 @@ export function buildCalendar() {
     const start = zonedTime(d, sh, sm, tz), end = new Date(zonedTime(d, bh, bm, tz).getTime() + 2.5 * 3600e3);
     const champ = lastOfMonth.has(d);
     lines.push('BEGIN:VEVENT', `UID:league-night-${d}@buggybuilds.org`, `DTSTAMP:${REVISED_AT}`, `SEQUENCE:${REVISION}`, `LAST-MODIFIED:${REVISED_AT}`, `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
-      `SUMMARY:${esc(`${L.name}: week ${i + 1}${champ ? ` (${monthName(d.slice(0, 7)).split(' ')[0]} championship night)` : ''}`)}`,
+      `SUMMARY:${esc(`${L.name}: week ${i + 1}${champ ? ` (${monthName(periodKey(raw, d)).split(' ').slice(0, -1).join(' ')} championship night)` : ''}`)}`,
       `LOCATION:${esc(`${L.venue}, ${L.address || L.town}`)}`,
       `DESCRIPTION:${esc(`Drinks from ${t12(sh, sm)}, first ball at ${t12(bh, bm)}. Standings and stats: ${SITE}`)}`,
       // day-of reminders: 9:00 AM and one hour before drinks

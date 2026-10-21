@@ -258,7 +258,7 @@ pages.home = () => {
   <section class="kpis">
     <a class="kpi" href="#/standings"><span class="lbl">League leader</span>${leader ? `<span class="v">${leader.points} pts</span><span class="who">${esc(P(leader.id).name)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'}</a>
     <a class="kpi" href="#/championships"><span class="lbl">Reigning monthly champ</span>${lastChamp ? `<span class="v">${esc(E.monthName(lastChamp.key, true).split(' ')[0])}</span><span class="who">${esc(P(lastChamp.champion.id).name)}</span>` : '<span class="v">—</span><span class="who muted">Crowned at month\u2019s end</span>'}</a>
-    <a class="kpi" href="#/championships"><span class="lbl">${race ? esc(E.monthName(race.key).split(' ')[0]) + ' race leader' : 'Month race'}</span>${race?.leader ? `<span class="v">${race.leader.points} pts</span><span class="who">${esc(P(race.leader.id).name)}</span>` : '<span class="v">—</span><span class="who muted">Starts opening night</span>'}</a>
+    <a class="kpi" href="#/championships"><span class="lbl">${race ? esc(E.monthName(race.key).split(' ').slice(0, -1).join(' ')) + ' race leader' : 'Month race'}</span>${race?.leader ? `<span class="v">${race.leader.points} pts</span><span class="who">${esc(P(race.leader.id).name)}</span>` : '<span class="v">—</span><span class="who muted">Starts opening night</span>'}</a>
     <a class="kpi" href="#/stats"><span class="lbl">Top average</span>${(() => { const t = [...table].filter(r => r.games >= 3).sort((a, b) => b.avgExact - a.avgExact)[0]; return t ? `<span class="v">${t.avg}</span><span class="who">${esc(P(t.id).name)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'; })()}</a>
   </section>
 
@@ -517,7 +517,7 @@ function badgeGroups(earned, pid) {
 function badgeHTML(b, got, pid) {
   const n = got?.count || 0;
   const cls = b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
-  const when = got?.last ? (got.last.length === 7 ? E.monthName(got.last, true) : fmtDate(got.last)) : '';
+  const when = got?.last ? (E.isPeriodKey(got.last) ? E.monthName(got.last, true) : fmtDate(got.last)) : '';
   const tag = pid ? 'button' : 'div';
   return `<${tag} ${pid ? `type="button" data-badge="${esc(pid)}:${esc(b.key)}"` : `title="${esc(b.desc)}"`} class="badge ${cls}${n ? '' : ' locked'}">
     <div class="hex"><span class="hex-icon">${esc(b.icon || '')}</span><span class="hex-n">${n ? (n < 10 ? '×' + n : n) : '0'}</span></div>
@@ -525,7 +525,7 @@ function badgeHTML(b, got, pid) {
 }
 
 /* ---------------- Badge detail popup ---------------- */
-function badgeWhen(d) { return !d ? '' : d.length === 7 ? E.monthName(d) : fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' }); }
+function badgeWhen(d) { return !d ? '' : E.isPeriodKey(d) ? E.monthName(d) : fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' }); }
 function openBadge(pid, key) {
   const b = E.BADGES.find(x => x.key === key), p = S.players[pid]; if (!b || !p) return;
   const got = (S.achievements[pid] || {})[key];
@@ -738,7 +738,7 @@ pages.faq = () => {
     qa('How is my average calculated?', `<p>Total pins divided by games bowled, with the decimals dropped, the way league sheets do it. 487 pins over 3 games is a 162 average, not 162.3.</p>`),
     qa('What do wins and losses mean?', `<p>Every game, you play everyone else who bowled that game. Beat someone and it's a win, lose to them and it's a loss, same score is a tie. Game 1 is compared with game 1, game 2 with game 2, and so on.</p><p>With ${S.active.length || 16} bowlers, that's up to ${opp} matchups a game and ${opp * 3} a night. Win % counts ties as half a win. A <b>winning night</b> means more wins than losses that night. Wins and losses are always scratch, with no handicap.</p>`),
     qa('How do league points work?', `<p>Each week everyone is ranked by series, and points go by finishing place:</p><p class="faq-points">${cfg.points.map((p, i) => `<span><b>${E.ordinal(i + 1)}</b>${p}</span>`).join('')}<span><b>${E.ordinal(cfg.points.length + 1)}+</b>${cfg.minimum}</span></p><p>Everyone who bowls gets at least ${cfg.minimum} point. If two people tie, they split the points for the places they share. Two bowlers tied for 2nd each get ${(cfg.points[1] + cfg.points[2]) / 2}.</p>`),
-    qa('How does the monthly championship work?', `<p>Your points from every night in a calendar month add up. Most points after the last ${esc(L.weekday)} of the month wins the title and a trophy on the site. Ties are broken by game wins that month, then total pins. Points start from zero each month.</p>`),
+    qa('How does the monthly championship work?', `<p>Your points from every night in a calendar month add up. Most points after the last ${esc(L.weekday)} of the month wins the title and a trophy on the site. Ties are broken by game wins that month, then total pins. Points start from zero each month.</p>${(cfg.combine || []).length ? `<p>${cfg.combine.map(g => `<b>${esc(E.monthName(`${g[0]}/${g.at(-1).slice(5)}`))}</b> is one title race`).join('; ')}, since the season starts late in October.</p>` : ''}`),
     qa(`Is the first month scratch or handicap?`, `<p>${esc(firstMonth)} is <b>scratch</b>: weekly finishes and points go by actual pins. ${hFrom ? `Starting in <b>${esc(hFrom)}</b>, weekly finishes and championship points go by <b>handicap series</b>.` : ''} By then everyone has an average, so the handicap is fair.</p>`),
   ])}
   ${sec('Handicap', [
@@ -765,7 +765,7 @@ pages.schedule = () => {
   const dates = E.scheduleDates(S.data);
   const next = E.nextNight(S.data, new Date());
   const upcoming = dates.filter(d => d >= S.todayISO && !S.nights.some(n => n.date === d));
-  const lastOfMonth = new Set(Object.values(dates.reduce((m, d) => (m[d.slice(0, 7)] = d, m), {})));
+  const lastOfMonth = new Set(Object.values(dates.reduce((m, d) => (m[E.periodKey(S.data, d)] = d, m), {})));
   const past = [...S.nights].reverse();
   return `
   <div><h1 class="page-title">Schedule &amp; results</h1><p class="page-intro">Every ${esc(L.weekday)} at ${esc(L.venue)}, ${esc(L.town)}. Drinks from ${fmtTime(L.socialTime)}, first ball at ${fmtTime(L.startTime)}.</p></div>
@@ -774,7 +774,7 @@ pages.schedule = () => {
     <p class="small faint">"Add to my calendar" subscribes your phone to the schedule, so changes and cancellations show up automatically, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through. The .ics file is a one-time copy.</p>
     ${upcoming.length ? `<div class="cal">${upcoming.slice(0, 12).map(d => `<div class="cal-day${d === next?.date ? ' next' : ''}">
       <div class="cal-date"><span>${fmtDate(d, { month: 'short' }).toUpperCase()}</span><b>${fmtDate(d, { day: 'numeric' })}</b></div>
-      <div class="info"><b>${d === next?.date ? 'Next up' : fmtDate(d, { weekday: 'long' })}${lastOfMonth.has(d) ? ' · Championship night' : ''}</b>${fmtTime(L.startTime)} · ${esc(L.venue)}${lastOfMonth.has(d) ? `<br>Last night of the ${esc(E.monthName(d.slice(0, 7)).split(' ')[0])} race` : '<br>Everyone bowls the field'}</div></div>`).join('')}</div>` : empty('No more nights scheduled')}
+      <div class="info"><b>${d === next?.date ? 'Next up' : fmtDate(d, { weekday: 'long' })}${lastOfMonth.has(d) ? ' · Championship night' : ''}</b>${fmtTime(L.startTime)} · ${esc(L.venue)}${lastOfMonth.has(d) ? `<br>Last night of the ${esc(E.monthName(E.periodKey(S.data, d)).split(' ').slice(0, -1).join(' '))} race` : '<br>Everyone bowls the field'}</div></div>`).join('')}</div>` : empty('No more nights scheduled')}
     ${(L.skipDates || []).length ? `<p class="small muted">No bowling on ${L.skipDates.map(d => fmtDate(d, { month: 'long', day: 'numeric' })).join(', ')}.</p>` : ''}
   </section>
   <section class="panel"><div class="panel-head"><h2>Results</h2></div>
@@ -885,7 +885,7 @@ pages.records = () => {
   let body = '';
   if (tab === 'fame' || tab === 'shame') {
     const list = rec[tab];
-    body = list.length ? `<div class="rec-list">${list.map(r => `<div class="rec"><div><div class="t">${esc(r.title)}${r.custom ? ' <span class="small faint">· league award</span>' : ''}</div><div class="d">${r.date ? (r.date.length === 7 ? E.monthName(r.date) : fmtDate(r.date, { month: 'long', day: 'numeric', year: 'numeric' })) : ''}${r.scoreline ? ` · ${esc(r.scoreline.replace(r.by, P(r.by).name))}` : ''}${r.detail && !r.scoreline ? ` · ${esc(r.detail)}` : ''}</div></div>${who(r.holder, { size: 30 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : empty('The record book is blank', 'Records are set from opening night on.');
+    body = list.length ? `<div class="rec-list">${list.map(r => `<div class="rec"><div><div class="t">${esc(r.title)}${r.custom ? ' <span class="small faint">· league award</span>' : ''}</div><div class="d">${r.date ? (E.isPeriodKey(r.date) ? E.monthName(r.date) : fmtDate(r.date, { month: 'long', day: 'numeric', year: 'numeric' })) : ''}${r.scoreline ? ` · ${esc(r.scoreline.replace(r.by, P(r.by).name))}` : ''}${r.detail && !r.scoreline ? ` · ${esc(r.detail)}` : ''}</div></div>${who(r.holder, { size: 30 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : empty('The record book is blank', 'Records are set from opening night on.');
     if (!S.nights.some(n => n.rows.some(r => r.games.some(g => g?.frames))) && list.length) body += '<p class="small muted">Strike, gutter and open-frame records appear once frame-by-frame scores are logged.</p>';
   } else if (tab === 'awards') {
     body = S.nights.length ? [...S.nights].reverse().map(n => `<div style="display:flex;flex-direction:column;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--line-soft)"><h3><a href="#/night/${n.date}" style="text-decoration:none">Week ${weekNo(n)} · ${fmtDate(n.date, { month: 'long', day: 'numeric' })}</a></h3><div class="awards">${awardsFor(n.idx).map(awardHTML).join('')}</div></div>`).join('') : empty('No awards handed out yet');

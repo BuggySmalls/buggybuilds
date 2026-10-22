@@ -71,7 +71,15 @@
       ]
     }
   },
-  "players": [],
+  "players": [
+    {
+      "id": "jason",
+      "name": "Jason",
+      "nickname": "Nate Has Boobs",
+      "joined": "2026-10-21",
+      "active": true
+    }
+  ],
   "events": [],
   "announcements": [
     {
@@ -89,5 +97,13 @@
   "accounts": {
     "resets": {},
     "hidden": []
-  }
+  },
+  "badges": [
+    {
+      "pid": "jason",
+      "key": "lubedUp",
+      "date": "2026-10-21",
+      "note": "Slipped on the lane"
+    }
+  ]
 }

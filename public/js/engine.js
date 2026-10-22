@@ -622,6 +622,7 @@ export const BADGES = [
   { key: 'heartbreaker', name: 'Heartbreaker', desc: 'Lost a game to someone by 1 pin', tone: 'shame', icon: '−1' },
   { key: 'fade', name: 'The Fade', desc: 'Each game worse than the last, down 50+ pins', tone: 'shame', icon: '↘' },
   { key: 'bridesmaid', name: 'Bridesmaid', desc: 'Every three 2nd-place nights', tone: 'shame', icon: '2nd' },
+  { key: 'lubedUp', name: 'Lubed Up', desc: 'Slipped on the lane', tone: 'shame', manual: true, icon: '💦' },
 ];
 
 /**
@@ -708,6 +709,8 @@ export function achievements(data, nights, champs) {
     }
     for (const m of champs.months.filter(m => m.done)) for (const r of m.table) if (r.nights === m.nights.length && m.nights.length >= 3) give(r.id, 'completeBreakfast', m.key, 1, { detail: `Bowled all ${m.nights.length} nights` });
   }
+  // hand-given badges (only ones marked manual in BADGES)
+  for (const m of data.badges || []) if (BADGES.find(b => b.key === m.key)?.manual) give(m.pid, m.key, m.date || null, 1, { detail: m.note || 'Handed out by Nick' });
   const ids = data.players.map(p => p.id);
   for (const a of ids) for (const b of ids) if (a !== b) { const h = headToHead(nights, a, b); if (h.w >= 10 && h.w / h.games >= .75) give(a, 'rivalry', null, 1, { detail: `${h.w}-${h.l}${h.t ? '-' + h.t : ''} vs ${data.players.find(p => p.id === b)?.name || b}` }); }
   return earned;

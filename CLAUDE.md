@@ -47,7 +47,8 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - Announcements: `announcements[] {date, title, body}`.
 - Power-ranking commentary: `powerRankings["<date>"].comments[<id>] = "text"`; optional `order: [ids]` to override the computed order. Keep it friendly ribbing.
 - Weekly award picks override the automatic ones: `awards["<date>"][<awardKey>] = "<id>"` or `{pid, why}`. Keys: botw, improved, strikeKing, spareMaster, clutch, upset, choke, inconsistent, worst, fraud.
-- Badges: 33 defined in `BADGES` (engine.js), all earned automatically from scores and repeatable. Nick removed the commissioner's-pick badges (Best Dressed, Fan Favorite, Rookie) on Oct 21 2026 — don't add hand-given badges back.
+- Badges: defined in `BADGES` (engine.js), earned automatically from scores and repeatable. Nick removed the commissioner's-pick badges (Best Dressed, Fan Favorite, Rookie) on Oct 21 2026 — don't add those back.
+- Exception: **Lubed Up** (Hall of Shame, `manual: true`) — given by hand when someone slips on the lane (Nick, Oct 21 2026). Give it with `badges[] {pid, key: "lubedUp", date, note?}`; one entry per slip. Only badges marked `manual` in BADGES can be handed out this way.
 - Fonts: no handwriting font and no italics anywhere on the site (Nick, Oct 21 2026). Body text is Rubik; Bungee only for headings and labels.
 - Custom records: `customRecords[] {kind: "fame"|"shame", title, holder, value, date, detail?}`.
 - Photos for the home gallery: `photos[] {src: "img/gallery/…", caption, date}`.

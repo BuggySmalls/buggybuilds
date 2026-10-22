@@ -1,6 +1,7 @@
 import * as E from './engine.js';
 import { lineChart, barChart, PALETTE } from './charts.js';
 import { installAccount, fetchMe } from './account.js';
+import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from './share-image.js';
 import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable } from './games.js';
 import { randomFact } from './facts.js';
 
@@ -1015,40 +1016,21 @@ pages.rivalries = () => {
 /* ================================================================== *
  * Share image for a night's results
  * ================================================================== */
+function shareWhen(L) {
+  const [h, m] = String(L.startTime || '').split(':').map(Number);
+  return Number.isFinite(h) ? `Wednesdays · ${(h % 12) || 12}:${String(m || 0).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}` : '';
+}
 async function shareNight(idx) {
   const n = S.nights[idx], L = S.data.league;
-  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350;
-  const x = c.getContext('2d');
-  await document.fonts?.ready;
-  x.fillStyle = '#0B1020'; x.fillRect(0, 0, 1080, 1350);
-  for (let i = 0; i < 39; i++) { x.fillStyle = i % 2 ? '#D9A35A' : '#C98F3E'; x.fillRect(i * 1080 / 39, 0, 1080 / 39 + 1, 300); }
-  const gr = x.createLinearGradient(0, 0, 0, 300); gr.addColorStop(0, 'rgba(11,16,32,.1)'); gr.addColorStop(1, 'rgba(11,16,32,.95)'); x.fillStyle = gr; x.fillRect(0, 0, 1080, 300);
-  const D = 'Big Shoulders Display, Impact, sans-serif', B = 'Archivo, system-ui, sans-serif';
-  x.fillStyle = '#fff'; x.font = `900 120px ${D}`; x.fillText(L.name.toUpperCase(), 60, 210);
-  x.font = `600 34px ${B}`; x.fillStyle = '#F6E7CF'; x.fillText(`Week ${weekNo(n)} · ${dayName(n.date)}`, 60, 265);
-  x.fillStyle = '#E5383B'; x.fillRect(60, 340, 10, 150);
-  x.fillStyle = '#9AA5BE'; x.font = `600 32px ${B}`; x.fillText('Winner', 95, 375);
-  x.fillStyle = '#fff'; x.font = `900 92px ${D}`; x.fillText(P(n.rows[0].pid).name, 95, 465);
-  x.fillStyle = '#FFC24B'; x.font = `900 92px ${D}`; x.textAlign = 'right'; x.fillText(String(n.rows[0].series), 1020, 465); x.textAlign = 'left';
-  let y = 590;
-  x.font = `600 30px ${B}`; x.fillStyle = '#9AA5BE'; x.fillText('Top five', 60, y - 30);
-  n.rows.slice(0, 5).forEach((r, i) => {
-    x.fillStyle = i % 2 ? '#121A2C' : '#18223A'; x.fillRect(60, y - 2, 960, 84);
-    x.fillStyle = ['#F4C64E', '#C9D0DC', '#D08A57'][i] || '#6C7896'; x.font = `900 52px ${D}`; x.fillText(String(r.place), 85, y + 58);
-    x.fillStyle = '#EEF1F7'; x.font = `700 44px ${D}`; x.fillText(P(r.pid).name, 150, y + 56);
-    x.fillStyle = '#9AA5BE'; x.font = `600 36px ${D}`; x.fillText(r.totals.map(t => t ?? '–').join('  '), 590, y + 56);
-    x.fillStyle = '#fff'; x.font = `900 52px ${D}`; x.textAlign = 'right'; x.fillText(String(r.series), 995, y + 58); x.textAlign = 'left';
-    y += 92;
+  const c = document.createElement('canvas'); c.width = SHARE_W; c.height = SHARE_H;
+  try { await Promise.all(SHARE_FONTS.map(f => document.fonts.load(f))); } catch (_) {}
+  const aw = awardsFor(idx).filter(a => a.key !== 'botw');
+  const pick = [...aw.filter(a => a.tone !== 'shame').slice(0, 2), ...aw.filter(a => a.tone === 'shame').slice(0, 2)];
+  drawResults(c.getContext('2d'), {
+    league: L.name, week: weekNo(n), date: dayName(n.date), venue: L.venue, site: 'cerealbowlers.org', when: shareWhen(L),
+    rows: n.rows.map(r => ({ place: r.place, name: P(r.pid).name, totals: r.totals, series: r.series })),
+    awards: (pick.length ? pick : aw.slice(0, 4)).map(a => ({ name: a.name, who: P(a.winner.pid).name, why: a.winner.why || '', tone: a.tone })),
   });
-  y += 40;
-  const aw = awardsFor(idx).filter(a => a.key !== 'botw').slice(0, 4);
-  aw.forEach((a, i) => {
-    const cx = 60 + (i % 2) * 485, cy = y + Math.floor(i / 2) * 120;
-    x.fillStyle = '#18223A'; x.fillRect(cx, cy, 475, 105); x.fillStyle = a.tone === 'shame' ? '#E5383B' : '#E8B465'; x.fillRect(cx, cy, 8, 105);
-    x.fillStyle = '#9AA5BE'; x.font = `600 26px ${B}`; x.fillText(a.name, cx + 26, cy + 38);
-    x.fillStyle = '#fff'; x.font = `800 40px ${D}`; x.fillText(P(a.winner.pid).name, cx + 26, cy + 84);
-  });
-  x.fillStyle = '#6C7896'; x.font = `600 26px ${B}`; x.fillText(`${L.venue} · cerealbowlers.org`, 60, 1305);
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   const file = new File([blob], `week-${weekNo(n)}-results.png`, { type: 'image/png' });
   try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: `${L.name} week ${weekNo(n)}` }); return; } } catch (e) { if (e.name === 'AbortError') return; }

@@ -22,6 +22,7 @@ Add (or update) one entry in `events`, keyed by date:
 ```
 - `scores`: up to 3 games per bowler, `null` for a missed game. Leave out anyone who didn't bowl.
 - `frames` (optional, per game): 10 space-separated frames. `X` strike, `/` spare, digits, `-` miss, `G` gutter, `F` foul. Prefix `S` when the first ball left a split (`S7/`). The 10th frame is one token (`XX8`, `9/X`, `81`). Frames must add up to the score; the validator checks.
+- Game order at Kingstown Bowl: the timer in the screen's top-left counts DOWN the lane's paid time, and the header color marks the game: green = game 1, yellow = game 2, red = game 3 (confirmed by Nick, week 1). A bowler shown "SKIP" at 00:00 ran out of time; log that game as `null`.
 - Reading a scoring-screen photo: transcribe every frame you can read. If a frame is unreadable, log the game total only (no frames) for that game rather than guessing. Tell Nick which games you couldn't read.
 - Use roster ids exactly. If a name in the photo isn't on the roster, ask before adding.
 

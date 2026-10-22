@@ -463,7 +463,7 @@ pages.player = id => {
     ${S.me?.playerId === id ? '<a class="edit-pill" href="#/me" aria-label="Edit my profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>Edit</a>' : ''}
     ${avatar(p, 92)}
     <div style="min-width:0">
-      <h1>${esc(p.name)}</h1>
+      <div class="name-row"><h1>${esc(p.name)}</h1>${showcaseHTML(p, earned)}</div>
       ${p.nickname ? `<div style="font:700 20px var(--display);color:var(--maple)">“${esc(p.nickname)}”</div>` : ''}
       ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
       <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span>${(() => { const r = S.games ? calloutRecord(id) : null; return r && r.w + r.l + r.t ? `<span>Call-outs <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>` : ''; })()}${(() => { const t = S.games ? pickTable().find(x => x.id === id) : null; return t ? `<span>Pick’em <b>${t.pts} pts</b></span>` : ''; })()}</div>
@@ -518,6 +518,12 @@ pages.player = id => {
   </section>`;
 };
 
+// Up to two badges a bowler picks to show off next to their name (only ones they've earned).
+function showcaseHTML(p, earned) {
+  const list = (p.showcase || []).map(k => E.BADGES.find(b => b.key === k)).filter(b => b && earned[b.key]?.count).slice(0, 2);
+  if (!list.length) return '';
+  return `<div class="showcase">${list.map(b => `<button type="button" class="show-badge ${b.tone === 'shame' ? 'poo' : 'gold'}" data-badge="${esc(p.id)}:${esc(b.key)}" aria-label="${esc(b.name)}, earned ${earned[b.key].count} time${earned[b.key].count === 1 ? '' : 's'}"><span class="sb-hex"><i>${esc(b.icon || '')}</i></span><span class="sb-txt"><b>${esc(b.name)}</b>${earned[b.key].count > 1 ? `<em>×${earned[b.key].count}</em>` : ''}</span></button>`).join('')}</div>`;
+}
 function miniBadges(id, max = 7, clickable = false) {
   const earned = S.achievements[id] || {};
   const list = E.BADGES.filter(b => earned[b.key]?.count).sort((a, b) => earned[b.key].count - earned[a.key].count);
@@ -779,7 +785,7 @@ pages.faq = () => {
     qa('How does the purse work?', `<p>${S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
     qa('Can I get league nights in my calendar?', `<p>Yes. Tap <b>Add league nights to my calendar</b> on the home or schedule page. Your phone subscribes to the schedule, so skipped weeks or time changes update on their own, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through.</p>`),
     qa('What counts as a record?', `<p>The Hall of Fame and Hall of Shame update themselves the moment a mark is beaten. The Leaderboards page keeps the top 25 games and series ever bowled, plus the full history of who held each record. Nick can also add custom awards.</p>`),
-    qa('How do badges work?', `<p>Badges unlock automatically from the scores, and you can earn each one again and again. The number in the middle is how many times you've earned it. Hall of Shame badges show up in their own color.</p><p>A few to chase: Dutch 200 (strike, spare, strike, spare all game for exactly 200), Triplicate (the same score three games in a row), Clean Sweep (top score in all three games), and Giant Killer (outscore the league leader). And a few to avoid: Soggy Cereal (a game under 100) and Heartbreaker (losing by a single pin). Lubed Up is the only one Nick hands out himself: slip on the lane and it's yours.</p>`),
+    qa('How do badges work?', `<p>Badges unlock automatically from the scores, and you can earn each one again and again. The number in the middle is how many times you've earned it. Hall of Shame badges show up in their own color.</p><p>A few to chase: Dutch 200 (strike, spare, strike, spare all game for exactly 200), Triplicate (the same score three games in a row), Clean Sweep (top score in all three games), and Giant Killer (outscore the league leader). And a few to avoid: Soggy Cereal (a game under 100) and Heartbreaker (losing by a single pin). Lubed Up is the only one Nick hands out himself: slip on the lane and it's yours.</p><p>Show off: on your profile's edit page, pick up to two badges you've earned and they show up big next to your name. Gold for the good ones, brown for the Hall of Shame.</p>`),
   ])}`;
 };
 

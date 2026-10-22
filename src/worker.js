@@ -88,6 +88,7 @@ function cleanProfile(p = {}) {
     cereal: clean(p.cereal, 40),
     ball: Number.isInteger(+p.ball) && +p.ball >= 6 && +p.ball <= 16 ? +p.ball : null,
     song: clean(p.song, 60),
+    showcase: Array.isArray(p.showcase) ? [...new Set(p.showcase.filter(k => typeof k === 'string' && /^[A-Za-z0-9]{1,24}$/.test(k)))].slice(0, 2) : [],
   };
   return out;
 }
@@ -150,7 +151,7 @@ export class Accounts extends DurableObject {
         name: pr.name || a.username, nickname: pr.nickname || '', hand: pr.hand || '',
         account: a.username, claimed: true,
         ...(pr.color && { color: pr.color }), ...(pr.bio && { bio: pr.bio }), ...(pr.cereal && { cereal: pr.cereal }),
-        ...(pr.ball && { ball: pr.ball }), ...(pr.song && { song: pr.song }),
+        ...(pr.ball && { ball: pr.ball }), ...(pr.song && { song: pr.song }), ...(pr.showcase?.length && { showcase: pr.showcase }),
         ...(a.photo_v && { photo: `/api/photo/${a.player_id}?v=${a.photo_v}` }),
       };
       const base = byId[a.player_id];

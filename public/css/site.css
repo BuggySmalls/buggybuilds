@@ -908,3 +908,22 @@ textarea.txt{resize:vertical;font-size:16px}
 
 /* no handwriting or italics anywhere (Nick, Oct 21 2026) */
 em,i,cite,address,dfn,var{font-style:normal}
+
+/* Showcase badges: up to two picked by the bowler, shown big next to their name */
+.name-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
+.showcase{display:flex;gap:10px;flex-wrap:wrap}
+.show-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;border:2px solid #111;cursor:pointer;font:inherit;box-shadow:3px 3px 0 #111}
+.show-badge .sb-hex{display:grid;place-items:center;width:44px;height:44px;clip-path:polygon(25% 4%,75% 4%,100% 50%,75% 96%,25% 96%,0 50%)}
+.show-badge .sb-hex i{font:400 15px/1 var(--display);font-style:normal}
+.show-badge .sb-txt{display:flex;flex-direction:column;text-align:left;line-height:1.1}
+.show-badge .sb-txt b{font:400 14px/1.1 var(--display);text-transform:uppercase}
+.show-badge .sb-txt em{font-style:normal;font-size:12px;opacity:.8}
+.show-badge.gold{background:linear-gradient(180deg,#FFF1A6,#FFD23F 45%,#E0A800);color:#2A1D00}
+.show-badge.gold .sb-hex{background:linear-gradient(180deg,#FFE680,#C98F00);color:#2A1D00}
+.show-badge.poo{background:linear-gradient(180deg,#9A6A3F,#6B4423 55%,#4A2E16);color:#F6E3C8}
+.show-badge.poo .sb-hex{background:linear-gradient(180deg,#7A5230,#3E2612);color:#F6E3C8}
+.badge-pick button i{font-style:normal;font-family:var(--display)}
+.badge-pick button.gold[aria-pressed=true]{background:#FFD23F;color:#2A1D00;border-color:#C98F00}
+.badge-pick button.poo[aria-pressed=true]{background:#6B4423;color:#F6E3C8;border-color:#3E2612}
+@media (max-width:520px){.show-badge .sb-hex{width:38px;height:38px}.show-badge .sb-txt b{font-size:12px}}
+.badge-pick{flex-wrap:wrap;gap:6px}

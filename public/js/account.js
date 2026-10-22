@@ -5,6 +5,8 @@
 const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D', '#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7'];
 const HANDS = ['Right', 'Left', 'Two-handed'];
 
+import { BADGES } from './engine.js';
+
 let C; // context from app.js: { S, pages, esc, avatar, empty, reload, colorOf }
 
 export async function api(path, { method = 'GET', body, raw } = {}) {
@@ -255,6 +257,7 @@ function mePage() {
       </div>
       <div class="field"><span>How you bowl</span><div class="seg" role="group" id="handSeg">${['', ...HANDS].map(h => `<button type="button" data-hand="${h}" aria-pressed="${(pr.hand || '') === h}">${h || 'Not saying'}</button>`).join('')}</div></div>
       <div class="field"><span>Your color</span><div class="swatches" id="swatches">${COLORS.map(c => `<button type="button" data-color="${c}" style="--c:${c}" aria-label="Color ${c}" aria-pressed="${c === pr.color}"></button>`).join('')}</div></div>
+      ${showcasePicker(S, pr)}
       <label class="field">Bio<textarea class="txt" name="bio" maxlength="160" rows="3" placeholder="Trash talk goes here">${esc(pr.bio || '')}</textarea></label>
       <div class="controls"><button class="btn primary" type="submit">Save profile</button><a class="btn" href="#/player/${esc(S.me.playerId)}">Done</a></div>
     </form>
@@ -267,17 +270,34 @@ function mePage() {
     <div id="changeCode"><div class="controls"><button type="button" class="btn" id="changeBtn">Change code or pattern</button><button type="button" class="btn" id="logoutBtn">Sign out</button></div></div>
   </section>`;
 }
+function showcasePicker(S, pr) {
+  const earned = S.achievements[S.me.playerId] || {};
+  const list = BADGES.filter(b => earned[b.key]?.count);
+  const on = new Set((pr.showcase || []).filter(k => earned[k]?.count));
+  return `<div class="field"><span>Show off up to 2 badges next to your name</span>${list.length
+    ? `<div class="seg badge-pick" role="group" id="showSeg">${list.map(b => `<button type="button" data-show="${b.key}" class="${b.tone === 'shame' ? 'poo' : 'gold'}" aria-pressed="${on.has(b.key)}"><i>${C.esc(b.icon || '')}</i> ${C.esc(b.name)}</button>`).join('')}</div>`
+    : '<p class="small muted">Earn a badge and you can show it off here.</p>'}</div>`;
+}
 function afterMe() {
   const f = document.getElementById('meForm'); if (!f) return;
   const { S } = C;
   let hand = S.me.profile?.hand || '', color = S.me.profile?.color || '';
+  const earnedNow = S.achievements[S.me.playerId] || {};
+  let showcase = (S.me.profile?.showcase || []).filter(k => earnedNow[k]?.count);
+  document.getElementById('showSeg')?.addEventListener('click', e => {
+    const b = e.target.closest('[data-show]'); if (!b) return;
+    const k = b.dataset.show;
+    if (showcase.includes(k)) showcase = showcase.filter(x => x !== k);
+    else { showcase.push(k); if (showcase.length > 2) showcase.shift(); }
+    e.currentTarget.querySelectorAll('[data-show]').forEach(x => x.setAttribute('aria-pressed', showcase.includes(x.dataset.show)));
+  });
   document.getElementById('handSeg').onclick = e => { const b = e.target.closest('[data-hand]'); if (!b) return; hand = b.dataset.hand; e.currentTarget.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
   document.getElementById('swatches').onclick = e => { const b = e.target.closest('[data-color]'); if (!b) return; color = b.getAttribute('aria-pressed') === 'true' ? '' : b.dataset.color; e.currentTarget.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.color === color)); };
   f.onsubmit = async e => {
     e.preventDefault();
     const btn = f.querySelector('[type=submit]'); btn.disabled = true;
     try {
-      const r = await api('/profile', { method: 'POST', body: { name: f.name.value, nickname: f.nickname.value, cereal: f.cereal.value, song: f.song.value, ball: f.ball.value || null, bio: f.bio.value, hand, color } });
+      const r = await api('/profile', { method: 'POST', body: { name: f.name.value, nickname: f.nickname.value, cereal: f.cereal.value, song: f.song.value, ball: f.ball.value || null, bio: f.bio.value, hand, color, showcase } });
       S.me = r.user; await C.reload({ keep: true }); msg('Saved. It’s live on your profile.', 'ok');
     } catch (err) { msg(err.message); }
     btn.disabled = false;

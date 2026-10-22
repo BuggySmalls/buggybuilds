@@ -1,0 +1,7 @@
+name: Fetch roster
+on: workflow_dispatch
+jobs:
+  roster:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sS -A "Mozilla/5.0 CerealBowlersAdmin" https://cerealbowlers.org/api/roster

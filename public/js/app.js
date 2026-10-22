@@ -825,13 +825,18 @@ pages.night = date => {
   const fr = n.rows.filter(r => r.games.some(g => g?.frames));
   const strikeLead = fr.map(r => ({ pid: r.pid, s: E.sum(r.games.map(g => g?.frames?.strikes || 0)) })).sort((a, b) => b.s - a.s)[0];
   return `
-  <div class="controls" style="justify-content:space-between">
-    <div><h1 class="page-title">Week ${weekNo(n)}</h1><p class="page-intro">${esc(dayName(n.date))} at ${esc(S.data.league.venue)}. ${n.rows.length} bowlers.</p></div>
-    <div class="controls">${idx > 0 ? `<a class="btn" href="#/night/${S.nights[idx - 1].date}">← Week ${idx}</a>` : ''}${idx < S.nights.length - 1 ? `<a class="btn" href="#/night/${S.nights[idx + 1].date}">Week ${idx + 2} →</a>` : ''}${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
+  <div class="night-head">
+    <div class="nh-title">
+      ${idx > 0 ? `<a class="btn nh-arrow" href="#/night/${S.nights[idx - 1].date}" aria-label="Week ${idx}">←</a>` : '<span class="nh-arrow"></span>'}
+      <div><h1 class="page-title">Week ${weekNo(n)}</h1><p class="page-intro">${esc(dayName(n.date))} at ${esc(S.data.league.venue)}. ${n.rows.length} bowlers.</p></div>
+      ${idx < S.nights.length - 1 ? `<a class="btn nh-arrow" href="#/night/${S.nights[idx + 1].date}" aria-label="Week ${idx + 2}">→</a>` : '<span class="nh-arrow"></span>'}
+    </div>
+    <div class="nh-actions">${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
   <section class="panel"><p>${esc(recap(idx))}</p>${n.note ? `<p class="small muted">${esc(n.note)}</p>` : ''}</section>
-  <section class="panel"><div class="panel-head"><h2>Results</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap a bowler with frames to see every frame.</span></div>
-    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th>${n.handicap ? '<th>Hdcp</th><th>Hdcp series</th>' : ''}<th>W-L</th><th>Pts</th><th>vs avg</th></tr></thead><tbody>
+  <section class="panel"><div class="panel-head"><h2>Results</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap “Frames” to see every frame.</span></div>
+    ${resultCards(n, before)}
+    <div class="tbl res-table"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th>${n.handicap ? '<th>Hdcp</th><th>Hdcp series</th>' : ''}<th>W-L</th><th>Pts</th><th>vs avg</th></tr></thead><tbody>
     ${[...n.rows].sort((a, b) => a.pointsPlace - b.pointsPlace || b.series - a.series).map(r => { const avg = before[r.pid]?.avgExact; const d = avg != null ? Math.round(r.series - avg * r.n) : null; const hasFr = r.games.some(g => g?.str); const pl = r.pointsPlace; return `
       <tr class="${pl <= 3 ? `top3 p${pl}` : ''}"><td class="l">${medal(pl)}</td><td class="l">${who(r.pid, { size: 30 })}</td><td class="l">${frames(r.totals, r.series)}</td>${n.handicap ? `<td>${r.hdcp * r.n}</td><td class="big">${r.hdcpSeries}</td>` : ''}<td>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</td><td><b>${r.points}</b></td><td class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d == null ? '—' : (d > 0 ? '+' : '') + d}</td></tr>
       ${hasFr ? `<tr><td></td><td colspan="${n.handicap ? 7 : 5}" class="l" style="white-space:normal;padding-top:0"><details><summary class="small muted" style="cursor:pointer">Frames for ${esc(P(r.pid).name)}</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${r.games.map((g, k) => g?.str ? `<div class="small muted">Game ${k + 1}</div>${frameSheet(g)}` : '').join('')}</div></details></td></tr>` : ''}`; }).join('')}
@@ -852,6 +857,30 @@ pages.night = date => {
   </div>
   ${nightCallouts(n.date)}`;
 };
+
+/* Results as cards: the phone layout of a night's results */
+function resultCards(n, before) {
+  const tops = [0, 1, 2].map(k => Math.max(...n.rows.map(r => r.totals[k] ?? -1)));
+  const rows = [...n.rows].sort((a, b) => a.pointsPlace - b.pointsPlace || b.series - a.series);
+  return `<div class="res-cards">${rows.map(r => {
+    const avg = before[r.pid]?.avgExact; const d = avg != null ? Math.round(r.series - avg * r.n) : null;
+    const pl = r.pointsPlace, hasFr = r.games.some(g => g?.str);
+    const game = (t, k) => `<div class="rg${t == null ? ' na' : ''}${t != null && t === tops[k] ? ' top' : ''}${t >= 200 ? ' two' : ''}"><span>G${k + 1}</span><b>${t ?? '—'}</b></div>`;
+    const meta = [`<span>W-L <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>`, `<span><b>${r.points}</b> pts</span>`,
+      n.handicap ? `<span>Hdcp <b>${r.hdcp * r.n}</b> · <b>${r.hdcpSeries}</b></span>` : '',
+      d != null ? `<span class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}"><b>${d > 0 ? '+' : ''}${d}</b> vs avg</span>` : ''].filter(Boolean).join('');
+    return `<div class="rcard${pl <= 3 ? ` top3 p${pl}` : ''}">
+      <div class="rc-top">${medal(pl)}<div class="rc-who">${who(r.pid, { size: 40 })}</div><div class="rc-series"><b>${n.handicap ? r.hdcpSeries : r.series}</b><span>${n.handicap ? 'hdcp series' : 'series'}</span></div></div>
+      <div class="rc-games">${[0, 1, 2].map(k => game(r.totals[k], k)).join('')}</div>
+      <div class="rc-meta">${meta}</div>
+      ${hasFr ? `<details class="rc-frames"><summary>Frames</summary>${r.games.map((g, k) => g?.str ? `<div class="rc-gl">Game ${k + 1} · ${g.total}</div>${miniSheet(g)}` : '').join('')}</details>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+function miniSheet(g) {
+  const parsed = E.parseFrames(g.str); if (parsed.error) return '';
+  return `<div class="mini-sheet">${parsed.frames.map((f, i) => `<div><div class="rolls">${f.split ? '<i>S</i>' : ''}${esc(f.balls.map(b => b.ch === '-' ? '–' : b.ch).join(''))}</div><div class="run">${parsed.running[i]}</div></div>`).join('')}</div>`;
+}
 
 /* ---------------- Monthly championships ---------------- */
 pages.championships = () => {

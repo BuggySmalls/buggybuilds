@@ -594,6 +594,7 @@ export const BADGES = [
   { key: 'cleanGame', name: 'Clean Game', desc: 'A game with no open frames', frames: true, icon: '✓' },
   { key: 'dutch200', name: 'Dutch 200', desc: 'Strike, spare, strike, spare… exactly 200', frames: true, icon: 'X/' },
   { key: 'splitHappens', name: 'Split Happens', desc: 'Picked up a split', frames: true, icon: 'S' },
+  { key: 'club150', name: '150 Club', desc: 'Bowled a 150 game', icon: '150' },
   { key: 'club200', name: '200 Club', desc: 'Bowled a 200 game', icon: '200' },
   { key: 'club250', name: '250 Club', desc: 'Bowled a 250 game', icon: '250' },
   { key: 'perfect', name: 'Perfect Game', desc: 'Bowled a 300', icon: '300', gold: true },
@@ -655,6 +656,7 @@ export function achievements(data, nights, champs) {
       r.games.forEach((g, k) => {
         if (!g) return;
         const G = (detail = `scored ${g.total}`) => ({ game: k + 1, detail });
+        if (g.total >= 150) give(r.pid, 'club150', n.date, 1, G());
         if (g.total >= 200) give(r.pid, 'club200', n.date, 1, G());
         if (g.total >= 250) give(r.pid, 'club250', n.date, 1, G());
         if (g.total === 300) give(r.pid, 'perfect', n.date, 1, G());

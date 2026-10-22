@@ -142,7 +142,8 @@ export class Accounts extends DurableObject {
   // The roster the site uses: league.json bowlers, with each account's profile laid over its bowler.
   merged(L) {
     const { hidden } = this.admin(L);
-    const players = (L.players || []).map(p => ({ ...p }));
+    // sheetName keeps the scoresheet (lane-screen) name so profiles can list it as a known alias.
+    const players = (L.players || []).map(p => ({ ...p, sheetName: p.name }));
     const byId = Object.fromEntries(players.map(p => [p.id, p]));
     for (const a of this.all()) {
       if (hidden.has(a.ukey)) continue;

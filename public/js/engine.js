@@ -741,6 +741,13 @@ export function validate(data) {
     if (!p.id || !/^[a-z0-9-]+$/.test(p.id)) errors.push(`Player id "${p.id}" should be lowercase letters, numbers and dashes`);
     if (ids.has(p.id)) errors.push(`Duplicate player id ${p.id}`);
     ids.add(p.id);
+    if (p.aliases != null && (!Array.isArray(p.aliases) || p.aliases.some(a => typeof a !== 'string' || !a.trim()))) errors.push(`${p.id}: aliases must be a list of names`);
+  }
+  const aliasOwner = {};
+  for (const p of data.players || []) for (const a of [p.name, ...(Array.isArray(p.aliases) ? p.aliases : [])]) {
+    const k = String(a || '').trim().toLowerCase(); if (!k) continue;
+    if (aliasOwner[k] && aliasOwner[k] !== p.id) errors.push(`Name/alias "${a}" belongs to both ${aliasOwner[k]} and ${p.id}`);
+    else aliasOwner[k] = p.id;
   }
   const dates = new Set();
   for (const e of data.events || []) {

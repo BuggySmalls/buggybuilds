@@ -25,6 +25,7 @@ Add (or update) one entry in `events`, keyed by date:
 - Game order at Kingstown Bowl: the timer in the screen's top-left counts DOWN the lane's paid time, and the header color marks the game: green = game 1, yellow = game 2, red = game 3 (confirmed by Nick, week 1). A bowler shown "SKIP" at 00:00 ran out of time; log that game as `null`.
 - Reading a scoring-screen photo: transcribe every frame you can read. If a frame is unreadable, log the game total only (no frames) for that game rather than guessing. Tell Nick which games you couldn't read.
 - Use roster ids exactly. If a name in the photo isn't on the roster, ask before adding.
+- Known aliases (Nick, Oct 22 2026): every profile shows a "Known aliases" row — the scoresheet name, the account username, and anything in `players[].aliases`. When a lane-screen name doesn't match, check names and aliases first. Once Nick confirms who a new lane name or nickname belongs to, add it to that bowler's `aliases` so it's matched automatically next time. The validator rejects an alias claimed by two bowlers.
 
 ## Bowler accounts (Nick, Oct 21 2026)
 Nick cleared the old roster: bowlers now make their own profiles on the site. Login is a username plus a 4-digit code or a swipe pattern — no email, no phone, never add them. Browsing never needs an account.

@@ -205,6 +205,9 @@ label.field{display:flex;flex-direction:column;gap:5px;font:600 13px var(--body)
 .profile-head h1{font-weight:900;font-size:clamp(36px,6vw,58px);line-height:.9}
 .facts{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--muted);font-size:14px;margin-top:8px}
 .facts b{color:var(--text);font-weight:600}
+.aliases{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:13px}
+.aliases span{font:400 13px var(--display);letter-spacing:.03em;color:#fff;text-shadow:2px 2px 0 #111;margin-right:2px}
+.aliases b{font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(0,0,0,.28);color:#fff;border:1px solid rgba(255,255,255,.35)}
 .big-rank{text-align:center}
 .big-rank b{display:block;font:900 64px/0.9 var(--display)}
 .big-rank span{font:600 13px var(--body);color:var(--muted)}

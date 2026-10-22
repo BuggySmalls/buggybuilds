@@ -457,6 +457,9 @@ pages.player = id => {
 
   const others = S.active.filter(o => o.id !== id).map(o => ({ o, h: E.headToHead(S.nights, id, o.id) })).filter(x => x.h.games).sort((a, b) => (b.h.w - b.h.l) - (a.h.w - a.h.l));
 
+  // Known aliases: lane-screen name, account username, and any names Nick adds in league.json (players[].aliases).
+  const seen = new Set([String(p.name).toLowerCase()]);
+  const aliases = [p.sheetName, p.account, ...(p.aliases || [])].filter(a => a && !seen.has(String(a).toLowerCase()) && seen.add(String(a).toLowerCase()));
   const stat = (v, l, sub = '') => `<div><b>${v}</b><span>${l}</span>${sub ? `<em>${sub}</em>` : ''}</div>`;
   return `
   <section class="profile-head" style="--av-bg:${colorOf(p)}">
@@ -466,6 +469,7 @@ pages.player = id => {
       <div class="name-row"><h1>${esc(p.name)}</h1>${showcaseHTML(p, earned)}</div>
       ${p.nickname ? `<div style="font:700 20px var(--display);color:var(--maple)">“${esc(p.nickname)}”</div>` : ''}
       ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
+      ${aliases.length ? `<div class="aliases"><span>Known aliases</span>${aliases.map(a => `<b>${esc(a)}</b>`).join('')}</div>` : ''}
       <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span>${(() => { const r = S.games ? calloutRecord(id) : null; return r && r.w + r.l + r.t ? `<span>Call-outs <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>` : ''; })()}${(() => { const t = S.games ? pickTable().find(x => x.id === id) : null; return t ? `<span>Pick’em <b>${t.pts} pts</b></span>` : ''; })()}</div>
     </div>
     <div class="big-rank"><b>${rank ?? '–'}</b><span>Season rank</span></div>

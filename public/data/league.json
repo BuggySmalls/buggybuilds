@@ -143,13 +143,19 @@
       "name": "N8hashairynip",
       "joined": "2026-10-21",
       "active": true,
-      "photo": "img/players/gabby.jpg"
+      "photo": "img/players/gabby.jpg",
+      "aliases": [
+        "Gabby"
+      ]
     },
     {
       "id": "n8-has-saggy-boobs",
       "name": "Fred",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "Chris"
+      ]
     }
   ],
   "events": [

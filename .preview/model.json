@@ -1,0 +1,166 @@
+{
+ "league": "Cereal Bowlers",
+ "week": 1,
+ "date": "Wednesday, October 21",
+ "venue": "Kingstown Bowl",
+ "site": "cerealbowlers.org",
+ "when": "Wednesdays · 7:15 PM",
+ "rows": [
+  {
+   "place": 1,
+   "name": "n8",
+   "totals": [
+    132,
+    172,
+    152
+   ],
+   "series": 456
+  },
+  {
+   "place": 2,
+   "name": "poopbird",
+   "totals": [
+    144,
+    138,
+    157
+   ],
+   "series": 439
+  },
+  {
+   "place": 3,
+   "name": "tony",
+   "totals": [
+    138,
+    145,
+    99
+   ],
+   "series": 382
+  },
+  {
+   "place": 4,
+   "name": "Fred",
+   "totals": [
+    143,
+    99,
+    119
+   ],
+   "series": 361
+  },
+  {
+   "place": 5,
+   "name": "NateHasBoobs",
+   "totals": [
+    114,
+    128,
+    110
+   ],
+   "series": 352
+  },
+  {
+   "place": 6,
+   "name": "Buggy",
+   "totals": [
+    100,
+    90,
+    126
+   ],
+   "series": 316
+  },
+  {
+   "place": 7,
+   "name": "deedra",
+   "totals": [
+    117,
+    96,
+    100
+   ],
+   "series": 313
+  },
+  {
+   "place": 8,
+   "name": "Roy",
+   "totals": [
+    85,
+    68,
+    136
+   ],
+   "series": 289
+  },
+  {
+   "place": 9,
+   "name": "kate",
+   "totals": [
+    65,
+    110,
+    106
+   ],
+   "series": 281
+  },
+  {
+   "place": 10,
+   "name": "liam",
+   "totals": [
+    123,
+    92,
+    60
+   ],
+   "series": 275
+  },
+  {
+   "place": 11,
+   "name": "bigmoney",
+   "totals": [
+    118,
+    131,
+    null
+   ],
+   "series": 249
+  },
+  {
+   "place": 12,
+   "name": "Fontes",
+   "totals": [
+    77,
+    83,
+    85
+   ],
+   "series": 245
+  },
+  {
+   "place": 13,
+   "name": "GabbytheKid",
+   "totals": [
+    67,
+    81,
+    95
+   ],
+   "series": 243
+  }
+ ],
+ "awards": [
+  {
+   "name": "Strike King",
+   "who": "n8",
+   "why": "13 strikes",
+   "tone": "fame"
+  },
+  {
+   "name": "Spare Master",
+   "who": "poopbird",
+   "why": "11 of 24 spares",
+   "tone": "fame"
+  },
+  {
+   "name": "Most Inconsistent",
+   "who": "Roy",
+   "why": "68-pin swing between games",
+   "tone": "shame"
+  },
+  {
+   "name": "Worst Performance",
+   "who": "GabbytheKid",
+   "why": "243 series",
+   "tone": "shame"
+  }
+ ]
+}

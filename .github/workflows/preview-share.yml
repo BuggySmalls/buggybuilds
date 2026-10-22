@@ -1,0 +1,15 @@
+name: Preview share image
+on: { push: { branches: [preview-share] } }
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p fonts && cd fonts
+          for u in ofl/bungee/Bungee-Regular.ttf ofl/bungeeshade/BungeeShade-Regular.ttf "ofl/rubik/Rubik%5Bwght%5D.ttf" ofl/vt323/VT323-Regular.ttf; do curl -sSfL -o "$(basename "$u" | sed 's/%5B/[/;s/%5D/]/')" "https://raw.githubusercontent.com/google/fonts/main/$u"; done
+          ls -la
+      - run: cd .preview && npm init -y >/dev/null && npm i playwright@1.56.0 && npx playwright install --with-deps chromium
+      - run: cd .preview && node shot.mjs ../public model.json share.png ../fonts
+      - uses: actions/upload-artifact@v4
+        with: { name: share, path: .preview/share.png }

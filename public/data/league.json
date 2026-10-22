@@ -73,9 +73,8 @@
   },
   "players": [
     {
-      "id": "jason",
-      "name": "Jason",
-      "nickname": "Nate Has Boobs",
+      "id": "natehasboobs",
+      "name": "NateHasBoobs",
       "joined": "2026-10-21",
       "active": true
     },
@@ -87,25 +86,25 @@
     },
     {
       "id": "tony",
-      "name": "Tony",
+      "name": "tony",
       "joined": "2026-10-21",
       "active": true
     },
     {
       "id": "deedra",
-      "name": "Deedra",
+      "name": "deedra",
       "joined": "2026-10-21",
       "active": true
     },
     {
-      "id": "k8",
-      "name": "K8",
+      "id": "kate",
+      "name": "kate",
       "joined": "2026-10-21",
       "active": true
     },
     {
-      "id": "poopbir",
-      "name": "Poopbir",
+      "id": "poopbird",
+      "name": "poopbird",
       "joined": "2026-10-21",
       "active": true
     },
@@ -116,7 +115,7 @@
       "active": true
     },
     {
-      "id": "bigmon",
+      "id": "bigmoney",
       "name": "Big Money",
       "joined": "2026-10-21",
       "active": true
@@ -168,35 +167,15 @@
           96,
           100
         ],
-        "k8": [
-          65,
-          110,
-          106
-        ],
-        "poopbir": [
-          144,
-          138,
-          157
-        ],
         "buggy": [
           100,
           90,
           126
         ],
-        "jason": [
-          114,
-          128,
-          110
-        ],
         "roy": [
           85,
           68,
           136
-        ],
-        "bigmon": [
-          118,
-          131,
-          null
         ],
         "scooter": [
           132,
@@ -222,6 +201,26 @@
           67,
           81,
           95
+        ],
+        "poopbird": [
+          144,
+          138,
+          157
+        ],
+        "kate": [
+          65,
+          110,
+          106
+        ],
+        "bigmoney": [
+          118,
+          131,
+          null
+        ],
+        "natehasboobs": [
+          114,
+          128,
+          110
         ]
       },
       "frames": {
@@ -235,35 +234,15 @@
           "8/ 7- S72 72 -7 63 7- 72 53 7/4",
           "71 7/ S81 7- 33 8- 9/ S81 9- S8-"
         ],
-        "k8": [
-          "-1 9- 6- 8- 7/ 51 -1 9- 81 -1",
-          "9/ 7/ -8 16 9- X 9/ 9- 21 53",
-          "S71 8- 51 8- 6/ 6- 6/ S8/ 6/ 34"
-        ],
-        "poopbir": [
-          "9/ 1/ 9/ 53 X 4/ S81 54 6/ 7/8",
-          "X S7- 9/ 8/ 8/ 36 63 X 8/ 81",
-          "8- 9- 81 8- X X 8/ 9- X X81"
-        ],
         "buggy": [
           "6- X 9- 6- 72 8/ 9- 61 7- 9-",
           "8/ -1 7/ 9- 8/ 35 43 42 S8- 9-",
           "9/ 3/ X 81 7- 53 61 71 8/ 5/X"
         ],
-        "jason": [
-          "8- 8- 5- X 8/ 9- 9- X 8/ -6",
-          "81 X 6- 7- X 3/ 7/ S8/ 9- 52",
-          "71 9- X 6/ 7/ 35 71 14 16 X5-"
-        ],
         "roy": [
           "X 2- X 72 2- 71 71 8- 8- 9-",
           "-- -8 -- 5- X 53 -- -7 X 6-",
           "1/ 9/ X 8- X 9- 81 61 3/ S81"
-        ],
-        "bigmon": [
-          "4- -7 6- X 9- -7 63 X X 9-",
-          "53 33 72 5/ 6/ 9/ 9- 9- -/ 7/9",
-          null
         ],
         "scooter": [
           "7/ -- X X 5- X 8/ X 72 9-",
@@ -289,6 +268,26 @@
           "-5 -3 3- 9- 5- S62 8- S81 9/ -7",
           "S81 8- 1/ 3- S8- 9- 8- 54 8- -6",
           "9- 51 8/ -/ 5- 12 6/ 35 X 35"
+        ],
+        "poopbird": [
+          "9/ 1/ 9/ 53 X 4/ S81 54 6/ 7/8",
+          "X S7- 9/ 8/ 8/ 36 63 X 8/ 81",
+          "8- 9- 81 8- X X 8/ 9- X X81"
+        ],
+        "kate": [
+          "-1 9- 6- 8- 7/ 51 -1 9- 81 -1",
+          "9/ 7/ -8 16 9- X 9/ 9- 21 53",
+          "S71 8- 51 8- 6/ 6- 6/ S8/ 6/ 34"
+        ],
+        "bigmoney": [
+          "4- -7 6- X 9- -7 63 X X 9-",
+          "53 33 72 5/ 6/ 9/ 9- 9- -/ 7/9",
+          null
+        ],
+        "natehasboobs": [
+          "8- 8- 5- X 8/ 9- 9- X 8/ -6",
+          "81 X 6- 7- X 3/ 7/ S8/ 9- 52",
+          "71 9- X 6/ 7/ 35 71 14 16 X5-"
         ]
       },
       "note": "Big Money's game 3 was cut off when the lane's time ran out."
@@ -313,7 +312,7 @@
   },
   "badges": [
     {
-      "pid": "jason",
+      "pid": "natehasboobs",
       "key": "lubedUp",
       "date": "2026-10-21",
       "note": "Slipped on the lane"

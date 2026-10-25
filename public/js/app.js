@@ -2,7 +2,7 @@ import * as E from './engine.js';
 import { lineChart, barChart, PALETTE } from './charts.js';
 import { installAccount, fetchMe } from './account.js';
 import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from './share-image.js';
-import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable } from './games.js';
+import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable, homeBets, nightBets, profileBets, betRecord, betTicker } from './games.js';
 import { randomFact } from './facts.js';
 
 /* ================================================================== *
@@ -116,7 +116,7 @@ function recapText(idx) {
   const hiG = n.rows.flatMap(r => r.totals.map(t => ({ pid: r.pid, t }))).filter(x => x.t != null).sort((x, y) => y.t - x.t)[0];
   if (hiG) lines.push(`🔥 High game: ${P(hiG.pid).name} ${hiG.t}`);
   const pn = S.purse.nights.find(x => x.date === n.date);
-  if (pn && pn.payouts.length) lines.push(`💰 Purse ($${pn.pot}): ${pn.payouts.map(po => `${po.label} ${po.winners.map(id => P(id).name).join(' & ')} ${money(po.each)}`).join(', ')}`);
+  if (pn && pn.payouts.length) lines.push(`💰 Purse ($${pn.pot}): ${pn.payouts.filter(po => po.winners.length).map(po => `${po.label} ${po.winners.map(id => P(id).name).join(' & ')} ${money(po.each)}`).join(', ')}`);
   const aw = awardsFor(idx).filter(x => ['improved', 'clutch', 'choke', 'fraud'].includes(x.key));
   if (aw.length) lines.push('', ...aw.map(x => `${x.tone === 'shame' ? '🫠' : '⭐️'} ${x.name}: ${P(x.winner.pid).name} (${x.winner.why})`));
   const broken = recordsBrokenAt(idx).filter(r => r.kind === 'fame').slice(0, 2);
@@ -274,6 +274,8 @@ pages.home = () => {
     </div>
   </section>
 
+  ${homeBets()}
+
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
 
   <section class="kpis">
@@ -358,6 +360,7 @@ function tickerHTML() {
     if (hg) bits.push(`HIGH GAME: ${P(hg.pid).name.toUpperCase()} ${hg.t}`);
     const pn = S.purse.nights.find(x => x.date === n.date); if (pn) bits.push(`PURSE: $${pn.pot} PAID OUT`);
   }
+  if (S.games) bits.unshift(...betTicker());
   const mw = matches(); if (mw[0]) bits.push(`MATCH OF THE WEEK: ${P(mw[0].a).name.toUpperCase()} VS ${P(mw[0].b).name.toUpperCase()}`);
   const lead = seasonTable()[0]; if (lead) bits.push(`LEAGUE LEADER: ${P(lead.id).name.toUpperCase()} ${lead.points} PTS`);
   if (S.next) bits.push(`NEXT UP: ${fmtDate(S.next.date, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()} · ${fmtTime(S.data.league.startTime)}`);
@@ -432,10 +435,10 @@ pages.players = () => {
   <div><h1 class="page-title">Players</h1><p class="page-intro">${list.length} active bowlers, ranked by season points.</p></div>
   ${cta}
   <div class="player-grid">
-    ${list.map(p => { const s = agg[p.id] || { w: 0, l: 0, t: 0, nightWins: 0, games: 0 }; return `<a class="pcard" href="#/player/${esc(p.id)}" style="--av-bg:${colorOf(p)}">
+    ${list.map(p => { const s = agg[p.id] || { w: 0, l: 0, t: 0, nightWins: 0, games: 0 }; return `<div class="pcard-wrap"><a class="pcard" href="#/player/${esc(p.id)}" style="--av-bg:${colorOf(p)}">
       <div class="pcard-top">${avatar(p, 52)}<div style="min-width:0"><div style="font:800 21px/1.05 var(--display)">${esc(p.name)}</div>${p.nickname ? `<div class="small muted">“${esc(p.nickname)}”</div>` : ''}<div class="pcard-wins"><b>${s.w}-${s.l}${s.t ? '-' + s.t : ''}</b> game wins · <b>${s.nightWins}</b> winning night${s.nightWins === 1 ? '' : 's'}</div></div>${rank[p.id] ? `<span class="pcard-rank">${rank[p.id]}</span>` : ''}
         ${miniBadges(p.id)}</div>
-      <div class="pcard-stats"><div><b>${s.avg ?? '—'}</b><span>Average</span></div><div><b>${s.hg?.v ?? '—'}</b><span>High game</span></div><div><b>${s.games}</b><span>Games</span></div></div></a>`; }).join('')}
+      <div class="pcard-stats"><div><b>${s.avg ?? '—'}</b><span>Average</span></div><div><b>${s.hg?.v ?? '—'}</b><span>High game</span></div><div><b>${s.games}</b><span>Games</span></div></div></a>${S.me?.playerId !== p.id && !S.apiDown ? `<a class="betcha-btn" href="#/player/${esc(p.id)}?betcha" aria-label="Betcha ${esc(p.name)}">Betcha</a>` : ''}</div>`; }).join('')}
   </div>
   <section class="panel"><div class="panel-head"><h2>Badge leaders</h2></div>
     ${leaders.length ? `<div class="list">${leaders.map((l, i) => `<div class="list-row">${medal(i + 1)}<div class="grow">${who(l.id, { size: 30 })}</div><span class="small muted">${l.d} different</span><span class="val">${l.n}</span></div>`).join('')}</div><p class="small faint">Ranked by total unlocks. Badges can be earned again and again.</p>` : empty('No badges yet', 'Bowl a 200, string three strikes, or win a month.')}
@@ -479,13 +482,14 @@ pages.player = id => {
       ${p.nickname ? `<div style="font:700 20px var(--display);color:var(--maple)">“${esc(p.nickname)}”</div>` : ''}
       ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
       ${aliases.length ? `<div class="aliases"><span>Known aliases</span>${aliases.map(a => `<b>${esc(a)}</b>`).join('')}</div>` : ''}
-      <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span>${(() => { const r = S.games ? calloutRecord(id) : null; return r && r.w + r.l + r.t ? `<span>Call-outs <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>` : ''; })()}${(() => { const t = S.games ? pickTable().find(x => x.id === id) : null; return t ? `<span>Pick’em <b>${t.pts} pts</b></span>` : ''; })()}</div>
+      <div class="facts">${p.hand ? `<span>Bowls <b>${esc(p.hand.toLowerCase())}</b></span>` : ''}${p.ball ? `<span>Ball <b>${p.ball} lb</b></span>` : ''}${p.cereal ? `<span>Cereal <b>${esc(p.cereal)}</b></span>` : ''}${p.song ? `<span>Walk-up <b>${esc(p.song)}</b></span>` : ''}<span>Joined <b>${fmtDate(p.joined, { month: 'short', year: 'numeric' })}</b></span><span>Monthly titles <b>${champs.length}</b></span><span>Streak ${streakTag(streak)}</span><span>Nights bowled <b>${att.attended}</b></span>${(() => { const r = S.games ? calloutRecord(id) : null; return r && r.w + r.l + r.t ? `<span>Call-outs <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>` : ''; })()}${(() => { const r = S.games ? betRecord(id) : null; return r && r.w + r.l + r.t ? `<span>Betchas <b>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</b></span>` : ''; })()}${(() => { const t = S.games ? pickTable().find(x => x.id === id) : null; return t ? `<span>Pick’em <b>${t.pts} pts</b></span>` : ''; })()}</div>
     </div>
     <div class="big-rank"><b>${rank ?? '–'}</b><span>Season rank</span></div>
     <div class="head-badges"><span class="hb-label">Badges <b>${Object.values(earned).reduce((a, e) => a + e.count, 0)}</b></span>${miniBadges(id, 16, true)}</div>
   </section>
 
-  <div class="controls"><a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a>${!p.claimed && !S.apiDown && !S.me ? `<a class="btn" href="#/join?claim=${esc(id)}">This is me</a>` : ''}</div>
+  <div class="controls">${S.me?.playerId !== id && !S.apiDown ? `<a class="btn primary" href="#/player/${esc(id)}?betcha">Betcha</a>` : ''}<a class="btn" href="#/rivalries?a=${esc(id)}">Compare with another bowler</a>${!p.claimed && !S.apiDown && !S.me ? `<a class="btn" href="#/join?claim=${esc(id)}">This is me</a>` : ''}</div>
+  ${profileBets(id)}
   ${profileCallouts(id)}
 
   <div class="statgrid">
@@ -583,6 +587,8 @@ function openBadge(pid, key) {
     <button type="button" class="bd-close" data-close-badge aria-label="Close">×</button>
     <div class="bd-top"><div class="badge ${cls}${got ? '' : ' locked'}"><div class="hex"><span class="hex-icon">${esc(b.icon || '')}</span><span class="hex-n">${got?.count || 0}</span></div></div>
       <div style="min-width:0"><h2>${esc(b.name)}</h2><p>${esc(b.desc)}</p></div></div>
+    ${(() => { const pool = S.active, have = pool.filter(x => (S.achievements[x.id] || {})[key]).length, pct = pool.length ? Math.round(have / pool.length * 100) : 0;
+      return `<div class="bd-rarity"><div class="bd-pct"><b>${pct}%</b> of bowlers have this badge <span class="faint">(${have} of ${pool.length})</span></div><div class="bd-bar" aria-hidden="true"><i style="width:${pct}%"></i></div></div>`; })()}
     <div class="bd-sub">${esc(p.name)} · ${got ? `earned ${got.count} time${got.count === 1 ? '' : 's'}` : 'not earned yet'}</div>
     ${rows ? `<div class="bd-list">${rows}</div>` : `<p class="small muted">${b.manual ? 'Handed out by Nick.' : 'Nothing yet — keep bowling.'}</p>`}
   </div>`;
@@ -746,7 +752,7 @@ pages.purse = () => {
     </tbody></table></div>` : empty('No money has changed hands yet')}
   </section>
   <section class="panel"><div class="panel-head"><h2>Payout history</h2></div>
-    ${pu.nights.length ? `<div class="list">${pu.nights.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)} · ${money(n.pot)} pot</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${esc(po.label)}${po.value != null ? ` · ${po.value}` : ''}</span><span>${po.winners.map(id => esc(P(id).name)).join(' &amp; ')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
+    ${pu.nights.length ? `<div class="list">${pu.nights.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)} · ${money(n.pot)} pot</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${esc(po.label)}${po.value != null ? ` · ${po.value}` : ''}</span><span>${(po.winners.length ? po.winners.map(id => esc(P(id).name)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
   </section>`;
 };
 
@@ -771,6 +777,7 @@ pages.faq = () => {
     qa('How do I sign in?', `<p>A username plus a <b>4-digit code</b> or a <b>swipe pattern</b>, like a phone lock screen. No email, no phone number, nothing to verify. Five wrong tries locks the account for a while. Forgot yours? Text Nick and he’ll reset it, then sign in and set a new one.</p>`),
     qa('How does Pick’em work?', `<p>Before first ball, signed-in bowlers pick who bowls the <b>top series</b> (3 points), the <b>lowest series</b> (2 points), whether anyone bowls a <b>200 game</b> (1 point), and the winner of each match to watch (1 point each, by series). Picks lock at ${fmtTime(L.startTime)}, and then everyone’s picks are visible. Ties count as right for everyone tied. Most points over the season wins. <a href="#/pickem">Make your picks</a>.</p>`),
     qa('What’s a call-out?', `<p>Open another bowler’s profile and call them out for the next night, with an optional line of trash talk. Whoever bowls the higher series that night wins. If either of you doesn’t bowl, it’s no contest. Up to three call-outs a night, and you can take one back until first ball. Your call-out record shows on your profile.</p>`),
+    qa('What’s a Betcha?', `<p>Tap Betcha on someone’s profile or on the Players page, say what’s on the line (loser buys a round, wears the cereal box hat, whatever), and send it. They have until first ball to take the bet or chicken out, and everyone sees which. Higher series that night wins. If either of you doesn’t bowl, it’s no contest. Every open Betcha shows on the home page. The site just keeps score. Settling up is between you two.</p>`),
     qa('I bowled before I made an account. Do my scores carry over?', `<p>Yes. Nick logs scores under the name on the lane screen. When you sign up, pick that name from the list (or later on your profile page) and those games become yours. If the wrong person grabs your name, tell Nick.</p>`),
     qa('What if I miss a night?', `<p>You don't earn points that night, and your attendance streak resets. A missed night doesn't break your winning or losing streak, and it doesn't change your average.</p>`),
     qa('What if I leave early?', `<p>The games you bowled count toward your average and your wins and losses. Your series for that night is just the games you bowled, so you'll likely finish lower. High series records only count full three-game nights.</p>`),
@@ -862,12 +869,13 @@ pages.night = date => {
       <div class="list-row"><div class="grow small muted">High series</div>${who(n.rows[0].pid, { size: 26 })}<span class="val">${n.rows[0].series}</span></div>
       ${strikeLead ? `<div class="list-row"><div class="grow small muted">Most strikes</div>${who(strikeLead.pid, { size: 26 })}<span class="val">${strikeLead.s}</span></div>` : ''}
       <div class="list-row"><div class="grow small muted">200 games</div><span class="val">${two.length}</span></div>
-      ${(() => { const pn = S.purse.nights.find(x => x.date === n.date); return pn ? pn.payouts.map(po => `<div class="list-row"><div class="grow small muted">Purse: ${esc(po.label)}${po.value != null ? ` (${po.value})` : ''}</div><span class="small">${po.winners.map(id => esc(P(id).name)).join(' &amp; ')}</span><span class="val">${money(po.each)}</span></div>`).join('') : ''; })()}
+      ${(() => { const pn = S.purse.nights.find(x => x.date === n.date); return pn ? pn.payouts.map(po => `<div class="list-row"><div class="grow small muted">Purse: ${esc(po.label)}${po.value != null ? ` (${po.value})` : ''}</div><span class="small">${(po.winners.length ? po.winners.map(id => esc(P(id).name)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val">${money(po.each)}</span></div>`).join('') : ''; })()}
     </div>
     ${broken.length ? `<h3 style="margin-top:6px">Records broken</h3><div class="rec-list">${broken.map(r => `<div class="rec stack"><div class="t">${esc(r.title)}</div>${who(r.holder, { size: 24 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : ''}
     </section>
     <section class="panel"><div class="panel-head"><h2>Weekly awards</h2></div><div class="awards">${aw.map(awardHTML).join('')}</div></section>
   </div>
+  ${nightBets(n.date)}
   ${nightCallouts(n.date)}`;
 };
 
@@ -1085,7 +1093,10 @@ function route() {
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
 let lastPath = null;
-window.addEventListener('hashchange', () => { const p = location.hash.split('?')[0]; route(); if (p !== lastPath) { window.scrollTo(0, 0); lastPath = p; } });
+window.addEventListener('hashchange', () => {
+  const p = location.hash.split('?')[0]; route(); if (p !== lastPath) { window.scrollTo(0, 0); lastPath = p; }
+  if (/[?&]betcha\b/.test(location.hash)) requestAnimationFrame(() => { const el = document.getElementById('betcha'); if (!el) return; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.querySelector('input')?.focus({ preventScroll: true }); });
+});
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-q],[data-toggle-player],[data-share],[data-recap]'); if (!b) return;

@@ -41,6 +41,7 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - Pick'em: top series 3 pts, lowest series 2 (full 3-game nights only, ties all count), any 200 game 1, each match to watch 1 (higher series). Picks lock at `league.startTime`; everyone's picks show after the lock.
 - Call-outs: one bowler calls out another for the next night, optional 100-char trash talk. Higher series wins; no contest if either doesn't bowl. Max 3 per bowler per night; can take back before first ball.
 - Ids matter: picks and call-outs use account player ids, so log scores under the same ids or they show as no contest / wrong.
+- Betcha (Nick, Oct 24 2026): a bowler bets another for the next night with typed stakes ("loser buys a round"); the other takes it or chickens out before first ball. Higher series wins, only accepted bets count. Stored by the account server (`bets` table); shown on the home page (every open Betcha, right under the hero), the ticker, profiles (Betcha button and form), the Players tab (Betcha button per card) and the night's results. Max 3 per bowler per night. No real money is tracked; settling up is between them.
 - Fun facts: `public/js/facts.js`. One random fact on the home page and ticker each load. Only add facts you're sure are true.
 
 ## Other admin tasks (all in league.json)
@@ -49,12 +50,13 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - Announcements: `announcements[] {date, title, body}`.
 - Power-ranking commentary: `powerRankings["<date>"].comments[<id>] = "text"`; optional `order: [ids]` to override the computed order. Keep it friendly ribbing.
 - Weekly award picks override the automatic ones: `awards["<date>"][<awardKey>] = "<id>"` or `{pid, why}`. Keys: botw, improved, strikeKing, spareMaster, clutch, upset, choke, inconsistent, worst, fraud.
+- Badge popup shows what % of active bowlers have that badge (Nick, Oct 24 2026).
 - Badges: defined in `BADGES` (engine.js), earned automatically from scores and repeatable. Nick removed the commissioner's-pick badges (Best Dressed, Fan Favorite, Rookie) on Oct 21 2026 — don't add those back.
 - Exception: **Lubed Up** (Hall of Shame, `manual: true`) — given by hand when someone slips on the lane (Nick, Oct 21 2026). Give it with `badges[] {pid, key: "lubedUp", date, note?}`; one entry per slip. Only badges marked `manual` in BADGES can be handed out this way.
 - Fonts: no handwriting font and no italics anywhere on the site (Nick, Oct 21 2026). Body text is Rubik; Bungee only for headings and labels.
 - Custom records: `customRecords[] {kind: "fame"|"shame", title, holder, value, date, detail?}`.
 - Photos for the home gallery: `photos[] {src: "img/gallery/…", caption, date}`.
-- Purse: `league.purse {confirmed, buyIn, payouts:[{key,label,share}]}`; keys highGame, highSeries, hdcpSeries, overAverage. Payouts are computed from results; anything paid by hand goes in `purseAdjustments[] {date, pid, amount, note}`. Rules are PROPOSED ($5, 50% high game / 50% high series) until Nick confirms — then set `confirmed: true`.
+- Purse: `league.purse {confirmed, buyIn, payouts:[{key,label,share}]}`; keys highGame, highSeries, hdcpSeries, overAverage. Payouts are computed from results; anything paid by hand goes in `purseAdjustments[] {date, pid, amount, note}`. To strip someone's winnings for a night without paying anyone else, add `purseVoids[] {date, pid, note?}` (the prize shows "Not awarded"). N8's week 1 winnings were removed this way (Nick, Oct 24 2026). Rules are PROPOSED ($5, 50% high game / 50% high series) until Nick confirms — then set `confirmed: true`.
 - Matches to watch are computed for the next night; override with `matchesToWatch["<date>"] = [{a, b, why}]` (first one is Match of the Week).
 - Calendar: links point to cerealbowlers.org. Never change UIDs (they still end in @buggybuilds.org on purpose — changing them would duplicate events in subscribed calendars); when event details change, bump `REVISION`/`REVISED_AT` in the script so re-imported copies replace old events. `public/calendar.ics` is generated from the real schedule by `scripts/make-calendar.mjs` (validate.mjs runs it). Commit it whenever the schedule, times or skip dates change. Venue address is `league.address`.
 

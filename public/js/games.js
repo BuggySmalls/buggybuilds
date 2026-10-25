@@ -70,6 +70,19 @@ export function calloutRecord(pid) {
   return r;
 }
 
+// Betcha result, same rules as a call-out but only once the other bowler took the bet
+function betResult(b) { return b.status === 'accepted' ? calloutResult(b) : null; }
+export function betRecord(pid) {
+  const r = { w: 0, l: 0, t: 0 };
+  for (const b of C.S.games?.bets || []) {
+    if (b.from !== pid && b.to !== pid) continue;
+    const res = betResult(b); if (!res || res === 'NC') continue;
+    const mine = b.from === pid ? res : res === 'W' ? 'L' : res === 'L' ? 'W' : 'T';
+    if (mine === 'W') r.w++; else if (mine === 'L') r.l++; else r.t++;
+  }
+  return r;
+}
+
 /* ------------------------------------------------------------------ *
  * Shared bits
  * ------------------------------------------------------------------ */
@@ -100,6 +113,60 @@ function calloutRow(c, { side = null } = {}) {
 /* ------------------------------------------------------------------ *
  * Panels used by other pages
  * ------------------------------------------------------------------ */
+function betRow(b, { side = null } = {}) {
+  const { esc, who, P } = C;
+  const res = betResult(b), n = nightOf(b.date), open = openDate() === b.date, me = C.S.me?.playerId;
+  const score = id => b.status === 'accepted' && n?.byPid[id] ? `<span class="val">${n.byPid[id].series}</span>` : '';
+  const day = esc(C.fmtDate(b.date, { weekday: 'short' }));
+  let tag;
+  if (b.status === 'declined') tag = '<span class="co-tag">Chickened out</span>';
+  else if (b.status === 'open') tag = open ? '<span class="co-tag live">Waiting on an answer</span>' : '<span class="co-tag">Never answered</span>';
+  else if (!res) tag = `<span class="co-tag live">Bet’s on for ${day}</span>`;
+  else if (res === 'NC') tag = '<span class="co-tag">No contest</span>';
+  else if (res === 'T') tag = '<span class="co-tag">Push</span>';
+  else { const winner = res === 'W' ? b.from : b.to; tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${esc(P(winner).name)} wins · ${esc(P(winner === b.from ? b.to : b.from).name)} pays up</span>`; }
+  const acts = b.status === 'open' && open && me === b.to ? `<button type="button" class="btn primary small" data-betact="${b.id}|accept">Take the bet</button><button type="button" class="btn small" data-betact="${b.id}|decline">Chicken out</button>`
+    : b.status === 'open' && open && me === b.from ? `<button type="button" class="linkish small" data-unbet="${b.id}">take it back</button>` : '';
+  return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
+    <p class="co-msg bet-stakes"><span>On the line:</span> ${esc(b.stakes)}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
+}
+export function homeBets() {
+  const g = C.S.games; if (!g?.bets) return '';
+  const nx = C.S.next?.date;
+  const live = g.bets.filter(b => b.date === nx).slice().reverse();
+  const last = C.S.nights.at(-1); const settled = last ? g.bets.filter(b => b.date === last.date && b.status === 'accepted') : [];
+  const list = live.length ? live : settled;
+  if (!list.length) return '';
+  return `<section class="panel betcha-panel"><div class="panel-head"><h2>${live.length ? 'Betchas for ' + C.esc(C.fmtDate(nx, { weekday: 'short', month: 'short', day: 'numeric' })) : 'Last week’s betchas'}</h2><a href="#/players">Bet someone</a></div>
+    <div class="co-list">${list.map(b => betRow(b)).join('')}</div></section>`;
+}
+export function nightBets(date) {
+  const list = (C.S.games?.bets || []).filter(b => b.date === date && b.status === 'accepted');
+  return list.length ? `<section class="panel"><div class="panel-head"><h2>Betchas</h2><span class="small muted">Higher series wins</span></div><div class="co-list">${list.map(b => betRow(b)).join('')}</div></section>` : '';
+}
+export function betTicker() {
+  const nx = C.S.next?.date;
+  return (C.S.games?.bets || []).filter(b => b.date === nx && b.status !== 'declined').map(b => `BETCHA: ${C.P(b.from).name.toUpperCase()} VS ${C.P(b.to).name.toUpperCase()} · ${b.stakes.toUpperCase()}`);
+}
+export function profileBets(pid) {
+  const { S, esc, P } = C;
+  if (!S.games?.bets) return '';
+  const list = S.games.bets.filter(b => b.from === pid || b.to === pid).slice().reverse();
+  const rec = betRecord(pid);
+  const date = openDate();
+  const me = S.me?.playerId;
+  const already = date && list.some(b => b.date === date && b.from === me && b.to === pid && b.status !== 'declined');
+  let form = '';
+  if (me && me !== pid && date && !already) form = `<form class="co-form" data-bet="${esc(pid)}">
+      <input class="txt" name="stakes" maxlength="80" required placeholder="What’s on the line? (loser buys a round)">
+      <button class="btn primary" type="submit">Betcha ${esc(P(pid).name)} for ${esc(C.fmtDate(date, { weekday: 'short' }))}</button>
+      <p class="small faint">${esc(P(pid).name)} has to take the bet before first ball. Higher series that night wins.</p></form>`;
+  else if (!me && me !== pid && date && !S.apiDown) form = `<p class="small muted"><a href="#/login">Sign in</a> to bet ${esc(P(pid).name)}.</p>`;
+  else if (me && me !== pid && !date) form = `<p class="small muted">Betchas open the week of the next league night.</p>`;
+  if (!list.length && !form) return '';
+  return `<section class="panel" id="betcha"><div class="panel-head"><h2>Betchas</h2>${rec.w + rec.l + rec.t ? `<span class="small muted">Record <b>${rec.w}-${rec.l}${rec.t ? '-' + rec.t : ''}</b></span>` : ''}</div>
+    ${form}${list.length ? `<div class="co-list">${list.map(b => betRow(b, { side: pid })).join('')}</div>` : ''}</section>`;
+}
 export function homeCallouts() {
   const g = C.S.games; if (!g) return '';
   const nx = C.S.next?.date;
@@ -203,6 +270,20 @@ export function installGames(ctx) {
       catch (err) { p.disabled = false; flash('pickMsg', err.message); }
       return;
     }
+    const ba = e.target.closest('[data-betact]');
+    if (ba && !ba.disabled) {
+      const [id, act] = ba.dataset.betact.split('|');
+      if (act === 'decline' && !confirm('Chicken out of this betcha? Everyone will see.')) return;
+      ba.disabled = true;
+      try { C.S.games = await api(`/bet/${id}/${act}`, { method: 'POST', body: {} }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { ba.disabled = false; alert(err.message); }
+      return;
+    }
+    const ub = e.target.closest('[data-unbet]');
+    if (ub) {
+      if (!confirm('Take back this betcha?')) return;
+      try { C.S.games = await api('/bet/' + ub.dataset.unbet, { method: 'DELETE' }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { alert(err.message); }
+      return;
+    }
     const u = e.target.closest('[data-uncall]');
     if (u) {
       if (!confirm('Take back this call-out?')) return;
@@ -210,6 +291,14 @@ export function installGames(ctx) {
     }
   });
   document.addEventListener('submit', async e => {
+    const bf = e.target.closest('[data-bet]');
+    if (bf) {
+      e.preventDefault();
+      const btn = bf.querySelector('button'); btn.disabled = true;
+      try { C.S.games = await api('/bet', { method: 'POST', body: { date: C.S.next.date, to: bf.dataset.bet, stakes: bf.stakes.value } }); const y = scrollY; C.route(); scrollTo(0, y); }
+      catch (err) { btn.disabled = false; alert(err.message); }
+      return;
+    }
     const f = e.target.closest('[data-callout]'); if (!f) return;
     e.preventDefault();
     const btn = f.querySelector('button'); btn.disabled = true;

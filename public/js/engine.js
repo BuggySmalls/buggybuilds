@@ -776,6 +776,7 @@ export function validate(data) {
  * league.purse = { buyIn, payouts: [{ key, label, share }] }
  * keys: highGame, highSeries, hdcpSeries, overAverage
  * data.purseAdjustments = [{ date, pid, amount, note }] for anything paid by hand
+ * data.purseVoids = [{ date, pid, note? }] strips a bowler's winnings that night; their prize isn't paid to anyone
  * ------------------------------------------------------------------ */
 export function purse(data, nights) {
   const cfg = data.league?.purse;
@@ -797,8 +798,11 @@ export function purse(data, nights) {
       else continue;
       if (!cands.length) continue;
       const top = Math.max(...cands.map(c => c.v));
-      const winners = cands.filter(c => c.v === top).map(c => c.pid);
-      const each = cents(pot * po.share / winners.length);
+      const all = cands.filter(c => c.v === top).map(c => c.pid);
+      const voided = new Set((data.purseVoids || []).filter(v => v.date === n.date).map(v => v.pid));
+      const winners = all.filter(pid => !voided.has(pid));
+      const each = cents(pot * po.share / all.length);
+      if (!winners.length) { payouts.push({ key: po.key, label: po.label, value: top, winners: [], each: 0, voided: all }); continue; }
       winners.forEach(pid => { totals[pid].won = cents(totals[pid].won + each); totals[pid].cashes++; });
       payouts.push({ key: po.key, label: po.label, value: top, winners, each });
     }

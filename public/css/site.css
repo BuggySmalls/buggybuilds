@@ -982,3 +982,19 @@ span.nh-arrow{display:none}
 .celebrate-faces{display:flex;flex:none}.celebrate-faces>*+*{margin-left:-12px}
 .celebrate .confetti{font-size:28px;flex:none}
 @media (max-width:560px){.celebrate{flex-wrap:wrap;gap:8px}.celebrate .confetti{display:none}.celebrate-copy{flex-basis:100%}}
+
+/* Betcha */
+.pcard-wrap{display:flex;flex-direction:column;gap:6px}
+.pcard-wrap>.pcard{flex:1}
+.betcha-btn{display:block;text-align:center;font:400 13px var(--display);text-transform:uppercase;letter-spacing:.04em;text-decoration:none;color:#111;background:var(--gold);border:3px solid #111;border-radius:12px;padding:7px 10px;box-shadow:var(--pop)}
+.betcha-btn:hover,.betcha-btn:focus-visible{background:var(--red);color:#fff}
+.bet-stakes span{font:400 11px var(--display);text-transform:uppercase;color:var(--gold);margin-right:4px}
+.betcha-panel{border-color:var(--gold)}
+.btn.small{padding:6px 10px;font-size:12px}
+
+/* badge rarity */
+.bd-rarity{margin:12px 0 4px}
+.bd-pct{font:500 14px var(--body);color:var(--muted)} .bd-pct b{font:400 22px var(--display);color:var(--gold);margin-right:4px}
+.bd-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.bd-bar i{display:block;height:100%;background:var(--gold);border-radius:99px}
+#betcha{scroll-margin-top:96px}

@@ -333,5 +333,12 @@
       "date": "2026-10-21",
       "note": "Slipped on the lane"
     }
+  ],
+  "purseVoids": [
+    {
+      "date": "2026-10-21",
+      "pid": "n8",
+      "note": "Winnings removed by the commissioner"
+    }
   ]
 }

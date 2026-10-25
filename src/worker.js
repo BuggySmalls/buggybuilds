@@ -109,6 +109,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS signups (ip TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS picks (date TEXT NOT NULL, ukey TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey, k));
       CREATE TABLE IF NOT EXISTS callouts (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, msg TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
   }
 
@@ -242,6 +243,38 @@ export class Accounts extends DurableObject {
         this.sql.exec('DELETE FROM callouts WHERE id = ?', c.id);
         return json(this.games(L, me));
       }
+      if (method === 'POST' && path === '/bet') {
+        const { date, to, stakes } = await request.json();
+        const L = await this.league(url.origin);
+        const bad = this.openNight(L, date); if (bad) return fail(400, bad.replace('Picks', 'Betchas'));
+        if (to === me.player_id) return fail(400, 'You can’t bet yourself.');
+        if (!this.merged(L).some(p => p.id === to && p.active !== false)) return fail(404, 'No bowler by that name.');
+        const s = clean(stakes, 80);
+        if (s.length < 2) return fail(400, 'Say what’s on the line.');
+        if (this.sql.exec("SELECT 1 FROM bets WHERE date = ? AND from_ukey = ? AND to_pid = ? AND status != 'declined'", date, me.ukey, to).toArray().length) return fail(409, 'You already have a betcha with them that night.');
+        if (this.sql.exec("SELECT COUNT(*) AS n FROM bets WHERE date = ? AND from_ukey = ? AND status != 'declined'", date, me.ukey).one().n >= 3) return fail(429, 'Three betchas a night. Don’t go broke.');
+        this.sql.exec('INSERT INTO bets (date, from_ukey, to_pid, stakes, created_at) VALUES (?,?,?,?,?)', date, me.ukey, to, s, now());
+        return json(this.games(L, me), 201);
+      }
+      if (method === 'POST' && /^\/bet\/\d+\/(accept|decline)$/.test(path)) {
+        const [, , id, act] = path.split('/');
+        const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +id).toArray()[0];
+        if (!b || b.to_pid !== me.player_id) return fail(404, 'That betcha isn’t yours to answer.');
+        if (b.status !== 'open') return fail(409, 'You already answered that one.');
+        const L = await this.league(url.origin);
+        if (now() >= this.lockAt(L, b.date)) return fail(400, 'Too late. Betchas lock at first ball.');
+        this.sql.exec('UPDATE bets SET status = ?, answered_at = ? WHERE id = ?', act === 'accept' ? 'accepted' : 'declined', now(), b.id);
+        return json(this.games(L, me));
+      }
+      if (method === 'DELETE' && path.startsWith('/bet/')) {
+        const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +path.slice(5)).toArray()[0];
+        if (!b || b.from_ukey !== me.ukey) return fail(404, 'Not your betcha.');
+        if (b.status === 'accepted') return fail(400, 'They took the bet. No backing out now.');
+        const L = await this.league(url.origin);
+        if (now() >= this.lockAt(L, b.date)) return fail(400, 'Too late to back down now.');
+        this.sql.exec('DELETE FROM bets WHERE id = ?', b.id);
+        return json(this.games(L, me));
+      }
       if (method === 'POST' && path === '/profile') {
         const body = await request.json();
         this.sql.exec('UPDATE accounts SET profile = ? WHERE ukey = ?', JSON.stringify(cleanProfile(body)), me.ukey);
@@ -312,7 +345,9 @@ export class Accounts extends DurableObject {
     for (const n of Object.values(nights)) if (now() < n.lockAt) delete n.byPlayer;
     const callouts = this.sql.exec('SELECT id, date, from_ukey, to_pid, msg, created_at FROM callouts ORDER BY created_at').toArray()
       .filter(c => live(c.from_ukey)).map(c => ({ id: c.id, date: c.date, from: pidOf[c.from_ukey], to: c.to_pid, msg: c.msg, at: c.created_at }));
-    return { now: now(), picks: nights, callouts };
+    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, status, created_at FROM bets ORDER BY created_at').toArray()
+      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, status: b.status, at: b.created_at }));
+    return { now: now(), picks: nights, callouts, bets };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

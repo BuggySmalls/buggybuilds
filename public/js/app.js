@@ -263,7 +263,6 @@ pages.home = () => {
     <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
     <span class="confetti" aria-hidden="true">🎉</span>
   </section>`).join('')}
-  <div class="home-live">${homeBets()}${homeTalk()}</div>
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
@@ -275,7 +274,7 @@ pages.home = () => {
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>
     </div>
   </section>
-
+  <div class="home-live">${homeBets()}${homeTalk()}</div>
 
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
 
@@ -778,9 +777,9 @@ pages.faq = () => {
     qa('How do I sign in?', `<p>A username plus a <b>4-digit code</b> or a <b>swipe pattern</b>, like a phone lock screen. No email, no phone number, nothing to verify. Five wrong tries locks the account for a while. Forgot yours? Text Nick and he’ll reset it, then sign in and set a new one.</p>`),
     qa('How does Pick’em work?', `<p>Before first ball, signed-in bowlers pick who bowls the <b>top series</b> (3 points), the <b>lowest series</b> (2 points), whether anyone bowls a <b>200 game</b> (1 point), and the winner of each match to watch (1 point each, by series). Picks lock at ${fmtTime(L.startTime)}, and then everyone’s picks are visible. Ties count as right for everyone tied. Most points over the season wins. <a href="#/pickem">Make your picks</a>.</p>`),
     qa('What’s a call-out?', `<p>Open another bowler’s profile and call them out for the next night, with an optional line of trash talk. Whoever bowls the higher series that night wins. If either of you doesn’t bowl, it’s no contest. Up to three call-outs a night, and you can take one back until first ball. Your call-out record shows on your profile.</p>`),
-    qa('What’s the Talk tab?', `<p>Betchas &amp; Shit Talk. Post whatever you want (up to 200 characters), to everyone or aimed at one bowler, and start betchas from there too. The newest shit talk and betchas sit at the top of the home page. You can delete your own posts. Nick can pull anything that goes too far.</p>`),
+    qa('What’s the Talk tab?', `<p>Betchas &amp; Shit Talk. Post whatever you want (up to 200 characters), to everyone or aimed at one bowler, and start betchas from there too. The newest shit talk and betchas sit on the home page, just under the big league banner. You can delete your own posts. Nick can pull anything that goes too far.</p>`),
     qa('How do notifications work?', `<p>The bell at the top lights up when someone posts, starts a betcha, answers one, or calls someone out. Stuff aimed at you is marked “for you.” New things also pop up at the top of the screen while the site is open. Sign in so the site knows what’s aimed at you.</p>`),
-    qa('What’s a Betcha?', `<p>Tap Betcha on someone’s profile or on the Players page, say what’s on the line (loser buys a round, wears the cereal box hat, whatever), and send it. They have until first ball to take the bet or chicken out, and everyone sees which. Higher series that night wins. If either of you doesn’t bowl, it’s no contest. Every open Betcha shows on the home page. The site just keeps score. Settling up is between you two.</p>`),
+    qa('What’s a Betcha?', `<p>Tap Betcha on someone’s profile or on the Players page, say what’s on the line (loser buys a round, wears the cereal box hat, whatever), and send it. They have until first ball to take the bet or chicken out, and everyone sees which. Higher series that night wins. If either of you doesn’t bowl, it’s no contest. Every open Betcha shows on the home page, under the big league banner. The site just keeps score. Settling up is between you two.</p>`),
     qa('I bowled before I made an account. Do my scores carry over?', `<p>Yes. Nick logs scores under the name on the lane screen. When you sign up, pick that name from the list (or later on your profile page) and those games become yours. If the wrong person grabs your name, tell Nick.</p>`),
     qa('What if I miss a night?', `<p>You don't earn points that night, and your attendance streak resets. A missed night doesn't break your winning or losing streak, and it doesn't change your average.</p>`),
     qa('What if I leave early?', `<p>The games you bowled count toward your average and your wins and losses. Your series for that night is just the games you bowled, so you'll likely finish lower. High series records only count full three-game nights.</p>`),

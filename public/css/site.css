@@ -1042,6 +1042,6 @@ span.nh-arrow{display:none}
 .post-msg{margin:0;font:500 16px/1.4 var(--body);color:var(--text);overflow-wrap:anywhere;white-space:pre-wrap}
 .post .linkish{align-self:flex-start}
 
-.home-live{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:14px}
+.home-live{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .home-live:empty{display:none}
 @media (max-width:720px){#acct,.bell{flex:none}.top-row .logo{min-width:0;flex:1 1 auto}.top-row .logo>span{min-width:0}.acct-btn.me>span:not(.avatar){display:none}.acct-btn.me{padding:3px}}

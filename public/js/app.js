@@ -5,6 +5,7 @@ import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from '.
 import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable, homeBets, nightBets, profileBets, betRecord, betTicker } from './games.js';
 import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
+import { installAttend, renderAttendBar, homeAttend, nightTeams } from './attend.js';
 
 /* ================================================================== *
  * Data loading
@@ -117,7 +118,7 @@ function recapText(idx) {
   const hiG = n.rows.flatMap(r => r.totals.map(t => ({ pid: r.pid, t }))).filter(x => x.t != null).sort((x, y) => y.t - x.t)[0];
   if (hiG) lines.push(`🔥 High game: ${P(hiG.pid).name} ${hiG.t}`);
   const pn = S.purse.nights.find(x => x.date === n.date);
-  if (pn && pn.payouts.length) lines.push(`💰 Purse ($${pn.pot}): ${pn.payouts.filter(po => po.winners.length).map(po => `${poLabel(po)} ${po.winners.map(id => P(id).name).join(' & ')} ${money(po.each)}`).join(', ')}`);
+  if (pn && pn.payouts.length) lines.push(`💰 Purse${pn.pot ? ` ($${pn.pot})` : ''}: ${pn.payouts.filter(po => po.winners.length).map(po => `${poLabel(po)} ${po.winners.map(id => P(id).name).join(' & ')} ${money(po.each)}`).join(', ')}`);
   const aw = awardsFor(idx).filter(x => ['improved', 'clutch', 'choke', 'fraud'].includes(x.key));
   if (aw.length) lines.push('', ...aw.map(x => `${x.tone === 'shame' ? '🫠' : '⭐️'} ${x.name}: ${P(x.winner.pid).name} (${x.winner.why})`));
   const broken = recordsBrokenAt(idx).filter(r => r.kind === 'fame').slice(0, 2);
@@ -274,6 +275,7 @@ pages.home = () => {
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>
     </div>
   </section>
+  ${homeAttend()}
   <div class="home-live">${homeBets()}${homeTalk()}</div>
 
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
@@ -358,7 +360,7 @@ function tickerHTML() {
     bits.push(`WEEK ${weekNo(n)} WINNER: ${P(w.pid).name.toUpperCase()} ${w.series}`);
     const hg = n.rows.flatMap(r => r.totals.map(t => ({ pid: r.pid, t }))).filter(x => x.t != null).sort((a, b) => b.t - a.t)[0];
     if (hg) bits.push(`HIGH GAME: ${P(hg.pid).name.toUpperCase()} ${hg.t}`);
-    const pn = S.purse.nights.find(x => x.date === n.date); if (pn) bits.push(`PURSE: $${pn.pot} PAID OUT`);
+    const pn = S.purse.nights.find(x => x.date === n.date); if (pn?.pot) bits.push(`PURSE: $${pn.pot} PAID OUT`);
   }
   if (S.games) bits.unshift(...betTicker());
   const mw = matches(); if (mw[0]) bits.push(`MATCH OF THE WEEK: ${P(mw[0].a).name.toUpperCase()} VS ${P(mw[0].b).name.toUpperCase()}`);
@@ -735,26 +737,34 @@ const poLabel = po => po.key === 'betcha' ? `Betcha vs ${P(po.loser).name}` : po
 pages.purse = () => {
   const pu = S.purse, cfg = pu.cfg;
   if (!pu.enabled) return `<div><h1 class="page-title">Purse</h1></div><section class="panel">${empty('No purse set up')}</section>`;
-  const rows = Object.values(pu.totals).filter(t => t.nights).sort((a, b) => b.won - a.won || b.net - a.net);
+  // Betchas only (Nick, Oct 25 2026): no buy-in pot until the league decides. Pot columns come back on their own if one is set.
+  const pot = pu.hasPot || cfg.buyIn > 0;
+  const rows = Object.values(pu.totals).filter(t => pot ? t.nights : t.won).sort((a, b) => b.won - a.won || b.net - a.net);
   const totalPot = pu.nights.reduce((a, n) => a + n.pot, 0);
-  const rules = `$${cfg.buyIn} a night from everyone who bowls. ${cfg.payouts.map(p => `${Math.round(p.share * 100)}% to ${p.label.toLowerCase()}`).join(', ')}. Ties split the payout. Win a Betcha with a dollar amount in it and that money goes on your winnings too, once the loser says they paid and you confirm you got it.`;
+  const betTotal = pu.nights.flatMap(n => n.payouts).filter(po => po.key === 'betcha').reduce((a, po) => a + po.each, 0);
+  const betWins = pid => pu.nights.flatMap(n => n.payouts).filter(po => po.key === 'betcha' && po.winners.includes(pid)).length;
+  const betchaRule = 'Win a Betcha with a dollar amount in it and that money goes on your winnings, once the loser says they paid and you confirm you got it.';
+  const rules = pot ? `$${cfg.buyIn} a night from everyone who bowls. ${cfg.payouts.map(p => `${Math.round(p.share * 100)}% to ${p.label.toLowerCase()}`).join(', ')}. Ties split the payout. ${betchaRule}` : `Right now the only money on the purse is Betchas. There’s no nightly buy-in or payout until the league decides on one. ${betchaRule}`;
+  const hist = pu.nights.filter(n => n.payouts.length);
   return `
   <div><h1 class="page-title">Purse</h1><p class="page-intro">Who's taken home the money. ${esc(rules)}</p></div>
-  ${cfg.confirmed ? '' : '<p class="small" style="color:var(--maple)">Proposed rules, not final yet. Amounts will update automatically if the buy-in or payouts change.</p>'}
+  ${pot && !cfg.confirmed ? '<p class="small" style="color:var(--maple)">Proposed rules, not final yet. Amounts will update automatically if the buy-in or payouts change.</p>' : ''}
   <section class="kpis">
-    <div class="kpi"><span class="lbl">Paid out so far</span><span class="v">${money(totalPot)}</span><span class="who muted">${pu.nights.length} nights${(() => { const bt = pu.nights.flatMap(n => n.payouts).filter(po => po.key === 'betcha').reduce((a, po) => a + po.each, 0); return bt ? ` · ${money(bt)} in betchas` : ''; })()}</span></div>
+    ${pot ? `<div class="kpi"><span class="lbl">Paid out so far</span><span class="v">${money(totalPot)}</span><span class="who muted">${pu.nights.length} nights${betTotal ? ` · ${money(betTotal)} in betchas` : ''}</span></div>`
+      : `<div class="kpi"><span class="lbl">Betcha money won</span><span class="v">${money(betTotal)}</span><span class="who muted">${hist.length} ${hist.length === 1 ? 'night' : 'nights'} with paid betchas</span></div>`}
     <div class="kpi"><span class="lbl">Biggest earner</span>${rows[0] ? `<span class="v">${money(rows[0].won)}</span><span class="who">${esc(P(rows[0].id).name)}</span>` : '<span class="v">—</span>'}</div>
-    <div class="kpi"><span class="lbl">Most cashes</span>${(() => { const r = [...rows].sort((a, b) => b.cashes - a.cashes)[0]; return r ? `<span class="v">${r.cashes}</span><span class="who">${esc(P(r.id).name)}</span>` : '<span class="v">—</span>'; })()}</div>
-    <div class="kpi"><span class="lbl">Last pot</span>${pu.nights.at(-1) ? `<span class="v">${money(pu.nights.at(-1).pot)}</span><span class="who muted">${fmtDate(pu.nights.at(-1).date)}</span>` : '<span class="v">—</span>'}</div>
+    ${pot ? `<div class="kpi"><span class="lbl">Most cashes</span>${(() => { const r = [...rows].sort((a, b) => b.cashes - a.cashes)[0]; return r ? `<span class="v">${r.cashes}</span><span class="who">${esc(P(r.id).name)}</span>` : '<span class="v">—</span>'; })()}</div>
+    <div class="kpi"><span class="lbl">Last pot</span>${pu.nights.at(-1) ? `<span class="v">${money(pu.nights.at(-1).pot)}</span><span class="who muted">${fmtDate(pu.nights.at(-1).date)}</span>` : '<span class="v">—</span>'}</div>`
+      : `<div class="kpi"><span class="lbl">Waiting to settle</span><span class="v">${money((pu.pendingBets || []).reduce((a, b) => a + b.amount, 0))}</span><span class="who muted">${(pu.pendingBets || []).length} ${(pu.pendingBets || []).length === 1 ? 'betcha' : 'betchas'}</span></div>`}
   </section>
   <section class="panel"><div class="panel-head"><h2>Lifetime winnings</h2></div>
-    ${rows.length ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>Won</th><th>Cashes</th><th>Betchas</th><th>Paid in</th><th>Net</th></tr></thead><tbody>
-    ${rows.map((t, i) => `<tr class="${i < 3 && t.won ? `top3 p${i + 1}` : ''}"><td class="l">${t.won ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l">${who(t.id, { size: 28 })}</td><td class="big">${money(t.won)}</td><td>${t.cashes}</td><td class="${t.betWon ? 'up' : ''}">${t.betWon ? '+' + money(t.betWon) : '—'}</td><td>${money(t.paidIn)}</td><td class="${t.net > 0 ? 'up' : t.net < 0 ? 'down' : ''}">${t.net > 0 ? '+' : ''}${money(t.net)}</td></tr>`).join('')}
-    </tbody></table></div>` : empty('No money has changed hands yet')}
+    ${rows.length ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>Won</th>${pot ? '<th>Cashes</th><th>Betchas</th><th>Paid in</th><th>Net</th>' : '<th>Betchas won</th>'}</tr></thead><tbody>
+    ${rows.map((t, i) => `<tr class="${i < 3 && t.won ? `top3 p${i + 1}` : ''}"><td class="l">${t.won ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l">${who(t.id, { size: 28 })}</td><td class="big">${money(t.won)}</td>${pot ? `<td>${t.cashes}</td><td class="${t.betWon ? 'up' : ''}">${t.betWon ? '+' + money(t.betWon) : '—'}</td><td>${money(t.paidIn)}</td><td class="${t.net > 0 ? 'up' : t.net < 0 ? 'down' : ''}">${t.net > 0 ? '+' : ''}${money(t.net)}</td>` : `<td>${betWins(t.id)}</td>`}</tr>`).join('')}
+    </tbody></table></div>` : empty('No money has changed hands yet', pot ? '' : 'Put a dollar amount in a Betcha and win it.')}
   </section>
   ${(pu.pendingBets || []).length ? `<section class="panel"><div class="panel-head"><h2>Betchas waiting to settle</h2><a href="#/talk?settle">Settle up</a></div><div class="list">${pu.pendingBets.slice().reverse().map(pb => `<div class="list-row"><span class="grow">${esc(P(pb.loser).name)} owes ${esc(P(pb.winner).name)}</span><span class="small muted">${fmtDate(pb.date)}</span><span class="val" style="font-size:18px">${money(pb.amount)}</span></div>`).join('')}</div><p class="small faint">Goes on the purse once ${pu.pendingBets.length > 1 ? 'each loser taps' : 'the loser taps'} “I paid” and the winner taps “Got paid.”</p></section>` : ''}
   <section class="panel"><div class="panel-head"><h2>Payout history</h2></div>
-    ${pu.nights.length ? `<div class="list">${pu.nights.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)} · ${money(n.pot)} pot</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${esc(poLabel(po))}${po.value != null ? ` · ${po.value}` : ''}</span><span>${(po.winners.length ? po.winners.map(id => esc(P(id).name)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
+    ${hist.length ? `<div class="list">${hist.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)}${n.pot ? ` · ${money(n.pot)} pot` : ''}</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${esc(poLabel(po))}${po.value != null ? ` · ${po.value}` : ''}</span><span>${(po.winners.length ? po.winners.map(id => esc(P(id).name)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
   </section>`;
 };
 
@@ -807,7 +817,9 @@ pages.faq = () => {
     qa('How are weekly awards picked?', `<p>The site nominates winners from the scores. Bowler of the Week is the top series. Most Improved is the biggest jump over your average. Clutch is the best final game. Biggest Choke is furthest under your average. Biggest Fraud is a top-third average bowler who finished in the bottom half. Strike King and Spare Master need frame-by-frame scores. Nick can hand out any award manually instead.</p>`),
     qa('Where do strike and spare stats come from?', `<p>The photo of the scoring screen. When frames are logged, the site tracks strikes, spares, strike % and spare conversion %, gutter balls, splits, open frames and strike streaks. Games logged with just a total don't count toward those stats. Nothing is estimated.</p>`),
     qa('How are the matches to watch picked?', `<p>Before each night the site scores every possible pairing. It looks at how close their head-to-head record is, how close their averages are, whether they're next to each other in the standings, whether both are in the monthly title race, revenge after a blowout, and win streaks. The top pairing is the Match of the Week, and each match lists the reasons it was picked. Nick can pick them by hand instead.</p>`),
-    qa('How does the purse work?', `<p>${S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
+    qa('How do I confirm I’m bowling?', `<p>Every week a bar at the top of the site asks if you’re in for the next Wednesday. Sign in and tap <b>Yes</b> or <b>No</b>. Yes puts you on that night’s lineup (and the team queue on a team night), and Nick gets a heads-up either way. You can change your answer until first ball.</p>`),
+    qa('How does team night work?', `<p>On team nights you bowl your normal individual night like always, and you’re also on a team. Everyone who confirmed by first ball (${fmtTime(S.data.league.startTime || '19:15')}) goes into the team queue, and the site splits the queue into even teams at random: 3 teams with 6 to 11 bowlers, 4 teams with 12 or more, balanced so every team has about the same average. Each game, a team’s score is everyone’s handicap game added up (scratch plus handicap). If a team has fewer bowlers than the biggest team, it gets a blind for each empty spot, worth that team’s own average that game, so 3 vs 4 is fair. The top team each game gets points equal to the number of teams, down to 1 for last place, and the total series is worth double. Most points wins; total pins breaks a tie.</p>`),
+    qa('How does the purse work?', `<p>${S.data.league.purse?.betchasOnly ? 'Right now the only money on the purse is Betchas: put a dollar amount in one, win it, and once you’ve both settled up it goes on your winnings. There’s no nightly buy-in or payout until the league decides on one.' : S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
     qa('Can I get league nights in my calendar?', `<p>Yes. Tap <b>Add league nights to my calendar</b> on the home or schedule page. Your phone subscribes to the schedule, so skipped weeks or time changes update on their own, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through.</p>`),
     qa('What counts as a record?', `<p>The Hall of Fame and Hall of Shame update themselves the moment a mark is beaten. The Leaderboards page keeps the top 25 games and series ever bowled, plus the full history of who held each record. Nick can also add custom awards.</p>`),
     qa('How do badges work?', `<p>Badges unlock automatically from the scores, and you can earn each one again and again. The number in the middle is how many times you've earned it. Hall of Shame badges show up in their own color.</p><p>A few to chase: Dutch 200 (strike, spare, strike, spare all game for exactly 200), Triplicate (the same score three games in a row), Clean Sweep (top score in all three games), and Giant Killer (outscore the league leader). And a few to avoid: Soggy Cereal (a game under 100) and Heartbreaker (losing by a single pin). Lubed Up is the only one Nick hands out himself: slip on the lane and it's yours.</p><p>Show off: on your profile's edit page, pick up to two badges you've earned and they show up big next to your name. Gold for the good ones, brown for the Hall of Shame.</p>`),
@@ -868,6 +880,7 @@ pages.night = date => {
     </tbody></table></div>
     <p class="small faint">W-L counts each game against every other bowler that night, scratch. ${n.handicap ? 'Hdcp is the handicap for all games bowled. ' : ''}"vs avg" is pins above or below the bowler's average going into the night. <a href="#/faq">How scoring works</a></p>
   </section>
+  ${nightTeams(n)}
   <div class="grid g2">
     <section class="panel"><div class="panel-head"><h2>Highlights</h2></div><div class="list">
       ${hiG[0] ? `<div class="list-row"><div class="grow small muted">High game</div>${who(hiG[0].pid, { size: 26 })}<span class="val">${hiG[0].t}</span></div>` : ''}
@@ -1096,12 +1109,13 @@ function route() {
   document.body.classList.remove('sheet-open');
   const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
-  try { renderBell(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
+  try { renderBell(); renderAttendBar(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
 let lastPath = null;
 window.addEventListener('hashchange', () => {
   const p = location.hash.split('?')[0]; route(); if (p !== lastPath) { window.scrollTo(0, 0); lastPath = p; }
+  if (/[?&]teams\b/.test(location.hash)) requestAnimationFrame(() => document.getElementById('teams')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   if (/[?&]settle\b/.test(location.hash)) requestAnimationFrame(() => document.getElementById('settle')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   if (/[?&]betcha\b/.test(location.hash)) requestAnimationFrame(() => { const el = document.getElementById('betcha'); if (!el) return; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.querySelector('input')?.focus({ preventScroll: true }); });
 });
@@ -1129,6 +1143,7 @@ async function reload() { await load(); route(); }
 const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
 installGames({ S, E, pages, esc, avatar, who, empty, fmtDate, fmtTime, P, matches, route });
 installTalk({ S, pages, esc, avatar, who, empty, fmtDate, P, route });
+installAttend({ S, E, esc, avatar, who, fmtDate, fmtTime, P, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *

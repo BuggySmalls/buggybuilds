@@ -767,6 +767,10 @@ export function validate(data) {
       });
     }
     for (const pid of Object.keys(e.frames || {})) if (!e.scores?.[pid]) errors.push(`${e.date}: frames for ${pid} but no scores`);
+    if (e.teams != null) {
+      if (!Array.isArray(e.teams) || e.teams.length < 2) errors.push(`${e.date}: teams must be a list of at least 2 teams`);
+      else { const seen = new Set(); for (const t of e.teams) for (const pid of t?.pids || []) { if (!ids.has(pid)) errors.push(`${e.date}: team ${t.name} has unknown bowler "${pid}"`); if (seen.has(pid)) errors.push(`${e.date}: ${pid} is on two teams`); seen.add(pid); } }
+    }
   }
   return errors;
 }
@@ -809,10 +813,11 @@ export function purse(data, nights, bets = []) {
   const cents = x => Math.round(x * 100) / 100;
   for (const n of nights) {
     if (cfg.start && n.date < cfg.start) continue;
+    // No buy-in or no payout rules = no pot (Nick, Oct 25 2026: betchas are the only purse money for now)
     const pot = cents((cfg.buyIn || 0) * n.rows.length);
     for (const r of n.rows) if (totals[r.pid]) { totals[r.pid].paidIn += cfg.buyIn || 0; totals[r.pid].nights++; }
     const payouts = [];
-    for (const po of cfg.payouts || []) {
+    for (const po of pot ? cfg.payouts || [] : []) {
       let cands;
       if (po.key === 'highGame') cands = n.rows.map(r => ({ pid: r.pid, v: Math.max(...r.totals.filter(t => t != null)) }));
       else if (po.key === 'highSeries') cands = n.rows.map(r => ({ pid: r.pid, v: r.series }));
@@ -846,7 +851,7 @@ export function purse(data, nights, bets = []) {
     rows.push({ date: n.date, idx: n.idx, pot, payouts });
   }
   for (const t of Object.values(totals)) t.net = cents(t.won - t.paidIn);
-  return { nights: rows, totals, enabled: true, cfg, pendingBets };
+  return { nights: rows, totals, enabled: true, cfg, pendingBets, hasPot: rows.some(r => r.pot > 0) };
 }
 
 /* ------------------------------------------------------------------ *
@@ -915,4 +920,58 @@ export function currentHandicap(data, nights, pid) {
   const recent = win ? games.slice(-win) : games;
   const avg = Math.floor(sum(recent) / recent.length);
   return { avg, hdcp: handicapFor(avg, cfg), games: recent.length };
+}
+
+/* ------------------------------------------------------------------ *
+ * Team nights (Nick, Oct 25 2026)
+ * league.json teamNights["<date>"] = { teams?: 3|4 } marks a team night. Bowlers who confirm attendance
+ * go into the team queue; at first ball the server draws even teams (balanced on average) and stores them.
+ * Once the night is logged, events[].teams = [{ name, pids }] keeps them for good.
+ * Everyone still bowls the normal individual night too; teams are an extra layer.
+ * Team score each game = every member's handicap game (scratch + that night's handicap).
+ * A team with fewer bowlers than the biggest team that game gets a blind for each missing spot,
+ * worth the team's own average handicap game that game (so 3 vs 4 bowlers is fair).
+ * Points: each game, first place gets N points down to 1 for last (N = teams; ties split);
+ * total handicap series is worth double. Most points wins; tiebreak total handicap pins.
+ * ------------------------------------------------------------------ */
+export const isTeamNight = (data, date) => !!data?.teamNights?.[date];
+export function teamsFor(data, date, games) {
+  const ev = (data.events || []).find(e => e.date === date);
+  const t = ev?.teams || data?.teamNights?.[date]?.override || games?.teams?.[date]?.teams;
+  return Array.isArray(t) && t.length >= 2 ? t : null;
+}
+function rankPoints(rows, val, mult, field) {
+  const M = rows.length, sorted = [...rows].sort((a, b) => val(b) - val(a));
+  for (let i = 0; i < sorted.length;) {
+    let j = i; while (j + 1 < sorted.length && val(sorted[j + 1]) === val(sorted[i])) j++;
+    let pts = 0; for (let p = i; p <= j; p++) pts += (M - p);
+    for (let p = i; p <= j; p++) sorted[p][field] = Math.round(pts / (j - i + 1) * mult * 10) / 10;
+    i = j + 1;
+  }
+}
+export function teamResults(night, teams) {
+  if (!night || !teams || teams.length < 2) return null;
+  const rows = teams.map((t, i) => ({ i, name: t.name, pids: t.pids, games: [null, null, null], blinds: [0, 0, 0], gamePts: [0, 0, 0], series: 0, seriesPts: 0, points: 0 }));
+  for (let k = 0; k < 3; k++) {
+    const counts = rows.map(r => r.pids.filter(pid => night.byPid[pid]?.totals[k] != null).length);
+    const size = Math.max(...counts);
+    if (!size) continue;
+    for (const r of rows) {
+      const got = r.pids.map(pid => night.byPid[pid]).filter(x => x && x.totals[k] != null).map(x => x.totals[k] + x.hdcp);
+      if (!got.length) continue;
+      const missing = size - got.length, blind = missing ? Math.floor(sum(got) / got.length) : 0;
+      r.games[k] = sum(got) + blind * missing; r.blinds[k] = missing;
+    }
+    const bowled = rows.filter(r => r.games[k] != null);
+    rankPoints(bowled, r => r.games[k], 1, '_p');
+    for (const r of bowled) { r.gamePts[k] = r._p; delete r._p; }
+  }
+  for (const r of rows) r.series = sum(r.games.filter(g => g != null));
+  const any = rows.filter(r => r.series > 0);
+  if (!any.length) return null;
+  rankPoints(any, r => r.series, 2, 'seriesPts');
+  for (const r of rows) r.points = Math.round((sum(r.gamePts) + r.seriesPts) * 10) / 10;
+  rows.sort((a, b) => b.points - a.points || b.series - a.series);
+  rows.forEach((r, i) => { r.place = i && rows[i - 1].points === r.points && rows[i - 1].series === r.series ? rows[i - 1].place : i + 1; });
+  return rows;
 }

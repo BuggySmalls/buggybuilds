@@ -56,20 +56,26 @@
     "address": "6125 Post Road, North Kingstown, RI 02852",
     "purse": {
       "confirmed": false,
-      "buyIn": 5,
-      "payouts": [
-        {
-          "key": "highGame",
-          "label": "High game",
-          "share": 0.5
-        },
-        {
-          "key": "highSeries",
-          "label": "High series",
-          "share": 0.5
-        }
-      ]
-    }
+      "betchasOnly": true,
+      "buyIn": 0,
+      "payouts": [],
+      "proposed": {
+        "buyIn": 5,
+        "payouts": [
+          {
+            "key": "highGame",
+            "label": "High game",
+            "share": 0.5
+          },
+          {
+            "key": "highSeries",
+            "label": "High series",
+            "share": 0.5
+          }
+        ]
+      }
+    },
+    "commissioner": "buggy"
   },
   "players": [
     {
@@ -340,5 +346,11 @@
       "pid": "n8",
       "note": "Winnings removed by the commissioner"
     }
-  ]
+  ],
+  "notify": {
+    "ntfy": "cereal-bowlers-14d40f175e"
+  },
+  "teamNights": {
+    "2026-10-28": {}
+  }
 }

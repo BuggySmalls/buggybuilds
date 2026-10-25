@@ -25,6 +25,7 @@ const SIGNUPS_PER_IP_HOUR = 8;
 const PHOTO_MAX = 200 * 1024;
 const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D', '#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7'];
 const HANDS = ['Right', 'Left', 'Two-handed'];
+const TEAM_NAMES = ['Team Marshmallow', 'Team Soggy', 'Team Frosted', 'Team Crunch', 'Team Sugar Rush', 'Team Spoon'];
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
@@ -111,6 +112,8 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS callouts (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, msg TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT NOT NULL, to_pid TEXT, msg TEXT NOT NULL, created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS seen (ukey TEXT PRIMARY KEY, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS attendance (date TEXT NOT NULL, ukey TEXT NOT NULL, going INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey));
+      CREATE TABLE IF NOT EXISTS teamdraws (date TEXT PRIMARY KEY, teams TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
@@ -214,6 +217,7 @@ export class Accounts extends DurableObject {
 
       if (method === 'GET' && path === '/games') {
         const L = await this.league(url.origin);
+        await this.drawDue(L);
         return json(this.games(L, await this.me(request)));
       }
 
@@ -301,6 +305,26 @@ export class Accounts extends DurableObject {
         const L = await this.league(url.origin);
         if (now() >= this.lockAt(L, b.date)) return fail(400, 'Too late to back down now.');
         this.sql.exec('DELETE FROM bets WHERE id = ?', b.id);
+        return json(this.games(L, me));
+      }
+      // Attendance (Nick, Oct 25 2026): Yes puts you on that Wednesday's lineup (and the team queue on a
+      // team night); Nick gets a notification either way. Changeable until first ball.
+      if (method === 'POST' && path === '/attend') {
+        const { date, going } = await request.json();
+        const L = await this.league(url.origin);
+        const bad = this.openNight(L, date); if (bad) return fail(400, bad.replace('Picks lock', 'Attendance locks').replace('Picks open', 'Attendance opens'));
+        if (typeof going !== 'boolean') return fail(400, 'Yes or no?');
+        const prev = this.sql.exec('SELECT going FROM attendance WHERE date = ? AND ukey = ?', date, me.ukey).toArray()[0];
+        this.sql.exec('INSERT INTO attendance (date, ukey, going, at) VALUES (?,?,?,?) ON CONFLICT(date, ukey) DO UPDATE SET going = excluded.going, at = excluded.at', date, me.ukey, going ? 1 : 0, now());
+        await this.ctx.storage.put('origin', url.origin);
+        if (L.teamNights?.[date]) await this.armAlarm(L);
+        if (!prev || !!prev.going !== going) {
+          const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
+          const day = new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+          const yes = this.sql.exec('SELECT COUNT(*) AS n FROM attendance WHERE date = ? AND going = 1', date).one().n;
+          this.ctx.waitUntil(this.push(L, going ? `${name} is IN for ${day}` : `${name} is OUT for ${day}`,
+            `${prev ? 'Changed their answer. ' : ''}${yes} confirmed so far${L.teamNights?.[date] ? ' (team night queue)' : ''}.`, going ? 'white_check_mark' : 'x'));
+        }
         return json(this.games(L, me));
       }
       if (method === 'POST' && path === '/post') {
@@ -396,6 +420,77 @@ export class Accounts extends DurableObject {
     if (a == null || c == null || a === c) return null;
     return a > c ? { winner: b.from, loser: b.to } : { winner: b.to, loser: b.from };
   }
+  /* ---------- attendance + team nights ---------- */
+  // Phone push to Nick through ntfy (free app, no account). Topic: env NTFY_TOPIC, else league.notify.ntfy.
+  async push(L, title, body, tag) {
+    const topic = this.env.NTFY_TOPIC || L.notify?.ntfy;
+    if (!topic) return;
+    try {
+      await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, { method: 'POST', body,
+        headers: { Title: title.replace(/[^\x20-\x7e]/g, ''), Tags: tag || 'bowling', Click: 'https://cerealbowlers.org/' } });
+    } catch (e) { console.error('push failed', e); }
+  }
+  // Wake up at the next team night's first ball to draw the teams even if nobody has the site open.
+  async armAlarm(L) {
+    const due = Object.keys(L.teamNights || {}).map(d => this.lockAt(L, d)).filter(t => t > now()).sort((a, b) => a - b)[0];
+    if (!due) return;
+    const cur = await this.ctx.storage.getAlarm();
+    if (!cur || cur > due || cur < now()) await this.ctx.storage.setAlarm(due + 5e3);
+  }
+  async alarm() {
+    const origin = (await this.ctx.storage.get('origin')) || 'https://cerealbowlers.org';
+    const L = await this.league(origin);
+    await this.drawDue(L, true);
+    await this.armAlarm(L);
+  }
+  // Draw any team night whose first ball has passed and isn't drawn yet. The draw is stored, so it never changes.
+  async drawDue(L, announce = true) {
+    const drawn = new Set(this.sql.exec('SELECT date FROM teamdraws').toArray().map(r => r.date));
+    for (const date of Object.keys(L.teamNights || {})) {
+      if (drawn.has(date) || now() < this.lockAt(L, date)) continue;
+      if (now() - this.lockAt(L, date) > 2 * 86400e3) continue;     // don't redraw old nights
+      const teams = this.drawTeams(L, date);
+      if (!teams) continue;
+      this.sql.exec('INSERT OR IGNORE INTO teamdraws (date, teams, at) VALUES (?,?,?)', date, JSON.stringify(teams), now());
+      if (announce) {
+        const P = Object.fromEntries(this.merged(L).map(p => [p.id, p.name]));
+        await this.push(L, 'Teams are set', teams.map(t => `${t.name}: ${t.pids.map(id => P[id] || id).join(', ')}`).join('\n'), 'bowling');
+      }
+    }
+  }
+  // Even teams from the queue: thousands of random splits, keep the most even ones (team average of
+  // each bowler's average), then pick one of those at random. New bowlers count as the league average.
+  drawTeams(L, date) {
+    const { hidden } = this.admin(L);
+    const pidOf = Object.fromEntries(this.all().filter(a => !hidden.has(a.ukey)).map(a => [a.ukey, a.player_id]));
+    const pool = this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean);
+    const n = pool.length; if (n < 2) return null;
+    const cfg = L.teamNights[date] || {};
+    let k = Number.isInteger(cfg.teams) ? cfg.teams : n >= 12 ? 4 : n >= 6 ? 3 : 2;
+    k = Math.max(2, Math.min(k, Math.floor(n / 2)));
+    const games = {}, win = L.league?.handicap?.games || 0;
+    for (const e of [...(L.events || [])].filter(e => e.status === 'completed' && e.date < date && e.scores).sort((a, b) => a.date.localeCompare(b.date)))
+      for (const [pid, arr] of Object.entries(e.scores)) (games[pid] ??= []).push(...arr.filter(Number.isFinite));
+    const avgOf = pid => { const g = games[pid]; if (!g?.length) return null; const r = win ? g.slice(-win) : g; return r.reduce((a, b) => a + b, 0) / r.length; };
+    const known = pool.map(avgOf).filter(v => v != null);
+    const fill = known.length ? known.reduce((a, b) => a + b, 0) / known.length : 140;
+    const avg = Object.fromEntries(pool.map(p => [p, avgOf(p) ?? fill]));
+    const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const tries = [];
+    for (let t = 0; t < 4000; t++) {
+      const order = shuffle([...pool]), split = Array.from({ length: k }, () => []);
+      order.forEach((p, i) => split[i % k].push(p));
+      const means = split.map(s => s.reduce((a, p) => a + avg[p], 0) / s.length);
+      tries.push({ split, spread: Math.max(...means) - Math.min(...means) });
+    }
+    const best = Math.min(...tries.map(t => t.spread));
+    const close = tries.filter(t => t.spread <= best + 2);
+    const pick = close[rnd(close.length)].split;
+    const names = shuffle([...TEAM_NAMES]);
+    return pick.map((pids, i) => ({ name: names[i % names.length], pids }));
+  }
+
   lockAt(L, date) { const lg = L.league || {}; return zonedMs(date, lg.startTime || '19:15', lg.timezone); }
 
   games(L, me) {
@@ -419,7 +514,15 @@ export class Accounts extends DurableObject {
     const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
       .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at }));
     const seenAt = me ? (this.sql.exec('SELECT at FROM seen WHERE ukey = ?', me.ukey).toArray()[0]?.at || 0) : 0;
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt };
+    const attendance = {};
+    for (const r of this.sql.exec('SELECT date, ukey, going, at FROM attendance ORDER BY at').toArray()) {
+      if (!live(r.ukey)) continue;
+      const a = attendance[r.date] ??= { lockAt: this.lockAt(L, r.date), yes: [], no: [], mine: null };
+      a[r.going ? 'yes' : 'no'].push({ pid: pidOf[r.ukey], at: r.at });
+      if (me && r.ukey === me.ukey) a.mine = !!r.going;
+    }
+    const teams = Object.fromEntries(this.sql.exec('SELECT date, teams, at FROM teamdraws').toArray().map(r => [r.date, { teams: JSON.parse(r.teams), at: r.at }]));
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

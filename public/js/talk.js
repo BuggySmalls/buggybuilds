@@ -2,6 +2,7 @@
 // Posts live on the account server; notifications are built in the browser from
 // /api/games (posts, betchas, call-outs) and compared with the last time you looked.
 import { api } from './account.js';
+import { renderAttendBar } from './attend.js';
 import { fetchGames, betRow, calloutRow, openDate, settleRoles, settleState, settleAt } from './games.js';
 
 let C; // { S, esc, avatar, who, P, fmtDate, route, pages }
@@ -52,11 +53,25 @@ export function feedItems() {
   }
   for (const c of g.callouts || []) out.push({ id: 'c' + c.id, at: c.at, from: c.from, kind: 'callout', personal: !!me && c.to === me,
     text: `${N(c.from)} called ${c.to === me ? 'you' : N(c.to)} out${c.msg ? ': ' + c.msg : ''}` });
-  return out.filter(x => !(me && x.from === me)).sort((a, b) => b.at - a.at);
+  // Attendance (Nick, Oct 25 2026): the commissioner hears every Yes/No; teammates hear when teams are drawn.
+  const day = d => C.fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' });
+  if (me && me === C.S.data.league.commissioner) for (const [date, a] of Object.entries(g.attendance || {})) {
+    for (const [list, going] of [[a.yes, true], [a.no, false]]) for (const x of list) if (x.pid !== me)
+      out.push({ id: `at${date}${x.pid}${going ? 1 : 0}`, at: x.at, from: x.pid, kind: 'attend', personal: true, link: '#/',
+        text: `${N(x.pid)} is ${going ? 'IN' : 'OUT'} for ${day(date)}. ${a.yes.length} confirmed.` });
+  }
+  for (const [date, d] of Object.entries(g.teams || {})) {
+    const t = me && d.teams.find(t => t.pids.includes(me)); if (!t) continue;
+    const mates = t.pids.filter(p => p !== me);
+    out.push({ id: 'tm' + date, at: d.at, from: mates[0] || me, kind: 'teams', personal: true, link: '#/?teams', mine: true,
+      text: `Teams are set for ${day(date)}. You’re on ${t.name}${mates.length ? ' with ' + mates.map(N).join(', ') : ''}.` });
+  }
+  return out.filter(x => x.mine || !(me && x.from === me)).sort((a, b) => b.at - a.at);
 }
 const seenAt = () => Math.max(C.S.games?.seenAt || 0, +store.get(SEEN_KEY) || 0);
 const unread = () => { const since = seenAt(); return feedItems().filter(x => x.pending || x.at > since).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.at - a.at); };
-const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up' };
+const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night' };
+const hrefOf = x => x.link || (x.kind === 'settle' ? '#/talk?settle' : '#/talk');
 
 function ago(ms) {
   const s = Math.max(0, (Date.now() - ms) / 1000);
@@ -77,7 +92,7 @@ export function renderBell() {
   bell.setAttribute('aria-label', n ? `Notifications, ${n} new` : 'Notifications');
 }
 function itemHTML(x, isNew) {
-  return `<a class="nt-item${isNew ? ' new' : ''}${x.personal ? ' you' : ''}" href="${x.kind === 'settle' ? '#/talk?settle' : '#/talk'}">${C.avatar(C.P(x.from), 34)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span><span class="nt-when">${ago(x.at)}</span></span></a>`;
+  return `<a class="nt-item${isNew ? ' new' : ''}${x.personal ? ' you' : ''}" href="${hrefOf(x)}">${C.avatar(C.P(x.from), 34)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span><span class="nt-when">${ago(x.at)}</span></span></a>`;
 }
 async function markSeen() {
   const t = Date.now();
@@ -105,7 +120,7 @@ function closePanel() {
 let toastTimer = null;
 function showToast(x) {
   const t = document.getElementById('toast'); if (!t) return;
-  t.innerHTML = `<a href="${x.kind === 'settle' ? '#/talk?settle' : '#/talk'}" class="toast-in${x.personal ? ' you' : ''}">${C.avatar(C.P(x.from), 38)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span></span></a><button type="button" class="toast-x" data-toast-x aria-label="Dismiss">×</button>`;
+  t.innerHTML = `<a href="${hrefOf(x)}" class="toast-in${x.personal ? ' you' : ''}">${C.avatar(C.P(x.from), 38)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span></span></a><button type="button" class="toast-x" data-toast-x aria-label="Dismiss">×</button>`;
   t.hidden = false; requestAnimationFrame(() => t.classList.add('show'));
   store.set(TOAST_KEY, x.id);
   clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 8000);
@@ -194,6 +209,7 @@ async function poll() {
   const before = new Set(feedItems().map(x => x.id));
   const g = await fetchGames(); if (!g) return;
   C.S.games = g;
+  try { renderAttendBar(); } catch (e) { console.error(e); }
   const fresh = feedItems().filter(x => !before.has(x.id) && x.at > seenAt());
   renderBell();
   if (fresh.length) {

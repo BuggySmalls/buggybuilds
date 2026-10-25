@@ -177,5 +177,30 @@ eq(E.currentHandicap(d, n, 'amy').hdcp, 40, 'current handicap matches');
 d.league.handicap.games = 0;
 eq(E.buildNights(d)[2].byPid.amy.avgIn, 120, 'all games when no window');
 
+// --- team nights: handicap games summed, blind for a short team, N..1 points per game, series double
+d = base();
+d.league.handicap = { basis: 200, percent: 80, games: 9 };
+d.players.push({ id: 'eve', name: 'eve', active: true });
+d.events.push({ date: '2026-10-21', status: 'completed', scores: { amy: [150, 150, 150], ben: [100, 100, 100], cal: [200, 200, 200], dee: [150, 150, 150], eve: [150, 150, 150] } });
+d.events.push({ date: '2026-10-28', status: 'completed', scores: { amy: [160, 140, 150], ben: [110, 100, null], cal: [190, 210, 200], dee: [150, 150, 150], eve: [150, 150, 150] } });
+n = E.buildNights(d);
+// hdcp: amy/dee/eve 40, ben 80, cal 0
+const T = [{ name: 'A', pids: ['amy', 'ben'] }, { name: 'B', pids: ['cal', 'dee', 'eve'] }];
+let tr = E.teamResults(n[1], T);
+const A = tr.find(r => r.name === 'A'), B = tr.find(r => r.name === 'B');
+// game 1: A = (200 + 190) + blind 195 = 585 ; B = 190 + 190 + 190 = 570
+eq(A.games[0], 585, 'short team gets a blind worth its own average');
+eq(B.games[0], 570, 'team handicap game');
+// game 3: ben missing too → A has 1 bowler (190) + 2 blinds = 570; B 200+190+190 = 580
+eq([A.games[2], A.blinds[2]], [570, 2], 'two blinds when two spots are empty');
+eq(A.gamePts, [2, 1, 1], 'A points per game');
+eq(B.gamePts, [1, 2, 2], 'B points per game');
+// series: A 585+560+570 = 1715 ; B 570+590+580 = 1740 → B double (4), A 2
+eq([A.seriesPts, B.seriesPts], [2, 4], 'series counts double');
+eq(tr[0].name, 'B', 'most points wins');
+eq(E.teamsFor({ events: [{ date: 'x', teams: T }] }, 'x', null), T, 'logged teams win over the live draw');
+eq(E.teamsFor({ events: [] }, 'x', { teams: { x: { teams: T } } }), T, 'live draw used before logging');
+ok(E.validate({ players: d.players, events: [{ date: '2026-10-28', teams: [{ name: 'A', pids: ['amy'] }, { name: 'B', pids: ['amy'] }] }] }).length, 'bowler on two teams is rejected');
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

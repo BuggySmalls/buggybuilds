@@ -19,11 +19,13 @@ export function feedItems() {
   const me = C.S.me?.playerId, N = id => C.P(id).name, out = [];
   for (const p of g.posts || []) out.push({ id: 'p' + p.id, at: p.at, from: p.from, kind: 'post', personal: !!me && p.to === me,
     text: p.to ? `${N(p.from)} → ${p.to === me ? 'you' : N(p.to)}: ${p.msg}` : `${N(p.from)}: ${p.msg}` });
+  // Betchas only notify the two bowlers in them (Nick, Oct 25 2026); everyone else sees them on the Talk tab.
   for (const b of g.bets || []) {
-    out.push({ id: 'b' + b.id, at: b.at, from: b.from, kind: 'bet', personal: !!me && b.to === me,
-      text: b.to === me ? `${N(b.from)} wants to betcha: ${b.stakes}. Take it?` : `${N(b.from)} betcha’d ${N(b.to)}: ${b.stakes}` });
-    if (b.answeredAt) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: !!me && b.from === me,
-      text: `${N(b.to)} ${b.status === 'accepted' ? 'took' : 'chickened out of'} ${b.from === me ? 'your' : N(b.from) + '’s'} betcha: ${b.stakes}` });
+    if (!me || (b.from !== me && b.to !== me)) continue;
+    if (b.to === me) out.push({ id: 'b' + b.id, at: b.at, from: b.from, kind: 'bet', personal: true,
+      text: `${N(b.from)} wants to betcha: ${b.stakes}. Take it?` });
+    if (b.answeredAt && b.from === me) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: true,
+      text: `${N(b.to)} ${b.status === 'accepted' ? 'took' : 'chickened out of'} your betcha: ${b.stakes}` });
   }
   // Settling up (Nick, Oct 25 2026): after the night, tell the loser to pay and the winner to confirm.
   // These stay lit ("pending") until you've tapped your button.

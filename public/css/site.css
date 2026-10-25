@@ -974,3 +974,11 @@ span.nh-arrow{display:none}
 .mini-sheet .rolls{font:700 12px/1.2 var(--body);letter-spacing:.04em;white-space:nowrap}
 .mini-sheet .rolls i{font-style:normal;color:#BE123C;font-size:10px;margin-right:1px}
 .mini-sheet .run{font:700 12px/1.3 var(--body);color:#6B5E85;border-top:1px solid #E5E0EE}
+
+/* celebration banner (announcements with "banner": true) */
+.celebrate{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;padding:14px 16px;border-radius:14px;border:2px solid var(--gold);background:linear-gradient(90deg,var(--red-soft),rgba(255,209,102,.14),var(--red-soft));box-shadow:0 0 18px rgba(255,209,102,.35);text-align:center}
+.celebrate h2{font-family:var(--display);text-transform:uppercase;color:var(--gold);font-size:clamp(22px,5vw,34px);line-height:1;text-shadow:0 0 10px rgba(255,209,102,.5)}
+.celebrate p{margin-top:4px;color:var(--text);font-weight:600}
+.celebrate-faces{display:flex;flex:none}.celebrate-faces>*+*{margin-left:-12px}
+.celebrate .confetti{font-size:28px;flex:none}
+@media (max-width:560px){.celebrate{flex-wrap:wrap;gap:8px}.celebrate .confetti{display:none}.celebrate-copy{flex-basis:100%}}

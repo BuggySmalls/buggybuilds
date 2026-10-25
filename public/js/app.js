@@ -122,7 +122,8 @@ function recapText(idx) {
   const broken = recordsBrokenAt(idx).filter(r => r.kind === 'fame').slice(0, 2);
   if (broken.length) lines.push('', ...broken.map(r => `📈 New league record, ${r.title.toLowerCase()}: ${P(r.holder).name} ${r.value}`));
   if (idx === S.nights.length - 1) {
-    const mw = matches();
+    (S.data.announcements || []).filter(a => a.banner).forEach(a => bits.unshift(a.title.toUpperCase()));
+  const mw = matches();
     if (mw.length) lines.push('', `👀 Match of the week: ${P(mw[0].a).name} vs ${P(mw[0].b).name}. ${mw[0].reasons[0]}`);
     if (S.next) lines.push(`📅 Next: ${dayName(S.next.date)}, ${fmtTime(L.startTime)} at ${L.venue}`);
   }
@@ -253,7 +254,14 @@ pages.home = () => {
   const prevRank = last ? rankBefore(S.seasonNights.indexOf(last)) : {};
   const movers = table.map((r, i) => ({ id: r.id, now: i + 1, was: prevRank[r.id] })).filter(m => m.was).map(m => ({ ...m, d: m.was - m.now })).filter(m => m.d).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 4);
 
+  const banners = (S.data.announcements || []).filter(a => a.banner).sort((a, b) => b.date.localeCompare(a.date));
   return `
+  ${banners.map(a => `<section class="celebrate" role="note">
+    <span class="confetti" aria-hidden="true">🎉</span>
+    ${(a.pids || []).length ? `<div class="celebrate-faces">${a.pids.map(id => avatar(P(id), 48)).join('')}</div>` : ''}
+    <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
+    <span class="confetti" aria-hidden="true">🎉</span>
+  </section>`).join('')}
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">

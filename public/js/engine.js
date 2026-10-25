@@ -777,17 +777,29 @@ export function validate(data) {
  * keys: highGame, highSeries, hdcpSeries, overAverage
  * data.purseAdjustments = [{ date, pid, amount, note }] for anything paid by hand
  * data.purseVoids = [{ date, pid, note? }] strips a bowler's winnings that night; their prize isn't paid to anyone
- * bets = accepted Betchas from the account server (Nick, Oct 24 2026): the higher series takes the
- * bet's dollar amount — added to the winner's winnings and the loser's paid-in. Ties and no-shows move nothing.
+ * bets = accepted Betchas from the account server (Nick, Oct 24 2026): the higher series gets the
+ * bet's dollar amount added to their winnings (the loser isn't charged). Ties and no-shows pay nothing.
+ * The amount is read from the stakes text ("$5", "5 bucks", "ten dollars", "a fiver").
  * ------------------------------------------------------------------ */
-export function betAmount(b) {
-  if (b.amount > 0) return b.amount;
-  const m = String(b.stakes || '').match(/\$\s?(\d{1,3})(?![\d.,])/);
-  return m ? +m[1] : 0;
+const NUMW = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100, a: 1 };
+export function stakesDollars(text) {
+  const t = String(text || '').toLowerCase().replace(/[‐-―]/g, '-');
+  let m = t.match(/\$\s?(\d{1,3})(?:\.\d\d)?(?![\d,])/) || t.match(/\b(\d{1,3})\s?(?:\$|bucks?\b|dollars?\b|usd\b|clams\b|smackers\b)/);
+  if (m) return Math.min(+m[1], 100);
+  if (/\bfiver\b/.test(t)) return 5;
+  if (/\btenner\b/.test(t)) return 10;
+  if (/\b(?:a\s+)?(?:buck|dollar)\b/.test(t) && !/\b\d|\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\b/.test(t)) return 1;
+  m = t.match(/\b((?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|a)(?:[\s-](?:one|two|three|four|five|six|seven|eight|nine))?(?:\s+hundred)?)\s+(?:bucks?|dollars?)\b/);
+  if (!m) return 0;
+  const parts = m[1].split(/[\s-]+/);
+  let v = 0;
+  for (const w of parts) v = w === 'hundred' ? (v || 1) * 100 : v + NUMW[w];
+  return Math.min(v, 100);
 }
+export function betAmount(b) { return b.amount > 0 ? Math.min(b.amount, 100) : stakesDollars(b.stakes); }
 export function purse(data, nights, bets = []) {
   const cfg = data.league?.purse;
-  const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0, betWon: 0, betLost: 0 }]));
+  const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0, betWon: 0 }]));
   if (!cfg) return { nights: [], totals, enabled: false };
   const rows = [];
   const cents = x => Math.round(x * 100) / 100;
@@ -824,7 +836,6 @@ export function purse(data, nights, bets = []) {
       if (!ra || !rb || ra.series === rb.series || !totals[b.from] || !totals[b.to]) continue;
       const [w, l] = ra.series > rb.series ? [b.from, b.to] : [b.to, b.from];
       totals[w].won = cents(totals[w].won + amt); totals[w].betWon = cents(totals[w].betWon + amt);
-      totals[l].paidIn = cents(totals[l].paidIn + amt); totals[l].betLost = cents(totals[l].betLost + amt);
       payouts.push({ key: 'betcha', label: 'Betcha', winners: [w], loser: l, each: amt, betId: b.id });
     }
     rows.push({ date: n.date, idx: n.idx, pot, payouts });

@@ -124,11 +124,11 @@ export function betRow(b, { side = null } = {}) {
   else if (!res) tag = `<span class="co-tag live">Bet’s on for ${day}</span>`;
   else if (res === 'NC') tag = '<span class="co-tag">No contest</span>';
   else if (res === 'T') tag = '<span class="co-tag">Push</span>';
-  else { const winner = res === 'W' ? b.from : b.to; tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${esc(P(winner).name)} wins · ${esc(P(winner === b.from ? b.to : b.from).name)} pays up</span>`; }
+  else { const winner = res === 'W' ? b.from : b.to, amt = C.E.betAmount(b); tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${esc(P(winner).name)} wins${amt ? ` $${amt} · added to the purse` : ` · ${esc(P(winner === b.from ? b.to : b.from).name)} pays up`}</span>`; }
   const acts = b.status === 'open' && open && me === b.to ? `<button type="button" class="btn primary small" data-betact="${b.id}|accept">Take the bet</button><button type="button" class="btn small" data-betact="${b.id}|decline">Chicken out</button>`
     : b.status === 'open' && open && me === b.from ? `<button type="button" class="linkish small" data-unbet="${b.id}">take it back</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
-    <p class="co-msg bet-stakes"><span>On the line:</span> ${esc(b.stakes)}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
+    <p class="co-msg bet-stakes"><span>On the line:</span> ${b.amount > 0 ? `<b class="bet-amt">$${b.amount}</b> ` : ''}${esc(b.stakes)}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
 }
 export function homeBets() {
   const g = C.S.games; if (!g?.bets) return '';
@@ -146,7 +146,7 @@ export function nightBets(date) {
 }
 export function betTicker() {
   const nx = C.S.next?.date;
-  return (C.S.games?.bets || []).filter(b => b.date === nx && b.status !== 'declined').map(b => `BETCHA: ${C.P(b.from).name.toUpperCase()} VS ${C.P(b.to).name.toUpperCase()} · ${b.stakes.toUpperCase()}`);
+  return (C.S.games?.bets || []).filter(b => b.date === nx && b.status !== 'declined').map(b => `BETCHA: ${C.P(b.from).name.toUpperCase()} VS ${C.P(b.to).name.toUpperCase()} · ${C.E.betAmount(b) ? '$' + C.E.betAmount(b) + ' · ' : ''}${b.stakes.toUpperCase()}`);
 }
 export function profileBets(pid) {
   const { S, esc, P } = C;
@@ -159,8 +159,9 @@ export function profileBets(pid) {
   let form = '';
   if (me && me !== pid && date && !already) form = `<form class="co-form" data-bet="${esc(pid)}">
       <input class="txt" name="stakes" maxlength="80" required placeholder="What’s on the line? (loser buys a round)">
+      <label class="field bet-amt-field">Dollars on it (optional, goes on the purse)<span class="bet-dollar"><i>$</i><input class="txt" name="amount" type="number" inputmode="numeric" min="0" max="100" step="1" placeholder="0"></span></label>
       <button class="btn primary" type="submit">Betcha ${esc(P(pid).name)} for ${esc(C.fmtDate(date, { weekday: 'short' }))}</button>
-      <p class="small faint">${esc(P(pid).name)} has to take the bet before first ball. Higher series that night wins.</p></form>`;
+      <p class="small faint">${esc(P(pid).name)} has to take the bet before first ball. Higher series that night wins, and any dollars go on the winner’s purse.</p></form>`;
   else if (!me && me !== pid && date && !S.apiDown) form = `<p class="small muted"><a href="#/login">Sign in</a> to bet ${esc(P(pid).name)}.</p>`;
   else if (me && me !== pid && !date) form = `<p class="small muted">Betchas open the week of the next league night.</p>`;
   if (!list.length && !form) return '';
@@ -295,7 +296,7 @@ export function installGames(ctx) {
     if (bf) {
       e.preventDefault();
       const btn = bf.querySelector('button'); btn.disabled = true;
-      try { C.S.games = await api('/bet', { method: 'POST', body: { date: C.S.next.date, to: bf.dataset.bet, stakes: bf.stakes.value } }); const y = scrollY; C.route(); scrollTo(0, y); }
+      try { C.S.games = await api('/bet', { method: 'POST', body: { date: C.S.next.date, to: bf.dataset.bet, stakes: bf.stakes.value, amount: bf.amount.value === '' ? 0 : Number(bf.amount.value) } }); const y = scrollY; C.route(); scrollTo(0, y); }
       catch (err) { btn.disabled = false; alert(err.message); }
       return;
     }

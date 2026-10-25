@@ -777,10 +777,17 @@ export function validate(data) {
  * keys: highGame, highSeries, hdcpSeries, overAverage
  * data.purseAdjustments = [{ date, pid, amount, note }] for anything paid by hand
  * data.purseVoids = [{ date, pid, note? }] strips a bowler's winnings that night; their prize isn't paid to anyone
+ * bets = accepted Betchas from the account server (Nick, Oct 24 2026): the higher series takes the
+ * bet's dollar amount — added to the winner's winnings and the loser's paid-in. Ties and no-shows move nothing.
  * ------------------------------------------------------------------ */
-export function purse(data, nights) {
+export function betAmount(b) {
+  if (b.amount > 0) return b.amount;
+  const m = String(b.stakes || '').match(/\$\s?(\d{1,3})(?![\d.,])/);
+  return m ? +m[1] : 0;
+}
+export function purse(data, nights, bets = []) {
   const cfg = data.league?.purse;
-  const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0 }]));
+  const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0, betWon: 0, betLost: 0 }]));
   if (!cfg) return { nights: [], totals, enabled: false };
   const rows = [];
   const cents = x => Math.round(x * 100) / 100;
@@ -810,6 +817,15 @@ export function purse(data, nights) {
       if (!totals[a.pid]) continue;
       totals[a.pid].won = cents(totals[a.pid].won + a.amount);
       payouts.push({ key: 'manual', label: a.note || 'Adjustment', winners: [a.pid], each: a.amount });
+    }
+    for (const b of bets.filter(b => b.date === n.date && b.status === 'accepted')) {
+      const amt = betAmount(b); if (!amt) continue;
+      const ra = n.rows.find(r => r.pid === b.from), rb = n.rows.find(r => r.pid === b.to);
+      if (!ra || !rb || ra.series === rb.series || !totals[b.from] || !totals[b.to]) continue;
+      const [w, l] = ra.series > rb.series ? [b.from, b.to] : [b.to, b.from];
+      totals[w].won = cents(totals[w].won + amt); totals[w].betWon = cents(totals[w].betWon + amt);
+      totals[l].paidIn = cents(totals[l].paidIn + amt); totals[l].betLost = cents(totals[l].betLost + amt);
+      payouts.push({ key: 'betcha', label: 'Betcha', winners: [w], loser: l, each: amt, betId: b.id });
     }
     rows.push({ date: n.date, idx: n.idx, pot, payouts });
   }

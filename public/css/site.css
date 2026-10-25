@@ -908,6 +908,9 @@ textarea.txt{resize:vertical;font-size:16px}
 .co-tag.live{background:var(--red)} .co-tag.win{background:var(--lime);color:#111} .co-tag.loss{background:var(--down);color:#111}
 .co-form{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
 .co-form p{margin:0}
+.bet-dollar{display:flex;align-items:center;gap:6px;max-width:160px}
+.bet-dollar i{font:800 20px var(--display);font-style:normal;color:var(--up)}
+.bet-amt{color:var(--up);font-weight:800}
 
 /* no handwriting or italics anywhere (Nick, Oct 21 2026) */
 em,i,cite,address,dfn,var{font-style:normal}

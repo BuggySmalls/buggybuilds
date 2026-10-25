@@ -113,6 +113,8 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS seen (ukey TEXT PRIMARY KEY, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
+    // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
+    if (!this.sql.exec('PRAGMA table_info(bets)').toArray().some(c => c.name === 'amount')) this.sql.exec('ALTER TABLE bets ADD COLUMN amount INTEGER NOT NULL DEFAULT 0');
   }
 
   /* ---------- helpers ---------- */
@@ -246,16 +248,18 @@ export class Accounts extends DurableObject {
         return json(this.games(L, me));
       }
       if (method === 'POST' && path === '/bet') {
-        const { date, to, stakes } = await request.json();
+        const { date, to, stakes, amount } = await request.json();
         const L = await this.league(url.origin);
         const bad = this.openNight(L, date); if (bad) return fail(400, bad.replace('Picks', 'Betchas'));
         if (to === me.player_id) return fail(400, 'You can’t bet yourself.');
         if (!this.merged(L).some(p => p.id === to && p.active !== false)) return fail(404, 'No bowler by that name.');
         const s = clean(stakes, 80);
         if (s.length < 2) return fail(400, 'Say what’s on the line.');
+        const amt = amount == null || amount === '' ? 0 : Number(amount);
+        if (!Number.isInteger(amt) || amt < 0 || amt > 100) return fail(400, 'Bet a whole dollar amount from $0 to $100.');
         if (this.sql.exec("SELECT 1 FROM bets WHERE date = ? AND from_ukey = ? AND to_pid = ? AND status != 'declined'", date, me.ukey, to).toArray().length) return fail(409, 'You already have a betcha with them that night.');
         if (this.sql.exec("SELECT COUNT(*) AS n FROM bets WHERE date = ? AND from_ukey = ? AND status != 'declined'", date, me.ukey).one().n >= 3) return fail(429, 'Three betchas a night. Don’t go broke.');
-        this.sql.exec('INSERT INTO bets (date, from_ukey, to_pid, stakes, created_at) VALUES (?,?,?,?,?)', date, me.ukey, to, s, now());
+        this.sql.exec('INSERT INTO bets (date, from_ukey, to_pid, stakes, amount, created_at) VALUES (?,?,?,?,?,?)', date, me.ukey, to, s, amt, now());
         return json(this.games(L, me), 201);
       }
       if (method === 'POST' && /^\/bet\/\d+\/(accept|decline)$/.test(path)) {
@@ -373,8 +377,8 @@ export class Accounts extends DurableObject {
     for (const n of Object.values(nights)) if (now() < n.lockAt) delete n.byPlayer;
     const callouts = this.sql.exec('SELECT id, date, from_ukey, to_pid, msg, created_at FROM callouts ORDER BY created_at').toArray()
       .filter(c => live(c.from_ukey)).map(c => ({ id: c.id, date: c.date, from: pidOf[c.from_ukey], to: c.to_pid, msg: c.msg, at: c.created_at }));
-    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, status, created_at, answered_at FROM bets ORDER BY created_at').toArray()
-      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, status: b.status, at: b.created_at, answeredAt: b.answered_at || null }));
+    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, amount, status, created_at, answered_at FROM bets ORDER BY created_at').toArray()
+      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, amount: b.amount || 0, status: b.status, at: b.created_at, answeredAt: b.answered_at || null }));
     const hiddenPosts = new Set((L.talk?.hidden || []).map(Number));
     const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
       .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at }));

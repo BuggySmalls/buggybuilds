@@ -779,6 +779,9 @@ export function validate(data) {
  * data.purseVoids = [{ date, pid, note? }] strips a bowler's winnings that night; their prize isn't paid to anyone
  * bets = accepted Betchas from the account server (Nick, Oct 24 2026): the higher series gets the
  * bet's dollar amount added to their winnings (the loser isn't charged). Ties and no-shows pay nothing.
+ * Only once it's settled (Nick, Oct 25 2026): the loser taps "I paid" and the winner taps "Got paid"
+ * (paidAt + gotAt from the server), or Nick marks it settled with data.betcha.settled = [betId].
+ * Until then it's listed under `pendingBets` and doesn't count toward anyone's winnings.
  * The amount is read from the stakes text ("$5", "5 bucks", "ten dollars", "a fiver").
  * ------------------------------------------------------------------ */
 const NUMW = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100, a: 1 };
@@ -797,11 +800,12 @@ export function stakesDollars(text) {
   return Math.min(v, 100);
 }
 export function betAmount(b) { return b.amount > 0 ? Math.min(b.amount, 100) : stakesDollars(b.stakes); }
+export function betSettled(b, data) { return !!(b.paidAt && b.gotAt) || (data?.betcha?.settled || []).map(Number).includes(Number(b.id)); }
 export function purse(data, nights, bets = []) {
   const cfg = data.league?.purse;
   const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0, betWon: 0 }]));
-  if (!cfg) return { nights: [], totals, enabled: false };
-  const rows = [];
+  if (!cfg) return { nights: [], totals, enabled: false, pendingBets: [] };
+  const rows = [], pendingBets = [];
   const cents = x => Math.round(x * 100) / 100;
   for (const n of nights) {
     if (cfg.start && n.date < cfg.start) continue;
@@ -835,13 +839,14 @@ export function purse(data, nights, bets = []) {
       const ra = n.rows.find(r => r.pid === b.from), rb = n.rows.find(r => r.pid === b.to);
       if (!ra || !rb || ra.series === rb.series || !totals[b.from] || !totals[b.to]) continue;
       const [w, l] = ra.series > rb.series ? [b.from, b.to] : [b.to, b.from];
+      if (!betSettled(b, data)) { pendingBets.push({ date: n.date, betId: b.id, winner: w, loser: l, amount: amt }); continue; }
       totals[w].won = cents(totals[w].won + amt); totals[w].betWon = cents(totals[w].betWon + amt);
       payouts.push({ key: 'betcha', label: 'Betcha', winners: [w], loser: l, each: amt, betId: b.id });
     }
     rows.push({ date: n.date, idx: n.idx, pot, payouts });
   }
   for (const t of Object.values(totals)) t.net = cents(t.won - t.paidIn);
-  return { nights: rows, totals, enabled: true, cfg };
+  return { nights: rows, totals, enabled: true, cfg, pendingBets };
 }
 
 /* ------------------------------------------------------------------ *

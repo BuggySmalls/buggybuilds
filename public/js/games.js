@@ -72,6 +72,17 @@ export function calloutRecord(pid) {
 
 // Betcha result, same rules as a call-out but only once the other bowler took the bet
 function betResult(b) { return b.status === 'accepted' ? calloutResult(b) : null; }
+// Settling up (Nick, Oct 25 2026): loser taps "I paid", winner taps "Got paid". Dollars hit the purse after both.
+export function settleRoles(b) {
+  const res = betResult(b); if (res !== 'W' && res !== 'L') return null;
+  return res === 'W' ? { winner: b.from, loser: b.to } : { winner: b.to, loser: b.from };
+}
+export function settleState(b) {
+  if (C.E.betSettled(b, C.S.data)) return 'settled';
+  return b.gotAt ? 'got' : b.paidAt ? 'paid' : 'owed';
+}
+// Roughly when the bet became payable: four hours after first ball that night
+export function settleAt(b) { return Math.max(lockMs(b.date), b.answeredAt || 0) + 4 * 3600e3; }
 export function betRecord(pid) {
   const r = { w: 0, l: 0, t: 0 };
   for (const b of C.S.games?.bets || []) {
@@ -124,9 +135,20 @@ export function betRow(b, { side = null } = {}) {
   else if (!res) tag = `<span class="co-tag live">Bet’s on for ${day}</span>`;
   else if (res === 'NC') tag = '<span class="co-tag">No contest</span>';
   else if (res === 'T') tag = '<span class="co-tag">Push</span>';
-  else { const winner = res === 'W' ? b.from : b.to, amt = C.E.betAmount(b); tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${esc(P(winner).name)} wins${amt ? ` $${amt} · added to the purse` : ` · ${esc(P(winner === b.from ? b.to : b.from).name)} pays up`}</span>`; }
+  else {
+    const winner = res === 'W' ? b.from : b.to, loser = winner === b.from ? b.to : b.from, amt = C.E.betAmount(b);
+    const st = settleState(b), wn = esc(P(winner).name), ln = esc(P(loser).name);
+    const status = st === 'settled' ? (amt ? `Paid · $${amt} added to the purse` : 'Paid up')
+      : st === 'got' ? `${wn} got paid · waiting on ${ln} to confirm`
+      : st === 'paid' ? `${ln} says they paid · waiting on ${wn} to confirm`
+      : `${ln} owes ${amt ? '$' + amt : 'up'}`;
+    tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${wn} wins</span><span class="co-tag${st === 'settled' ? '' : ' live'}">${status}</span>`;
+  }
+  const r = settleRoles(b);
   const acts = b.status === 'open' && open && me === b.to ? `<button type="button" class="btn primary small" data-betact="${b.id}|accept">Take the bet</button><button type="button" class="btn small" data-betact="${b.id}|decline">Chicken out</button>`
-    : b.status === 'open' && open && me === b.from ? `<button type="button" class="linkish small" data-unbet="${b.id}">take it back</button>` : '';
+    : b.status === 'open' && open && me === b.from ? `<button type="button" class="linkish small" data-unbet="${b.id}">take it back</button>`
+    : r && me === r.loser && !b.paidAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|paid">I paid</button>`
+    : r && me === r.winner && !b.gotAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|got">Got paid</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
     <p class="co-msg bet-stakes"><span>On the line:</span> ${esc(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
 }
@@ -276,6 +298,14 @@ export function installGames(ctx) {
       if (act === 'decline' && !confirm('Chicken out of this betcha? Everyone will see.')) return;
       ba.disabled = true;
       try { C.S.games = await api(`/bet/${id}/${act}`, { method: 'POST', body: {} }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { ba.disabled = false; alert(err.message); }
+      return;
+    }
+    const bs = e.target.closest('[data-betsettle]');
+    if (bs && !bs.disabled) {
+      const [id, act] = bs.dataset.betsettle.split('|');
+      if (!confirm(act === 'paid' ? 'Confirm you paid up?' : 'Confirm you got paid?')) return;
+      bs.disabled = true;
+      try { C.S.games = await api(`/bet/${id}/${act}`, { method: 'POST', body: {} }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { bs.disabled = false; alert(err.message); }
       return;
     }
     const ub = e.target.closest('[data-unbet]');

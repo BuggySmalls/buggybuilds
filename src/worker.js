@@ -115,6 +115,11 @@ export class Accounts extends DurableObject {
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
     if (!this.sql.exec('PRAGMA table_info(bets)').toArray().some(c => c.name === 'amount')) this.sql.exec('ALTER TABLE bets ADD COLUMN amount INTEGER NOT NULL DEFAULT 0');
+    // Settling up (Nick, Oct 25 2026): the loser confirms they paid, the winner confirms they got it.
+    // Dollars only reach the purse once both have confirmed.
+    const cols = this.sql.exec('PRAGMA table_info(bets)').toArray().map(c => c.name);
+    if (!cols.includes('paid_at')) this.sql.exec('ALTER TABLE bets ADD COLUMN paid_at INTEGER');
+    if (!cols.includes('got_at')) this.sql.exec('ALTER TABLE bets ADD COLUMN got_at INTEGER');
   }
 
   /* ---------- helpers ---------- */
@@ -272,6 +277,23 @@ export class Accounts extends DurableObject {
         this.sql.exec('UPDATE bets SET status = ?, answered_at = ? WHERE id = ?', act === 'accept' ? 'accepted' : 'declined', now(), b.id);
         return json(this.games(L, me));
       }
+      if (method === 'POST' && /^\/bet\/\d+\/(paid|got)$/.test(path)) {
+        const [, , id, act] = path.split('/');
+        const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +id).toArray()[0];
+        if (!b || b.status !== 'accepted') return fail(404, 'No bet to settle.');
+        const L = await this.league(url.origin);
+        const pidOf = Object.fromEntries(this.all().map(a => [a.ukey, a.player_id]));
+        const res = this.betWinner(L, { from: pidOf[b.from_ukey], to: b.to_pid, date: b.date });
+        if (!res) return fail(400, 'Nobody’s won this one yet.');
+        if (act === 'paid') {
+          if (me.player_id !== res.loser) return fail(403, 'Only the loser can say they paid.');
+          if (!b.paid_at) this.sql.exec('UPDATE bets SET paid_at = ? WHERE id = ?', now(), b.id);
+        } else {
+          if (me.player_id !== res.winner) return fail(403, 'Only the winner can confirm they got paid.');
+          if (!b.got_at) this.sql.exec('UPDATE bets SET got_at = ? WHERE id = ?', now(), b.id);
+        }
+        return json(this.games(L, me));
+      }
       if (method === 'DELETE' && path.startsWith('/bet/')) {
         const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +path.slice(5)).toArray()[0];
         if (!b || b.from_ukey !== me.ukey) return fail(404, 'Not your betcha.');
@@ -360,6 +382,20 @@ export class Accounts extends DurableObject {
     if (lock - now() > 8 * 86400e3) return 'Too early. Picks open the week of.';
     return null;
   }
+  // Who won a settled betcha: higher series that night (same rule as the site). Null if not scored, tie or no-show.
+  betWinner(L, b) {
+    const e = (L.events || []).find(x => x.date === b.date && x.status === 'completed' && x.scores);
+    if (!e) return null;
+    const ids = new Set((L.players || []).map(p => p.id));
+    const series = pid => {
+      if (!ids.has(pid)) return null;
+      const got = [0, 1, 2].map(k => e.scores[pid]?.[k]).filter(Number.isFinite);
+      return got.length ? got.reduce((a, v) => a + v, 0) : null;
+    };
+    const a = series(b.from), c = series(b.to);
+    if (a == null || c == null || a === c) return null;
+    return a > c ? { winner: b.from, loser: b.to } : { winner: b.to, loser: b.from };
+  }
   lockAt(L, date) { const lg = L.league || {}; return zonedMs(date, lg.startTime || '19:15', lg.timezone); }
 
   games(L, me) {
@@ -377,8 +413,8 @@ export class Accounts extends DurableObject {
     for (const n of Object.values(nights)) if (now() < n.lockAt) delete n.byPlayer;
     const callouts = this.sql.exec('SELECT id, date, from_ukey, to_pid, msg, created_at FROM callouts ORDER BY created_at').toArray()
       .filter(c => live(c.from_ukey)).map(c => ({ id: c.id, date: c.date, from: pidOf[c.from_ukey], to: c.to_pid, msg: c.msg, at: c.created_at }));
-    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, amount, status, created_at, answered_at FROM bets ORDER BY created_at').toArray()
-      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, amount: b.amount || 0, status: b.status, at: b.created_at, answeredAt: b.answered_at || null }));
+    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, amount, status, created_at, answered_at, paid_at, got_at FROM bets ORDER BY created_at').toArray()
+      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, amount: b.amount || 0, status: b.status, at: b.created_at, answeredAt: b.answered_at || null, paidAt: b.paid_at || null, gotAt: b.got_at || null }));
     const hiddenPosts = new Set((L.talk?.hidden || []).map(Number));
     const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
       .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at }));

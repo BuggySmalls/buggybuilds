@@ -114,8 +114,8 @@ eq(pu.totals.dee.net, -5, 'net = won minus buy-ins');
 
 // --- betchas: winner gets the dollar amount read from the stakes; loser isn't charged; open, tied and no-show bets pay nothing
 const bets = [
-  { id: 1, date: '2026-10-21', from: 'dee', to: 'ben', stakes: 'loser buys a round', amount: 10, status: 'accepted' },
-  { id: 2, date: '2026-10-21', from: 'amy', to: 'cal', stakes: 'loser pays $7', amount: 0, status: 'accepted' },
+  { id: 1, date: '2026-10-21', from: 'dee', to: 'ben', stakes: 'loser buys a round', amount: 10, status: 'accepted', paidAt: 1, gotAt: 2 },
+  { id: 2, date: '2026-10-21', from: 'amy', to: 'cal', stakes: 'loser pays $7', amount: 0, status: 'accepted', paidAt: 1, gotAt: 2 },
   { id: 3, date: '2026-10-21', from: 'ben', to: 'amy', stakes: '$20', amount: 0, status: 'open' },
   { id: 4, date: '2026-10-21', from: 'ben', to: 'zed', stakes: '$20', amount: 0, status: 'accepted' },
 ];
@@ -123,6 +123,11 @@ const pb = E.purse(d, n, bets);
 eq([pb.totals.ben.won, pb.totals.dee.paidIn], [20, 5], 'ben wins the $10 betcha; dee is not charged');
 eq([pb.totals.amy.won, pb.totals.cal.paidIn], [12, 5], 'amount read from the stakes text');
 eq([pb.totals.ben.betWon, pb.nights[0].pot], [10, 20], 'open and no-show bets pay nothing; pot unchanged');
+// settling up (Nick, Oct 25 2026): nothing hits the purse until the loser says paid AND the winner confirms
+const half = bets.map(b => b.id === 1 ? { ...b, gotAt: null } : b);
+const ph = E.purse(d, n, half);
+eq([ph.totals.ben.betWon, ph.pendingBets.length, ph.pendingBets[0]?.loser], [0, 1, 'dee'], 'unconfirmed betcha waits; listed as pending');
+eq(E.purse({ ...d, betcha: { settled: [1] } }, n, half).totals.ben.betWon, 10, 'Nick can mark a betcha settled');
 d.events[0].scores.cal = [210, 100, 100];
 eq(E.purse(d, E.buildNights(d), bets).totals.amy.betWon, 0, 'tied series pays nothing');
 for (const [txt, v] of [['loser pays $5', 5], ['5 bucks', 5], ['ten dollars', 10], ['twenty-five bucks', 25], ['a fiver', 5], ['a tenner says I win', 10], ['loser owes a dollar', 1], ['10$', 10], ['loser buys a round', 0], ['wear the cereal box hat', 0], ['$500', 100], ['200 game or bust', 0]])

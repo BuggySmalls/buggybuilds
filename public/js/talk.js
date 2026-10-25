@@ -2,7 +2,7 @@
 // Posts live on the account server; notifications are built in the browser from
 // /api/games (posts, betchas, call-outs) and compared with the last time you looked.
 import { api } from './account.js';
-import { fetchGames, betRow, calloutRow, openDate } from './games.js';
+import { fetchGames, betRow, calloutRow, openDate, settleRoles, settleState, settleAt } from './games.js';
 
 let C; // { S, esc, avatar, who, P, fmtDate, route, pages }
 const SEEN_KEY = 'cb_seen', TOAST_KEY = 'cb_toasted';
@@ -25,13 +25,36 @@ export function feedItems() {
     if (b.answeredAt) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: !!me && b.from === me,
       text: `${N(b.to)} ${b.status === 'accepted' ? 'took' : 'chickened out of'} ${b.from === me ? 'your' : N(b.from) + '’s'} betcha: ${b.stakes}` });
   }
+  // Settling up (Nick, Oct 25 2026): after the night, tell the loser to pay and the winner to confirm.
+  // These stay lit ("pending") until you've tapped your button.
+  for (const b of g.bets || []) {
+    const r = me && settleRoles(b); if (!r || (me !== r.winner && me !== r.loser)) continue;
+    const st = settleState(b), amt = C.E.betAmount(b), opp = me === r.winner ? r.loser : r.winner;
+    const owed = amt ? `$${amt}` : `“${b.stakes}”`;
+    if (st === 'settled') {
+      out.push({ id: 'z' + b.id, at: Math.max(b.paidAt || 0, b.gotAt || 0, settleAt(b)), from: opp, kind: 'settle', personal: true,
+        text: me === r.winner ? `${N(opp)} paid up. ${amt ? `$${amt} added to your purse winnings.` : 'Betcha settled.'}` : `${N(opp)} confirmed your payment. Betcha settled.` });
+    } else if (me === r.loser && !b.paidAt) {
+      out.push({ id: 'sL' + b.id, at: settleAt(b), from: opp, kind: 'settle', personal: true, pending: true, bet: b.id,
+        text: `You lost your betcha to ${N(opp)}. Pay up ${owed}, then tap “I paid.”` });
+    } else if (me === r.winner && !b.gotAt) {
+      out.push({ id: (b.paidAt ? 'sP' : 'sW') + b.id, at: b.paidAt || settleAt(b), from: opp, kind: 'settle', personal: true, pending: true, bet: b.id,
+        text: b.paidAt ? `${N(opp)} says they paid you ${owed}. Tap “Got paid” to confirm${amt ? ' and add it to your purse' : ''}.` : `You won your betcha vs ${N(opp)}! They owe you ${owed}. Tap “Got paid” once they pay up.` });
+    } else if (me === r.loser && b.paidAt && !b.gotAt) {
+      out.push({ id: 'sw' + b.id, at: b.paidAt, from: opp, kind: 'settle', personal: true,
+        text: `Waiting on ${N(opp)} to confirm they got your ${owed}.` });
+    } else if (me === r.winner && b.gotAt && !b.paidAt) {
+      out.push({ id: 'sl' + b.id, at: b.gotAt, from: opp, kind: 'settle', personal: true,
+        text: `Waiting on ${N(opp)} to tap “I paid.”${amt ? ' Then it goes on the purse.' : ''}` });
+    }
+  }
   for (const c of g.callouts || []) out.push({ id: 'c' + c.id, at: c.at, from: c.from, kind: 'callout', personal: !!me && c.to === me,
     text: `${N(c.from)} called ${c.to === me ? 'you' : N(c.to)} out${c.msg ? ': ' + c.msg : ''}` });
   return out.filter(x => !(me && x.from === me)).sort((a, b) => b.at - a.at);
 }
 const seenAt = () => Math.max(C.S.games?.seenAt || 0, +store.get(SEEN_KEY) || 0);
-const unread = () => feedItems().filter(x => x.at > seenAt());
-const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out' };
+const unread = () => { const since = seenAt(); return feedItems().filter(x => x.pending || x.at > since).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.at - a.at); };
+const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up' };
 
 function ago(ms) {
   const s = Math.max(0, (Date.now() - ms) / 1000);
@@ -52,7 +75,7 @@ export function renderBell() {
   bell.setAttribute('aria-label', n ? `Notifications, ${n} new` : 'Notifications');
 }
 function itemHTML(x, isNew) {
-  return `<a class="nt-item${isNew ? ' new' : ''}${x.personal ? ' you' : ''}" href="#/talk">${C.avatar(C.P(x.from), 34)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span><span class="nt-when">${ago(x.at)}</span></span></a>`;
+  return `<a class="nt-item${isNew ? ' new' : ''}${x.personal ? ' you' : ''}" href="${x.kind === 'settle' ? '#/talk?settle' : '#/talk'}">${C.avatar(C.P(x.from), 34)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span><span class="nt-when">${ago(x.at)}</span></span></a>`;
 }
 async function markSeen() {
   const t = Date.now();
@@ -63,9 +86,9 @@ async function markSeen() {
 }
 function openPanel() {
   const panel = document.getElementById('notifPanel'); if (!panel) return;
-  const since = seenAt(), items = feedItems().slice(0, 30);
+  const since = seenAt(), items = feedItems().sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0)).slice(0, 30);
   panel.innerHTML = `<div class="nt-head"><b>Notifications</b><a href="#/talk">See all</a></div>
-    ${items.length ? `<div class="nt-list">${items.map(x => itemHTML(x, x.at > since)).join('')}</div>`
+    ${items.length ? `<div class="nt-list">${items.map(x => itemHTML(x, x.pending || x.at > since)).join('')}</div>`
       : '<p class="nt-empty">Nothing yet. Go start some shit on the Talk tab.</p>'}
     ${C.S.me ? '' : '<p class="nt-empty small"><a href="#/login">Sign in</a> to see what’s aimed at you.</p>'}`;
   panel.hidden = false;
@@ -80,7 +103,7 @@ function closePanel() {
 let toastTimer = null;
 function showToast(x) {
   const t = document.getElementById('toast'); if (!t) return;
-  t.innerHTML = `<a href="#/talk" class="toast-in${x.personal ? ' you' : ''}">${C.avatar(C.P(x.from), 38)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span></span></a><button type="button" class="toast-x" data-toast-x aria-label="Dismiss">×</button>`;
+  t.innerHTML = `<a href="${x.kind === 'settle' ? '#/talk?settle' : '#/talk'}" class="toast-in${x.personal ? ' you' : ''}">${C.avatar(C.P(x.from), 38)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span></span></a><button type="button" class="toast-x" data-toast-x aria-label="Dismiss">×</button>`;
   t.hidden = false; requestAnimationFrame(() => t.classList.add('show'));
   store.set(TOAST_KEY, x.id);
   clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 8000);
@@ -138,8 +161,11 @@ function talkPage() {
   const liveBets = (g.bets || []).filter(b => b.date === nx).slice().reverse();
   const pastBets = (g.bets || []).filter(b => b.date !== nx && b.status === 'accepted').slice().reverse().slice(0, 10);
   const calls = (g.callouts || []).filter(c => c.date === nx).slice().reverse();
+  const me = C.S.me?.playerId;
+  const mySettle = me ? (g.bets || []).filter(b => { const r = settleRoles(b); return r && (r.winner === me || r.loser === me) && settleState(b) !== 'settled'; }).slice().reverse() : [];
   return `
   <div><h1 class="page-title">Betchas &amp; Shit Talk</h1><p class="page-intro">Bet somebody, call them out, or just talk. Higher series wins every bet.</p></div>
+  ${mySettle.length ? `<section class="panel betcha-panel settle-panel" id="settle"><div class="panel-head"><h2>Settle up</h2><span class="small muted">Loser taps “I paid,” winner taps “Got paid.” Dollars go on the purse once you both do.</span></div><div class="co-list">${mySettle.map(b => betRow(b, { side: me })).join('')}</div></section>` : ''}
   <div class="talk-grid">
     <div class="grid" style="align-content:start">
       <section class="panel talk-panel"><div class="panel-head"><h2>Shit talk</h2></div>

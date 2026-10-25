@@ -96,9 +96,9 @@ function untilText(ms) {
   const h = Math.floor(m / 60); if (h < 24) return `${h}h ${m % 60}m`;
   return `${Math.floor(h / 24)}d ${h % 24}h`;
 }
-const openDate = () => { const nx = C.S.next; return nx && !nx.live && lockMs(nx.date) > Date.now() ? nx.date : null; };
+export const openDate = () => { const nx = C.S.next; return nx && !nx.live && lockMs(nx.date) > Date.now() ? nx.date : null; };
 
-function calloutRow(c, { side = null } = {}) {
+export function calloutRow(c, { side = null } = {}) {
   const { esc, who, P } = C;
   const res = calloutResult(c), n = nightOf(c.date);
   const score = id => n?.byPid[id] ? `<span class="val">${n.byPid[id].series}</span>` : '';
@@ -113,7 +113,7 @@ function calloutRow(c, { side = null } = {}) {
 /* ------------------------------------------------------------------ *
  * Panels used by other pages
  * ------------------------------------------------------------------ */
-function betRow(b, { side = null } = {}) {
+export function betRow(b, { side = null } = {}) {
   const { esc, who, P } = C;
   const res = betResult(b), n = nightOf(b.date), open = openDate() === b.date, me = C.S.me?.playerId;
   const score = id => b.status === 'accepted' && n?.byPid[id] ? `<span class="val">${n.byPid[id].series}</span>` : '';

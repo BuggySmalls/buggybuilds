@@ -3,6 +3,7 @@ import { lineChart, barChart, PALETTE } from './charts.js';
 import { installAccount, fetchMe } from './account.js';
 import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from './share-image.js';
 import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable, homeBets, nightBets, profileBets, betRecord, betTicker } from './games.js';
+import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
 
 /* ================================================================== *
@@ -262,6 +263,7 @@ pages.home = () => {
     <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
     <span class="confetti" aria-hidden="true">🎉</span>
   </section>`).join('')}
+  <div class="home-live">${homeBets()}${homeTalk()}</div>
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
@@ -274,7 +276,6 @@ pages.home = () => {
     </div>
   </section>
 
-  ${homeBets()}
 
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
 
@@ -777,6 +778,8 @@ pages.faq = () => {
     qa('How do I sign in?', `<p>A username plus a <b>4-digit code</b> or a <b>swipe pattern</b>, like a phone lock screen. No email, no phone number, nothing to verify. Five wrong tries locks the account for a while. Forgot yours? Text Nick and he’ll reset it, then sign in and set a new one.</p>`),
     qa('How does Pick’em work?', `<p>Before first ball, signed-in bowlers pick who bowls the <b>top series</b> (3 points), the <b>lowest series</b> (2 points), whether anyone bowls a <b>200 game</b> (1 point), and the winner of each match to watch (1 point each, by series). Picks lock at ${fmtTime(L.startTime)}, and then everyone’s picks are visible. Ties count as right for everyone tied. Most points over the season wins. <a href="#/pickem">Make your picks</a>.</p>`),
     qa('What’s a call-out?', `<p>Open another bowler’s profile and call them out for the next night, with an optional line of trash talk. Whoever bowls the higher series that night wins. If either of you doesn’t bowl, it’s no contest. Up to three call-outs a night, and you can take one back until first ball. Your call-out record shows on your profile.</p>`),
+    qa('What’s the Talk tab?', `<p>Betchas &amp; Shit Talk. Post whatever you want (up to 200 characters), to everyone or aimed at one bowler, and start betchas from there too. The newest shit talk and betchas sit at the top of the home page. You can delete your own posts. Nick can pull anything that goes too far.</p>`),
+    qa('How do notifications work?', `<p>The bell at the top lights up when someone posts, starts a betcha, answers one, or calls someone out. Stuff aimed at you is marked “for you.” New things also pop up at the top of the screen while the site is open. Sign in so the site knows what’s aimed at you.</p>`),
     qa('What’s a Betcha?', `<p>Tap Betcha on someone’s profile or on the Players page, say what’s on the line (loser buys a round, wears the cereal box hat, whatever), and send it. They have until first ball to take the bet or chicken out, and everyone sees which. Higher series that night wins. If either of you doesn’t bowl, it’s no contest. Every open Betcha shows on the home page. The site just keeps score. Settling up is between you two.</p>`),
     qa('I bowled before I made an account. Do my scores carry over?', `<p>Yes. Nick logs scores under the name on the lane screen. When you sign up, pick that name from the list (or later on your profile page) and those games become yours. If the wrong person grabs your name, tell Nick.</p>`),
     qa('What if I miss a night?', `<p>You don't earn points that night, and your attendance streak resets. A missed night doesn't break your winning or losing streak, and it doesn't change your average.</p>`),
@@ -1086,10 +1089,11 @@ function route() {
     if (k === navKey) { a.setAttribute('aria-current', 'page'); if (a.closest('.nav') && innerWidth > 720) a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
   });
   const more = document.querySelector('.tabbar [data-more]');
-  if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'schedule'].includes(navKey));
+  if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'talk'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
+  try { renderBell(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
 let lastPath = null;
@@ -1120,6 +1124,7 @@ document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.lef
 async function reload() { await load(); route(); }
 const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
 installGames({ S, E, pages, esc, avatar, who, empty, fmtDate, fmtTime, P, matches, route });
+installTalk({ S, pages, esc, avatar, who, empty, fmtDate, P, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *

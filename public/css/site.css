@@ -998,3 +998,50 @@ span.nh-arrow{display:none}
 .bd-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
 .bd-bar i{display:block;height:100%;background:var(--gold);border-radius:99px}
 #betcha{scroll-margin-top:96px}
+
+/* notifications: bell, panel, pop-up */
+.bell{position:relative;flex:none;display:grid;place-items:center;width:40px;height:40px;margin-left:8px;border:3px solid #111;border-radius:12px;background:var(--maple);color:#111;box-shadow:3px 3px 0 #111;cursor:pointer;padding:0}
+.bell svg{width:22px;height:22px;fill:currentColor}
+.bell b{position:absolute;top:-8px;right:-8px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:var(--red);color:#fff;border:2px solid #111;font:700 11px/16px var(--body);text-align:center}
+.bell+#acct{margin-left:8px}
+@media (max-width:720px){.bell{margin-left:auto} .bell[hidden]+#acct{margin-left:auto}}
+.notif-panel{position:fixed;z-index:40;top:70px;right:12px;width:min(380px,calc(100vw - 24px));max-height:min(70vh,560px);overflow:auto;background:var(--panel);border:3px solid #111;border-radius:16px;box-shadow:0 0 0 3px var(--maple),6px 6px 0 rgba(0,0,0,.6);padding:10px}
+.nt-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px}
+.nt-head b{font:400 16px var(--display);text-transform:uppercase;color:var(--gold)}
+.nt-head a{font:600 13px var(--body);color:var(--cyan)}
+.nt-list{display:flex;flex-direction:column;gap:6px}
+.nt-item{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:12px;text-decoration:none;color:var(--text);background:rgba(255,255,255,.03)}
+.nt-item.new{background:var(--red-soft);box-shadow:inset 3px 0 0 var(--red)}
+.nt-item.you .nt-kind{color:var(--gold)}
+.nt-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nt-kind{font:400 10.5px var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--red)}
+.nt-text{font:500 14.5px/1.35 var(--body);overflow-wrap:anywhere}
+.nt-when{font:500 12px var(--body);color:var(--faint)}
+.nt-empty{color:var(--muted);padding:8px 6px;margin:0}
+.toast{position:fixed;z-index:41;left:12px;right:12px;top:12px;margin:0 auto;max-width:440px;display:flex;align-items:stretch;background:var(--panel-2);border:3px solid #111;border-radius:16px;box-shadow:0 0 0 3px var(--gold),6px 6px 0 rgba(0,0,0,.6);transform:translateY(-140%);transition:transform .25s ease}
+.toast.show{transform:none}
+.toast-in{flex:1;display:flex;gap:10px;align-items:center;padding:10px 12px;text-decoration:none;color:var(--text);min-width:0}
+.toast-in.you .nt-kind{color:var(--gold)}
+.toast-x{flex:none;width:40px;border:0;background:none;color:var(--muted);font:700 22px var(--body);cursor:pointer}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+
+/* shit talk */
+.talk-grid{display:grid;gap:16px;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:start}
+@media (max-width:860px){.talk-grid{grid-template-columns:1fr}}
+.talk-panel{border-color:var(--red)}
+.talk-form{display:flex;flex-direction:column;gap:10px;margin:4px 0 12px}
+.talk-form textarea{resize:vertical;font:500 16px/1.4 var(--body)}
+.talk-row{display:flex;gap:10px;align-items:stretch}
+.talk-row select{flex:1}
+.post-list{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.post{background:var(--panel-2);border:3px solid #111;border-radius:14px;box-shadow:var(--pop);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.post.you{box-shadow:0 0 0 2px var(--gold),var(--pop)}
+.post-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.post-at{font:400 12px var(--display);text-transform:uppercase;color:var(--red)}
+.post-when{margin-left:auto;font:500 12px var(--body);color:var(--faint)}
+.post-msg{margin:0;font:500 16px/1.4 var(--body);color:var(--text);overflow-wrap:anywhere;white-space:pre-wrap}
+.post .linkish{align-self:flex-start}
+
+.home-live{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:14px}
+.home-live:empty{display:none}
+@media (max-width:720px){#acct,.bell{flex:none}.top-row .logo{min-width:0;flex:1 1 auto}.top-row .logo>span{min-width:0}.acct-btn.me>span:not(.avatar){display:none}.acct-btn.me{padding:3px}}

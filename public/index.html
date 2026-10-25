@@ -28,12 +28,14 @@
         <span><span class="logo-name" id="logoName">Cereal Bowlers</span><span class="logo-sub">Kingstown Bowl · Wednesdays · Est. 2026</span></span>
       </a>
       <a class="top-next" id="topNext" href="#/schedule"></a>
+      <button type="button" class="bell" id="bell" aria-label="Notifications" aria-expanded="false" hidden></button>
       <span id="acct"></span>
     </div>
     <nav class="nav" aria-label="Sections">
       <a href="#/">Home</a>
       <a href="#/standings">Standings</a>
       <a href="#/players">Players</a>
+      <a href="#/talk">Betchas &amp; Shit Talk</a>
       <a href="#/pickem">Pick’em</a>
       <a href="#/stats">Statistics</a>
       <a href="#/schedule">Schedule &amp; Results</a>
@@ -61,17 +63,19 @@
   <a href="#/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg>Home</a>
   <a href="#/standings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10zM10 20V4h4v16zM16 20v-7h4v7z"/></svg>Standings</a>
   <a href="#/players"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5z"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 13.6c2.7 0 4.6 1.6 5 4.6h-4.2"/></svg>Players</a>
-  <a href="#/schedule"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" fill="none"/></svg>Results</a>
+  <a href="#/talk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H10l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Talk</a>
   <button type="button" data-more aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>More</button>
 </nav>
 <div class="sheet-scrim" data-close-sheet></div>
 <div class="sheet" role="dialog" aria-label="All sections">
   <div class="sheet-grab"></div>
-  <a href="#/pickem">Pick’em</a><a href="#/stats">Statistics</a><a href="#/championships">Monthly Championships</a><a href="#/power">Power Rankings</a>
+  <a href="#/schedule">Schedule &amp; Results</a><a href="#/pickem">Pick’em</a><a href="#/stats">Statistics</a><a href="#/championships">Monthly Championships</a><a href="#/power">Power Rankings</a>
   <a href="#/leaderboards">Leaderboards</a><a href="#/purse">Purse</a><a href="#/records">League Records</a>
   <a href="#/rivalries">Rivalries</a><a href="#/faq">Rules &amp; FAQ</a><a href="#/login" id="sheetMine">Sign in</a>
 </div>
 <div class="tip" id="tip" hidden></div>
+<div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script>
 document.addEventListener('click', e => {
   const m = e.target.closest('[data-more]'), c = e.target.closest('[data-close-sheet]');

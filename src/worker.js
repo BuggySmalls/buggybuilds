@@ -109,6 +109,8 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS signups (ip TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS picks (date TEXT NOT NULL, ukey TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey, k));
       CREATE TABLE IF NOT EXISTS callouts (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, msg TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT NOT NULL, to_pid TEXT, msg TEXT NOT NULL, created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS seen (ukey TEXT PRIMARY KEY, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
   }
@@ -275,6 +277,32 @@ export class Accounts extends DurableObject {
         this.sql.exec('DELETE FROM bets WHERE id = ?', b.id);
         return json(this.games(L, me));
       }
+      if (method === 'POST' && path === '/post') {
+        const { msg, to } = await request.json();
+        const m = clean(msg, 200);
+        if (!m) return fail(400, 'Say something.');
+        const L = await this.league(url.origin);
+        let target = null;
+        if (to) {
+          if (to === me.player_id) return fail(400, 'Talking to yourself?');
+          if (!this.merged(L).some(p => p.id === to && p.active !== false)) return fail(404, 'No bowler by that name.');
+          target = to;
+        }
+        const last = this.sql.exec('SELECT created_at FROM posts WHERE ukey = ? ORDER BY created_at DESC LIMIT 1', me.ukey).toArray()[0];
+        if (last && now() - last.created_at < 10e3) return fail(429, 'Easy. Wait a few seconds between posts.');
+        this.sql.exec('INSERT INTO posts (ukey, to_pid, msg, created_at) VALUES (?,?,?,?)', me.ukey, target, m, now());
+        return json(this.games(L, me), 201);
+      }
+      if (method === 'DELETE' && path.startsWith('/post/')) {
+        const pst = this.sql.exec('SELECT * FROM posts WHERE id = ?', +path.slice(6)).toArray()[0];
+        if (!pst || pst.ukey !== me.ukey) return fail(404, 'Not your post.');
+        this.sql.exec('DELETE FROM posts WHERE id = ?', pst.id);
+        return json(this.games(await this.league(url.origin), me));
+      }
+      if (method === 'POST' && path === '/seen') {
+        this.sql.exec('INSERT INTO seen (ukey, at) VALUES (?, ?) ON CONFLICT(ukey) DO UPDATE SET at = excluded.at', me.ukey, now());
+        return json({ ok: true, seenAt: now() });
+      }
       if (method === 'POST' && path === '/profile') {
         const body = await request.json();
         this.sql.exec('UPDATE accounts SET profile = ? WHERE ukey = ?', JSON.stringify(cleanProfile(body)), me.ukey);
@@ -345,9 +373,13 @@ export class Accounts extends DurableObject {
     for (const n of Object.values(nights)) if (now() < n.lockAt) delete n.byPlayer;
     const callouts = this.sql.exec('SELECT id, date, from_ukey, to_pid, msg, created_at FROM callouts ORDER BY created_at').toArray()
       .filter(c => live(c.from_ukey)).map(c => ({ id: c.id, date: c.date, from: pidOf[c.from_ukey], to: c.to_pid, msg: c.msg, at: c.created_at }));
-    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, status, created_at FROM bets ORDER BY created_at').toArray()
-      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, status: b.status, at: b.created_at }));
-    return { now: now(), picks: nights, callouts, bets };
+    const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, status, created_at, answered_at FROM bets ORDER BY created_at').toArray()
+      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, status: b.status, at: b.created_at, answeredAt: b.answered_at || null }));
+    const hiddenPosts = new Set((L.talk?.hidden || []).map(Number));
+    const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
+      .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at }));
+    const seenAt = me ? (this.sql.exec('SELECT at FROM seen WHERE ukey = ?', me.ukey).toArray()[0]?.at || 0) : 0;
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

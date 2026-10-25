@@ -621,7 +621,11 @@ td.big,td b{font-weight:800}
 tbody tr:nth-child(even) td{background:#F6F2FF}
 tbody tr:hover td{background:#FFF7C2}
 /* Pinned bowler column (Nick, Oct 25 2026): solid alternating grays + an edge so scrolled stats don't show through */
-td.sticky,th.sticky{left:0;z-index:2}
+td.sticky,th.sticky{left:0;z-index:3;-webkit-transform:translateZ(0);transform:translateZ(0)}
+/* every row's stat cells get a real background and sit below the pinned column, so white and shaded rows scroll the same (iPhone Safari) */
+.tbl tbody td:not(.sticky){background:#fff;position:relative;z-index:1}
+.tbl tbody tr:nth-child(even) td:not(.sticky){background:#F6F2FF}
+.tbl tbody tr:hover td:not(.sticky){background:#FFF7C2}
 td.sticky{background:#ECE9F1;box-shadow:inset -3px 0 0 #111}
 tbody tr:nth-child(even) td.sticky{background:#D9D4E2}
 tbody tr:hover td.sticky{background:#FFF7C2}

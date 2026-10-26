@@ -70,6 +70,18 @@ function who(id, { size = 32, link = true, nick = true } = {}) {
   const inner = `${avatar(p, size)}<span style="min-width:0"><span class="nm">${esc(p.name)}</span>${nick && p.nickname ? `<span class="nick">“${esc(p.nickname)}”</span>` : ''}</span>`;
   return link ? `<a class="who-cell" href="#/player/${esc(p.id)}">${inner}</a>` : `<span class="who-cell">${inner}</span>`;
 }
+// Any bowler name, anywhere: tap it to open their profile. A span (not <a>) so it also works inside other links and cards.
+function pl(id, text) { const p = P(id); return `<span class="plink" role="link" tabindex="0" data-pid="${esc(p.id)}">${esc(text ?? p.name)}</span>`; }
+// Escape free text and turn every bowler name in it into a profile link (recaps, headlines, award notes, posts, ticker)
+function linkNames(text, { ci = false } = {}) {
+  const out = esc(text ?? ''); if (!out) return out;
+  const byName = new Map();
+  for (const p of Object.values(S.players || {})) { const k = esc(p.name || '').toLowerCase(); if (k.length >= 2 && !byName.has(k)) byName.set(k, p.id); }
+  if (!byName.size) return out;
+  const alt = [...byName.keys()].sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const re = new RegExp(`(?<![\\w&#])(${alt})(?![\\w])`, ci ? 'gi' : 'g');
+  return out.replace(re, m => `<span class="plink" role="link" tabindex="0" data-pid="${esc(byName.get(m.toLowerCase()))}">${m}</span>`);
+}
 const pct = (x, d = 1) => x == null ? '—' : `${(x * 100).toFixed(d)}%`;
 const n0 = x => x == null ? '—' : Math.round(x).toLocaleString();
 const n1 = x => x == null ? '—' : (Math.round(x * 10) / 10).toFixed(1);
@@ -103,7 +115,7 @@ function matchCards(list, { compact = false } = {}) {
   return `<div class="mtw">${list.map(m => { const h = m.h || E.headToHead(S.nights, m.a, m.b); return `
     <a class="mtw-card${m.motw ? ' motw' : ''}" href="#/rivalries?a=${esc(m.a)}&b=${esc(m.b)}">
       <span class="mtw-tag">${m.motw ? 'Match of the week' : 'Match to watch'}</span>
-      <div class="mtw-vs"><div>${avatar(P(m.a), m.motw ? 56 : 44)}<b>${esc(P(m.a).name)}</b></div><span>${h.games ? `${h.w}–${h.l}${h.t ? '–' + h.t : ''}` : 'vs'}</span><div>${avatar(P(m.b), m.motw ? 56 : 44)}<b>${esc(P(m.b).name)}</b></div></div>
+      <div class="mtw-vs"><div>${avatar(P(m.a), m.motw ? 56 : 44)}<b>${pl(m.a)}</b></div><span>${h.games ? `${h.w}–${h.l}${h.t ? '–' + h.t : ''}` : 'vs'}</span><div>${avatar(P(m.b), m.motw ? 56 : 44)}<b>${pl(m.b)}</b></div></div>
       <p>${esc((compact ? m.reasons.slice(0, 1) : m.reasons.slice(0, 3)).join(' '))}</p>
     </a>`; }).join('')}</div>`;
 }
@@ -281,10 +293,10 @@ pages.home = () => {
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
 
   <section class="kpis">
-    <a class="kpi" href="#/standings"><span class="lbl">League leader</span>${leader ? `<span class="v">${leader.points} pts</span><span class="who">${esc(P(leader.id).name)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'}</a>
-    <a class="kpi" href="#/championships"><span class="lbl">Reigning monthly champ</span>${lastChamp ? `<span class="v">${esc(E.monthName(lastChamp.key, true).split(' ')[0])}</span><span class="who">${esc(P(lastChamp.champion.id).name)}</span>` : '<span class="v">—</span><span class="who muted">Crowned at month\u2019s end</span>'}</a>
-    <a class="kpi" href="#/championships"><span class="lbl">${race ? esc(E.monthName(race.key).split(' ').slice(0, -1).join(' ')) + ' race leader' : 'Month race'}</span>${race?.leader ? `<span class="v">${race.leader.points} pts</span><span class="who">${esc(P(race.leader.id).name)}</span>` : '<span class="v">—</span><span class="who muted">Starts opening night</span>'}</a>
-    <a class="kpi" href="#/stats"><span class="lbl">Top average</span>${(() => { const t = [...table].filter(r => r.games >= 3).sort((a, b) => b.avgExact - a.avgExact)[0]; return t ? `<span class="v">${t.avg}</span><span class="who">${esc(P(t.id).name)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'; })()}</a>
+    <a class="kpi" href="#/standings"><span class="lbl">League leader</span>${leader ? `<span class="v">${leader.points} pts</span><span class="who">${pl(leader.id)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'}</a>
+    <a class="kpi" href="#/championships"><span class="lbl">Reigning monthly champ</span>${lastChamp ? `<span class="v">${esc(E.monthName(lastChamp.key, true).split(' ')[0])}</span><span class="who">${pl(lastChamp.champion.id)}</span>` : '<span class="v">—</span><span class="who muted">Crowned at month\u2019s end</span>'}</a>
+    <a class="kpi" href="#/championships"><span class="lbl">${race ? esc(E.monthName(race.key).split(' ').slice(0, -1).join(' ')) + ' race leader' : 'Month race'}</span>${race?.leader ? `<span class="v">${race.leader.points} pts</span><span class="who">${pl(race.leader.id)}</span>` : '<span class="v">—</span><span class="who muted">Starts opening night</span>'}</a>
+    <a class="kpi" href="#/stats"><span class="lbl">Top average</span>${(() => { const t = [...table].filter(r => r.games >= 3).sort((a, b) => b.avgExact - a.avgExact)[0]; return t ? `<span class="v">${t.avg}</span><span class="who">${pl(t.id)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'; })()}</a>
   </section>
 
   <section class="panel"><div class="panel-head"><h2>Matches to watch${next ? ` · ${fmtDate(next.date, { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}</h2><a href="#/rivalries">All rivalries</a></div>${matchCards(matches())}</section>
@@ -316,7 +328,7 @@ pages.home = () => {
       ${homeCallouts()}
       ${botw ? `<section class="panel">
         <div class="panel-head"><h2>Bowler of the week</h2></div>
-        <div style="display:flex;gap:14px;align-items:center">${avatar(P(botw.winner.pid), 64)}<div><h3 style="font-size:28px">${esc(P(botw.winner.pid).name)}</h3><p class="muted">${esc(botw.winner.why)}</p></div></div>
+        <div style="display:flex;gap:14px;align-items:center">${avatar(P(botw.winner.pid), 64)}<div><h3 style="font-size:28px">${pl(botw.winner.pid)}</h3><p class="muted">${linkNames(botw.winner.why)}</p></div></div>
         <div class="awards">${aw.filter(a => a.key !== 'botw').slice(0, 4).map(awardHTML).join('')}</div>
         <a class="btn" href="#/night/${last.date}">All of week ${weekNo(last)}'s awards</a>
       </section>` : ''}
@@ -327,9 +339,9 @@ pages.home = () => {
 
       ${feat ? `<section class="panel"><div class="panel-head"><h2>Featured rivalry</h2><a href="#/rivalries?a=${feat.a}&b=${feat.b}">Head to head</a></div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <div style="text-align:center;min-width:0">${avatar(P(feat.a), 52)}<div class="small" style="margin-top:4px">${esc(P(feat.a).name)}</div></div>
+          <div style="text-align:center;min-width:0">${avatar(P(feat.a), 52)}<div class="small" style="margin-top:4px">${pl(feat.a)}</div></div>
           <div style="text-align:center"><div class="vs-record" style="font-size:44px">${feat.h.w}–${feat.h.l}${feat.h.t ? '–' + feat.h.t : ''}</div><div class="small muted">${feat.h.games} games</div></div>
-          <div style="text-align:center;min-width:0">${avatar(P(feat.b), 52)}<div class="small" style="margin-top:4px">${esc(P(feat.b).name)}</div></div>
+          <div style="text-align:center;min-width:0">${avatar(P(feat.b), 52)}<div class="small" style="margin-top:4px">${pl(feat.b)}</div></div>
         </div></section>` : ''}
 
       ${broken.length ? `<section class="panel"><div class="panel-head"><h2>Records broken</h2><a href="#/records">Record book</a></div><div class="rec-list">
@@ -338,8 +350,8 @@ pages.home = () => {
 
       <section class="panel"><div class="panel-head"><h2>League news</h2></div>
         <div class="news">
-          ${(S.data.announcements || []).slice().sort((a, b) => b.date.localeCompare(a.date)).map(a => `<article><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="d">${fmtDate(a.date, { month: 'long', day: 'numeric' })}</div></article>`).join('')}
-          ${headlines(4).map(h => `<article><h3><a href="${h.href}" style="text-decoration:none">${esc(h.title)}</a></h3>${h.body ? `<p>${esc(h.body)}</p>` : ''}<div class="d">${fmtDate(h.date, { month: 'long', day: 'numeric' })}</div></article>`).join('')}
+          ${(S.data.announcements || []).slice().sort((a, b) => b.date.localeCompare(a.date)).map(a => `<article><h3>${linkNames(a.title)}</h3><p>${linkNames(a.body)}</p><div class="d">${fmtDate(a.date, { month: 'long', day: 'numeric' })}</div></article>`).join('')}
+          ${headlines(4).map(h => `<article><h3><a href="${h.href}" style="text-decoration:none">${linkNames(h.title)}</a></h3>${h.body ? `<p>${linkNames(h.body)}</p>` : ''}<div class="d">${fmtDate(h.date, { month: 'long', day: 'numeric' })}</div></article>`).join('')}
         </div>
       </section>
     </div>
@@ -366,8 +378,9 @@ function tickerHTML() {
   const mw = matches(); if (mw[0]) bits.push(`MATCH OF THE WEEK: ${P(mw[0].a).name.toUpperCase()} VS ${P(mw[0].b).name.toUpperCase()}`);
   const lead = seasonTable()[0]; if (lead) bits.push(`LEAGUE LEADER: ${P(lead.id).name.toUpperCase()} ${lead.points} PTS`);
   if (S.next) bits.push(`NEXT UP: ${fmtDate(S.next.date, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()} · ${fmtTime(S.data.league.startTime)}`);
+  const named = bits.length;
   bits.push('BOWLING APPAREL MANDATORY', 'NO SOCKS ON THE LANES', 'DID YOU KNOW? ' + S.fact.toUpperCase());
-  const run = bits.map(b => `<span>${esc(b)}</span>`).join('<i>★</i>');
+  const run = bits.map((b, i) => `<span>${i < named ? linkNames(b, { ci: true }) : esc(b)}</span>`).join('<i>★</i>');
   return `<div class="ticker-track">${run}<i>★</i>${run}<i>★</i></div>`;
 }
 function countdownHTML(next) {
@@ -382,12 +395,12 @@ function countdownHTML(next) {
     <div class="count" aria-live="off"><div><b>${d}</b><span>days</span></div><div><b>${String(h).padStart(2, '0')}</b><span>hours</span></div><div><b>${String(m).padStart(2, '0')}</b><span>min</span></div><div><b>${String(s).padStart(2, '0')}</b><span>sec</span></div></div>${when}`;
 }
 
-function awardHTML(a) { return `<div class="award ${a.tone}"><span class="t">${esc(a.name)}${a.winner.manual ? ' · picked' : ''}</span><span class="n">${esc(P(a.winner.pid).name)}</span><span class="why">${esc(a.winner.why)}</span></div>`; }
+function awardHTML(a) { return `<div class="award ${a.tone}"><span class="t">${esc(a.name)}${a.winner.manual ? ' · picked' : ''}</span><span class="n">${pl(a.winner.pid)}</span><span class="why">${linkNames(a.winner.why)}</span></div>`; }
 
 function raceChart(m, top = 5) {
   const labels = m.nights.map(n => fmtDate(n.date));
-  const series = m.race.slice(0, top).map((r, i) => ({ name: P(r.pid).name, color: PALETTE[i], values: r.pts }));
-  return `${lineChart({ labels, series, height: 220, minY: 0 })}<div class="chart-legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)} ${s.values.at(-1)}</span>`).join('')}</div>`;
+  const series = m.race.slice(0, top).map((r, i) => ({ id: r.pid, name: P(r.pid).name, color: PALETTE[i], values: r.pts }));
+  return `${lineChart({ labels, series, height: 220, minY: 0 })}<div class="chart-legend">${series.map(s => `<span><i style="background:${s.color}"></i>${pl(s.id)} ${s.values.at(-1)}</span>`).join('')}</div>`;
 }
 
 /* ---------------- Standings ---------------- */
@@ -419,8 +432,18 @@ pages.standings = () => {
     </tbody></table></div>` : empty('Nothing bowled in this period yet', 'Check back after the next league night.')}
   </section>
   ${!hasFrames && rows.some(r => r.games) ? '<p class="small muted">Strike and spare percentages appear once frame-by-frame scores are logged.</p>' : ''}
-  ${S.data.league.format !== 'individual' ? '<p class="small muted">Team standings switch on when teams are set up.</p>' : ''}`;
+  ${S.data.league.format !== 'individual' ? '<p class="small muted">Team standings switch on when teams are set up.</p>' : ''}
+  ${resultsList()}`;
 };
+/* Every league night, newest first; each opens its full results page (moved here from Schedule — Nick, Oct 26 2026) */
+function resultsList() {
+  const past = [...S.nights].reverse();
+  return `<section class="panel" id="results"><div class="panel-head"><h2>Results</h2><span class="small muted">Tap a night for the full scoresheet</span></div>
+    ${past.length ? `<div class="cal">${past.map(n => { const w = n.rows[0]; return `<a class="cal-day done" href="#/night/${n.date}">
+      <div class="cal-date"><span>WK ${weekNo(n)}</span><b>${fmtDate(n.date, { day: 'numeric' })}</b></div>
+      <div class="info" style="flex:1"><b>${fmtDate(n.date, { month: 'long', day: 'numeric' })}</b>${pl(w.pid)} won with ${w.series} · ${n.rows.length} bowlers</div></a>`; }).join('')}</div>` : empty('No results yet', 'Each league night gets its own results page here.')}
+  </section>`;
+}
 
 /* ---------------- Players ---------------- */
 pages.players = () => {
@@ -591,7 +614,7 @@ function openBadge(pid, key) {
       <div style="min-width:0"><h2>${esc(b.name)}</h2><p>${esc(b.desc)}</p></div></div>
     ${(() => { const pool = S.active, have = pool.filter(x => (S.achievements[x.id] || {})[key]).length, pct = pool.length ? Math.round(have / pool.length * 100) : 0;
       return `<div class="bd-rarity"><div class="bd-pct"><b>${pct}%</b> of bowlers have this badge <span class="faint">(${have} of ${pool.length})</span></div><div class="bd-bar" aria-hidden="true"><i style="width:${pct}%"></i></div></div>`; })()}
-    <div class="bd-sub">${esc(p.name)} · ${got ? `earned ${got.count} time${got.count === 1 ? '' : 's'}` : 'not earned yet'}</div>
+    <div class="bd-sub">${pl(p.id)} · ${got ? `earned ${got.count} time${got.count === 1 ? '' : 's'}` : 'not earned yet'}</div>
     ${rows ? `<div class="bd-list">${rows}</div>` : `<p class="small muted">${b.manual ? 'Handed out by Nick.' : 'Nothing yet — keep bowling.'}</p>`}
   </div>`;
   if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
@@ -752,8 +775,8 @@ pages.purse = () => {
   <section class="kpis">
     ${pot ? `<div class="kpi"><span class="lbl">Paid out so far</span><span class="v">${money(totalPot)}</span><span class="who muted">${pu.nights.length} nights${betTotal ? ` · ${money(betTotal)} in betchas` : ''}</span></div>`
       : `<div class="kpi"><span class="lbl">Betcha money won</span><span class="v">${money(betTotal)}</span><span class="who muted">${hist.length} ${hist.length === 1 ? 'night' : 'nights'} with paid betchas</span></div>`}
-    <div class="kpi"><span class="lbl">Biggest earner</span>${rows[0] ? `<span class="v">${money(rows[0].won)}</span><span class="who">${esc(P(rows[0].id).name)}</span>` : '<span class="v">—</span>'}</div>
-    ${pot ? `<div class="kpi"><span class="lbl">Most cashes</span>${(() => { const r = [...rows].sort((a, b) => b.cashes - a.cashes)[0]; return r ? `<span class="v">${r.cashes}</span><span class="who">${esc(P(r.id).name)}</span>` : '<span class="v">—</span>'; })()}</div>
+    <div class="kpi"><span class="lbl">Biggest earner</span>${rows[0] ? `<span class="v">${money(rows[0].won)}</span><span class="who">${pl(rows[0].id)}</span>` : '<span class="v">—</span>'}</div>
+    ${pot ? `<div class="kpi"><span class="lbl">Most cashes</span>${(() => { const r = [...rows].sort((a, b) => b.cashes - a.cashes)[0]; return r ? `<span class="v">${r.cashes}</span><span class="who">${pl(r.id)}</span>` : '<span class="v">—</span>'; })()}</div>
     <div class="kpi"><span class="lbl">Last pot</span>${pu.nights.at(-1) ? `<span class="v">${money(pu.nights.at(-1).pot)}</span><span class="who muted">${fmtDate(pu.nights.at(-1).date)}</span>` : '<span class="v">—</span>'}</div>`
       : `<div class="kpi"><span class="lbl">Waiting to settle</span><span class="v">${money((pu.pendingBets || []).reduce((a, b) => a + b.amount, 0))}</span><span class="who muted">${(pu.pendingBets || []).length} ${(pu.pendingBets || []).length === 1 ? 'betcha' : 'betchas'}</span></div>`}
   </section>
@@ -762,9 +785,9 @@ pages.purse = () => {
     ${rows.map((t, i) => `<tr class="${i < 3 && t.won ? `top3 p${i + 1}` : ''}"><td class="l">${t.won ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l">${who(t.id, { size: 28 })}</td><td class="big">${money(t.won)}</td>${pot ? `<td>${t.cashes}</td><td class="${t.betWon ? 'up' : ''}">${t.betWon ? '+' + money(t.betWon) : '—'}</td><td>${money(t.paidIn)}</td><td class="${t.net > 0 ? 'up' : t.net < 0 ? 'down' : ''}">${t.net > 0 ? '+' : ''}${money(t.net)}</td>` : `<td>${betWins(t.id)}</td>`}</tr>`).join('')}
     </tbody></table></div>` : empty('No money has changed hands yet', pot ? '' : 'Put a dollar amount in a Betcha and win it.')}
   </section>
-  ${(pu.pendingBets || []).length ? `<section class="panel"><div class="panel-head"><h2>Betchas waiting to settle</h2><a href="#/talk?settle">Settle up</a></div><div class="list">${pu.pendingBets.slice().reverse().map(pb => `<div class="list-row"><span class="grow">${esc(P(pb.loser).name)} owes ${esc(P(pb.winner).name)}</span><span class="small muted">${fmtDate(pb.date)}</span><span class="val" style="font-size:18px">${money(pb.amount)}</span></div>`).join('')}</div><p class="small faint">Goes on the purse once ${pu.pendingBets.length > 1 ? 'each loser taps' : 'the loser taps'} “I paid” and the winner taps “Got paid.”</p></section>` : ''}
+  ${(pu.pendingBets || []).length ? `<section class="panel"><div class="panel-head"><h2>Betchas waiting to settle</h2><a href="#/talk?settle">Settle up</a></div><div class="list">${pu.pendingBets.slice().reverse().map(pb => `<div class="list-row"><span class="grow">${pl(pb.loser)} owes ${pl(pb.winner)}</span><span class="small muted">${fmtDate(pb.date)}</span><span class="val" style="font-size:18px">${money(pb.amount)}</span></div>`).join('')}</div><p class="small faint">Goes on the purse once ${pu.pendingBets.length > 1 ? 'each loser taps' : 'the loser taps'} “I paid” and the winner taps “Got paid.”</p></section>` : ''}
   <section class="panel"><div class="panel-head"><h2>Payout history</h2></div>
-    ${hist.length ? `<div class="list">${hist.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)}${n.pot ? ` · ${money(n.pot)} pot` : ''}</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${esc(poLabel(po))}${po.value != null ? ` · ${po.value}` : ''}</span><span>${(po.winners.length ? po.winners.map(id => esc(P(id).name)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
+    ${hist.length ? `<div class="list">${hist.slice().reverse().map(n => `<a class="list-row" href="#/night/${n.date}" style="text-decoration:none;align-items:flex-start"><div style="width:92px"><b style="font:800 18px var(--display)">Week ${n.idx + 1}</b><div class="small muted">${fmtDate(n.date)}${n.pot ? ` · ${money(n.pot)} pot` : ''}</div></div><div class="grow" style="display:flex;flex-direction:column;gap:4px">${n.payouts.map(po => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="small muted" style="min-width:90px">${linkNames(poLabel(po))}${po.value != null ? ` · ${po.value}` : ''}</span><span>${(po.winners.length ? po.winners.map(id => pl(id)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val" style="margin-left:auto;font-size:18px">${money(po.each)}${po.winners.length > 1 ? ' each' : ''}</span></div>`).join('')}</div></a>`).join('')}</div>` : empty('No payouts yet')}
   </section>`;
 };
 
@@ -826,16 +849,15 @@ pages.faq = () => {
   ])}`;
 };
 
-/* ---------------- Schedule & results ---------------- */
+/* ---------------- Schedule ---------------- */
 pages.schedule = () => {
   const L = S.data.league;
   const dates = E.scheduleDates(S.data);
   const next = E.nextNight(S.data, new Date());
   const upcoming = dates.filter(d => d >= S.todayISO && !S.nights.some(n => n.date === d));
   const lastOfMonth = new Set(Object.values(dates.reduce((m, d) => (m[E.periodKey(S.data, d)] = d, m), {})));
-  const past = [...S.nights].reverse();
   return `
-  <div><h1 class="page-title">Schedule &amp; results</h1><p class="page-intro">Every ${esc(L.weekday)} at ${esc(L.venue)}, ${esc(L.town)}. Drinks from ${fmtTime(L.socialTime)}, first ball at ${fmtTime(L.startTime)}.</p></div>
+  <div><h1 class="page-title">Schedule</h1><p class="page-intro">Every ${esc(L.weekday)} at ${esc(L.venue)}, ${esc(L.town)}. Drinks from ${fmtTime(L.socialTime)}, first ball at ${fmtTime(L.startTime)}.</p></div>
   <section class="panel"><div class="panel-head"><h2>Coming up</h2></div>
     ${calButtons()}
     <p class="small faint">"Add to my calendar" subscribes your phone to the schedule, so changes and cancellations show up automatically, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through. The .ics file is a one-time copy.</p>
@@ -844,16 +866,12 @@ pages.schedule = () => {
       <div class="info"><b>${d === next?.date ? 'Next up' : fmtDate(d, { weekday: 'long' })}${lastOfMonth.has(d) ? ' · Championship night' : ''}</b>${fmtTime(L.startTime)} · ${esc(L.venue)}${lastOfMonth.has(d) ? `<br>Last night of the ${esc(E.monthName(E.periodKey(S.data, d)).split(' ').slice(0, -1).join(' '))} race` : '<br>Everyone bowls the field'}</div></div>`).join('')}</div>` : empty('No more nights scheduled')}
     ${(L.skipDates || []).length ? `<p class="small muted">No bowling on ${L.skipDates.map(d => fmtDate(d, { month: 'long', day: 'numeric' })).join(', ')}.</p>` : ''}
   </section>
-  <section class="panel"><div class="panel-head"><h2>Results</h2></div>
-    ${past.length ? `<div class="cal">${past.map(n => { const w = n.rows[0]; return `<a class="cal-day done" href="#/night/${n.date}">
-      <div class="cal-date"><span>WK ${weekNo(n)}</span><b>${fmtDate(n.date, { day: 'numeric' })}</b></div>
-      <div class="info" style="flex:1"><b>${fmtDate(n.date, { month: 'long', day: 'numeric' })}</b>${esc(P(w.pid).name)} won with ${w.series} · ${n.rows.length} bowlers</div></a>`; }).join('')}</div>` : empty('No results yet', 'Each league night gets its own results page here.')}
-  </section>`;
+`;
 };
 
 pages.night = date => {
   const idx = S.nights.findIndex(n => n.date === date);
-  const n = S.nights[idx]; if (!n) return empty('No results for that night', '<a href="#/schedule">Back to the schedule</a>');
+  const n = S.nights[idx]; if (!n) return empty('No results for that night', '<a href="#/standings?results">Back to results</a>');
   const before = E.aggregate(S.data, S.nights.slice(0, idx));
   const aw = awardsFor(idx);
   const broken = recordsBrokenAt(idx);
@@ -870,7 +888,7 @@ pages.night = date => {
     </div>
     <div class="nh-actions">${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
-  <section class="panel"><p>${esc(recap(idx))}</p>${n.note ? `<p class="small muted">${esc(n.note)}</p>` : ''}</section>
+  <section class="panel"><p>${linkNames(recap(idx))}</p>${n.note ? `<p class="small muted">${linkNames(n.note)}</p>` : ''}</section>
   <section class="panel"><div class="panel-head"><h2>Results</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap “Frames” to see every frame.</span></div>
     ${resultCards(n, before)}
     <div class="tbl res-table"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th>${n.handicap ? '<th>Hdcp</th><th>Hdcp series</th>' : ''}<th>W-L</th><th>Pts</th><th>vs avg</th></tr></thead><tbody>
@@ -887,7 +905,7 @@ pages.night = date => {
       <div class="list-row"><div class="grow small muted">High series</div>${who(n.rows[0].pid, { size: 26 })}<span class="val">${n.rows[0].series}</span></div>
       ${strikeLead ? `<div class="list-row"><div class="grow small muted">Most strikes</div>${who(strikeLead.pid, { size: 26 })}<span class="val">${strikeLead.s}</span></div>` : ''}
       <div class="list-row"><div class="grow small muted">200 games</div><span class="val">${two.length}</span></div>
-      ${(() => { const pn = S.purse.nights.find(x => x.date === n.date); return pn ? pn.payouts.map(po => `<div class="list-row"><div class="grow small muted">Purse: ${esc(poLabel(po))}${po.value != null ? ` (${po.value})` : ''}</div><span class="small">${(po.winners.length ? po.winners.map(id => esc(P(id).name)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val">${money(po.each)}</span></div>`).join('') : ''; })()}
+      ${(() => { const pn = S.purse.nights.find(x => x.date === n.date); return pn ? pn.payouts.map(po => `<div class="list-row"><div class="grow small muted">Purse: ${linkNames(poLabel(po))}${po.value != null ? ` (${po.value})` : ''}</div><span class="small">${(po.winners.length ? po.winners.map(id => pl(id)).join(' &amp; ') : '<span class="muted">Not awarded</span>')}</span><span class="val">${money(po.each)}</span></div>`).join('') : ''; })()}
     </div>
     ${broken.length ? `<h3 style="margin-top:6px">Records broken</h3><div class="rec-list">${broken.map(r => `<div class="rec stack"><div class="t">${esc(r.title)}</div>${who(r.holder, { size: 24 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : ''}
     </section>
@@ -938,10 +956,10 @@ pages.championships = () => {
       <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th>${cur.nights.map(n => `<th>${fmtDate(n.date)}</th>`).join('')}<th>Points</th><th>W-L</th></tr></thead><tbody>
       ${cur.table.map((r, i) => `<tr class="${i < 3 ? `top3 p${i + 1}` : ''}"><td class="l">${medal(i + 1)}</td><td class="l">${who(r.id, { size: 28 })}</td>${cur.nights.map(n => `<td class="${n.byPid[r.id]?.place === 1 ? 'hi' : ''}">${n.byPid[r.id]?.points ?? '<span class="faint">—</span>'}</td>`).join('')}<td class="big">${r.points}</td><td>${r.w}-${r.l}</td></tr>`).join('')}
       </tbody></table></div></section>
-    <section class="panel">${cur.done ? `<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">${trophySVG(80)}<div class="small muted">${esc(E.monthName(cur.key))} champion</div>${avatar(P(cur.champion.id), 72)}<h2 style="font-size:34px">${esc(P(cur.champion.id).name)}</h2><div class="muted">${cur.champion.points} points</div></div>` : `<div class="panel-head"><h2>The race</h2></div>${raceChart(cur)}`}</section>
+    <section class="panel">${cur.done ? `<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">${trophySVG(80)}<div class="small muted">${esc(E.monthName(cur.key))} champion</div>${avatar(P(cur.champion.id), 72)}<h2 style="font-size:34px">${pl(cur.champion.id)}</h2><div class="muted">${cur.champion.points} points</div></div>` : `<div class="panel-head"><h2>The race</h2></div>${raceChart(cur)}`}</section>
   </div>
   <section class="panel"><div class="panel-head"><h2>Past champions</h2></div>
-    ${champs.length ? `<div class="trophies">${champs.slice().reverse().map(m => `<a class="trophy" href="#/championships?m=${m.key}">${trophySVG(58)}<span class="small muted">${esc(E.monthName(m.key))}</span><b>${esc(P(m.champion.id).name)}</b><span class="small faint">${m.champion.points} pts</span></a>`).join('')}</div>` : empty('No champion crowned yet', 'The first trophy goes out after the last night of the month.')}
+    ${champs.length ? `<div class="trophies">${champs.slice().reverse().map(m => `<a class="trophy" href="#/championships?m=${m.key}">${trophySVG(58)}<span class="small muted">${esc(E.monthName(m.key))}</span><b>${pl(m.champion.id)}</b><span class="small faint">${m.champion.points} pts</span></a>`).join('')}</div>` : empty('No champion crowned yet', 'The first trophy goes out after the last night of the month.')}
   </section>
   ${counts.length ? `<section class="panel"><div class="panel-head"><h2>All-time titles</h2></div><div class="list">${counts.map(([id, list], i) => `<div class="list-row">${medal(i + 1)}<div class="grow">${who(id, { size: 30 })}</div><span class="small muted">${list.map(k => E.monthName(k, true)).join(', ')}</span><span class="val">${list.length}</span></div>`).join('')}</div></section>` : ''}`;
 };
@@ -971,7 +989,7 @@ pages.power = () => {
   <section class="panel"><div class="list">
   ${now.map(r => { const was = prev[r.id]; const mv = was ? was - r.rank : 0; const recent = S.nights.slice(Math.max(0, idx - 2), idx + 1).map(x => x.byPid[r.id]?.series ?? null);
     return `<div class="power-row"><div class="power-rank">${r.rank}<small class="${mv > 0 ? 'up' : mv < 0 ? 'down' : 'faint'}">${was ? (mv ? `${mv > 0 ? '▲' : '▼'} ${Math.abs(mv)}` : '—') : 'new'}</small></div>
-      <div class="power-body">${who(r.id, { size: 36 })}${comments[r.id] ? `<p class="quote">“${esc(comments[r.id])}”</p>` : ''}<p>${esc(autoBlurb(r, was, idx))}</p></div>
+      <div class="power-body">${who(r.id, { size: 36 })}${comments[r.id] ? `<p class="quote">“${linkNames(comments[r.id])}”</p>` : ''}<p>${esc(autoBlurb(r, was, idx))}</p></div>
       <div class="power-score">${recent.map(v => v ?? '–').join(' · ')}<span>last 3 series${was ? ` · was ${E.ordinal(was)}` : ''}</span></div></div>`; }).join('')}
   </div></section>`;
 };
@@ -984,7 +1002,7 @@ pages.records = () => {
   let body = '';
   if (tab === 'fame' || tab === 'shame') {
     const list = rec[tab];
-    body = list.length ? `<div class="rec-list">${list.map(r => `<div class="rec"><div><div class="t">${esc(r.title)}${r.custom ? ' <span class="small faint">· league award</span>' : ''}</div><div class="d">${r.date ? (E.isPeriodKey(r.date) ? E.monthName(r.date) : fmtDate(r.date, { month: 'long', day: 'numeric', year: 'numeric' })) : ''}${r.scoreline ? ` · ${esc(r.scoreline.replace(r.by, P(r.by).name))}` : ''}${r.detail && !r.scoreline ? ` · ${esc(r.detail)}` : ''}</div></div>${who(r.holder, { size: 30 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : empty('The record book is blank', 'Records are set from opening night on.');
+    body = list.length ? `<div class="rec-list">${list.map(r => `<div class="rec"><div><div class="t">${esc(r.title)}${r.custom ? ' <span class="small faint">· league award</span>' : ''}</div><div class="d">${r.date ? (E.isPeriodKey(r.date) ? E.monthName(r.date) : fmtDate(r.date, { month: 'long', day: 'numeric', year: 'numeric' })) : ''}${r.scoreline ? ` · ${linkNames(r.scoreline.replace(r.by, P(r.by).name))}` : ''}${r.detail && !r.scoreline ? ` · ${linkNames(r.detail)}` : ''}</div></div>${who(r.holder, { size: 30 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : empty('The record book is blank', 'Records are set from opening night on.');
     if (!S.nights.some(n => n.rows.some(r => r.games.some(g => g?.frames))) && list.length) body += '<p class="small muted">Strike, gutter and open-frame records appear once frame-by-frame scores are logged.</p>';
   } else if (tab === 'awards') {
     body = S.nights.length ? [...S.nights].reverse().map(n => `<div style="display:flex;flex-direction:column;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--line-soft)"><h3><a href="#/night/${n.date}" style="text-decoration:none">Week ${weekNo(n)} · ${fmtDate(n.date, { month: 'long', day: 'numeric' })}</a></h3><div class="awards">${awardsFor(n.idx).map(awardHTML).join('')}</div></div>`).join('') : empty('No awards handed out yet');
@@ -1012,7 +1030,7 @@ pages.rivalries = () => {
   const next = E.nextNight(S.data, new Date());
   const opts = sel => [...S.active].sort((x, y) => x.name.localeCompare(y.name)).map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
   const lead = h.w > h.l ? a : h.l > h.w ? b : null;
-  const card = id => `<div class="vs-card${lead === id ? ' lead' : ''}">${avatar(P(id), 84)}<h2 style="font-size:30px">${esc(P(id).name)}</h2>${P(id).nickname ? `<div class="small muted">“${esc(P(id).nickname)}”</div>` : ''}<div class="small muted">${all[id].avg ?? '—'} avg · ${S.champs.counts[id]?.length || 0} titles</div></div>`;
+  const card = id => `<div class="vs-card${lead === id ? ' lead' : ''}">${avatar(P(id), 84)}<h2 style="font-size:30px">${pl(id)}</h2>${P(id).nickname ? `<div class="small muted">“${esc(P(id).nickname)}”</div>` : ''}<div class="small muted">${all[id].avg ?? '—'} avg · ${S.champs.counts[id]?.length || 0} titles</div></div>`;
   const cmp = (label, va, vb, fa = v => v ?? '—', higher = true) => { const better = va == null || vb == null || va === vb ? 0 : (va > vb) === higher ? -1 : 1; return `<tr><td class="${better < 0 ? 'win' : better > 0 ? 'lose' : ''}">${fa(va)}</td><td class="mid">${label}</td><td class="${better > 0 ? 'win' : better < 0 ? 'lose' : ''}" style="text-align:left">${fa(vb)}</td></tr>`; };
   // running averages for overlay chart
   const both = S.nights.filter(n => n.byPid[a] || n.byPid[b]);
@@ -1034,7 +1052,7 @@ pages.rivalries = () => {
     ${A.hasFrames && B.hasFrames ? cmp('Strike %', A.strikePct, B.strikePct, v => pct(v)) + cmp('Spare %', A.sparePct, B.sparePct, v => pct(v)) : ''}
   </tbody></table>
   <div class="list">
-    <div class="list-row"><div class="grow small muted">Current streak</div><span><b>${esc(P(h.streak.kind === 'W' ? a : h.streak.kind === 'L' ? b : a).name)}</b> ${h.streak.kind === 'T' ? 'tied' : 'has won'} the last ${h.streak.len} game${h.streak.len > 1 ? 's' : ''}</span></div>
+    <div class="list-row"><div class="grow small muted">Current streak</div><span><b>${pl(h.streak.kind === 'W' ? a : h.streak.kind === 'L' ? b : a)}</b> ${h.streak.kind === 'T' ? 'tied' : 'has won'} the last ${h.streak.len} game${h.streak.len > 1 ? 's' : ''}</span></div>
     <div class="list-row"><div class="grow small muted">Most recent matchup</div><a href="#/night/${h.matchups.at(-1).date}">${fmtDate(h.matchups.at(-1).date, { month: 'long', day: 'numeric' })}: ${h.matchups.at(-1).aSeries}–${h.matchups.at(-1).bSeries} series</a></div>
     <div class="list-row"><div class="grow small muted">Next matchup</div><span>${next ? `${esc(dayName(next.date))}, ${fmtTime(S.data.league.startTime)}` : 'Season over'}</span></div>
   </div></section>
@@ -1042,7 +1060,7 @@ pages.rivalries = () => {
     <section class="panel"><div class="panel-head"><h2>Every matchup</h2></div><div class="tbl"><table><thead><tr><th class="l">Night</th><th>Game 1</th><th>Game 2</th><th>Game 3</th><th>Series</th></tr></thead><tbody>
       ${h.matchups.slice().reverse().map(m => `<tr><td class="l txt"><a href="#/night/${m.date}">${fmtDate(m.date)}</a></td>${m.games.map(g => `<td>${g ? `<span class="${g[0] > g[1] ? '' : 'faint'}">${g[0]}</span><span class="faint">–</span><span class="${g[1] > g[0] ? '' : 'faint'}">${g[1]}</span>` : '—'}</td>`).join('')}<td><b>${m.aSeries}–${m.bSeries}</b></td></tr>`).join('')}
     </tbody></table></div></section>
-    <section class="panel"><div class="panel-head"><h2>Average race</h2></div>${lineChart({ labels: both.map(n => fmtDate(n.date)), series: [{ name: P(a).name, color: PALETTE[0], values: runner(a) }, { name: P(b).name, color: PALETTE[2], values: runner(b) }] })}<div class="chart-legend"><span><i style="background:${PALETTE[0]}"></i>${esc(P(a).name)}</span><span><i style="background:${PALETTE[2]}"></i>${esc(P(b).name)}</span></div></section>
+    <section class="panel"><div class="panel-head"><h2>Average race</h2></div>${lineChart({ labels: both.map(n => fmtDate(n.date)), series: [{ name: P(a).name, color: PALETTE[0], values: runner(a) }, { name: P(b).name, color: PALETTE[2], values: runner(b) }] })}<div class="chart-legend"><span><i style="background:${PALETTE[0]}"></i>${pl(a)}</span><span><i style="background:${PALETTE[2]}"></i>${pl(b)}</span></div></section>
   </div>` : `<section class="panel">${empty('These two haven’t met yet', 'The first matchup happens the first night they both bowl.')}</section>`}
   ${riv.length ? `<section class="panel"><div class="panel-head"><h2>Top rivalries</h2><span class="small muted">Closest records over the most games</span></div><div class="list">${riv.map(r => `<a class="list-row" href="#/rivalries?a=${r.a}&b=${r.b}" style="text-decoration:none"><div class="grow" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${who(r.a, { size: 26, link: false, nick: false })}<span class="faint">vs</span>${who(r.b, { size: 26, link: false, nick: false })}</div><span class="val">${r.h.w}–${r.h.l}${r.h.t ? '–' + r.h.t : ''}</span></a>`).join('')}</div></section>` : ''}`;
 };
@@ -1099,7 +1117,7 @@ function route() {
   const mine = $('#sheetMine'); if (mine) { mine.hidden = !!S.apiDown; mine.href = S.me ? `#/player/${encodeURIComponent(S.me.playerId)}` : '#/login'; mine.textContent = S.me ? 'My profile' : 'Sign in'; }
   const joinBar = $('#joinBar'); if (joinBar) joinBar.hidden = !!(S.me || S.apiDown || ['join', 'login', 'me'].includes(key));
   try { ACCT.after(key); } catch (e) { console.error(e); }
-  const navKey = { player: 'players', night: 'schedule', me: 'players', join: 'players', login: 'players' }[key] || key;
+  const navKey = { player: 'players', night: 'standings', me: 'players', join: 'players', login: 'players' }[key] || key;
   document.querySelectorAll('.nav a, .tabbar a, .sheet a').forEach(a => {
     const k = a.getAttribute('href').slice(2) || 'home';
     if (k === navKey) { a.setAttribute('aria-current', 'page'); if (a.closest('.nav') && innerWidth > 720) a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
@@ -1107,7 +1125,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'talk'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule & Results', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   try { renderBell(); renderAttendBar(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
@@ -1116,6 +1134,7 @@ let lastPath = null;
 window.addEventListener('hashchange', () => {
   const p = location.hash.split('?')[0]; route(); if (p !== lastPath) { window.scrollTo(0, 0); lastPath = p; }
   if (/[?&]teams\b/.test(location.hash)) requestAnimationFrame(() => document.getElementById('teams')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  if (/[?&]results\b/.test(location.hash)) requestAnimationFrame(() => document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   if (/[?&]settle\b/.test(location.hash)) requestAnimationFrame(() => document.getElementById('settle')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   if (/[?&]betcha\b/.test(location.hash)) requestAnimationFrame(() => { const el = document.getElementById('betcha'); if (!el) return; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.querySelector('input')?.focus({ preventScroll: true }); });
 });
@@ -1132,6 +1151,10 @@ document.addEventListener('click', e => {
   if (b.dataset.share) { b.disabled = true; shareNight(+b.dataset.share).finally(() => b.disabled = false); }
 });
 document.addEventListener('change', e => { const s = e.target.closest('[data-qsel]'); if (s) setQ({ [s.dataset.qsel]: s.value }); });
+// Tap any bowler name to open their profile (capture phase so it wins over the card or link around it)
+function openPlink(el) { location.hash = '#/player/' + encodeURIComponent(el.dataset.pid); }
+document.addEventListener('click', e => { const el = e.target.closest?.('.plink[data-pid]'); if (!el) return; e.preventDefault(); e.stopPropagation(); openPlink(el); }, true);
+document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const el = e.target.closest?.('.plink[data-pid]'); if (!el) return; e.preventDefault(); e.stopPropagation(); openPlink(el); }, true);
 const tip = $('#tip');
 document.addEventListener('pointerover', e => { const t = e.target.closest?.('[data-tip]'); if (!t) { tip.hidden = true; return; } tip.textContent = t.dataset.tip; tip.hidden = false; });
 document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY - 36) + 'px'; } });
@@ -1141,9 +1164,9 @@ document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.lef
  * ================================================================== */
 async function reload() { await load(); route(); }
 const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
-installGames({ S, E, pages, esc, avatar, who, empty, fmtDate, fmtTime, P, matches, route });
-installTalk({ S, pages, esc, avatar, who, empty, fmtDate, P, route });
-installAttend({ S, E, esc, avatar, who, fmtDate, fmtTime, P, route });
+installGames({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, fmtTime, P, matches, route });
+installTalk({ S, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
+installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *

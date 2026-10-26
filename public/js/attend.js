@@ -77,7 +77,7 @@ export function homeAttend() {
   return `<section class="panel at-panel"><div class="panel-head"><h2>${team ? 'Team night queue' : 'Who’s bowling'} · ${esc(day)}</h2><span class="small muted">${att.yes.length} in${att.no.length ? ` · ${att.no.length} out` : ''}</span></div>
     ${team ? `<p class="small muted">Confirm you’re in and you join the queue. At ${C.fmtTime(S.data.league.startTime || '19:15')} the site splits everyone in the queue into ${att.yes.length >= 12 ? '4' : att.yes.length >= 6 ? '3' : 'even'} teams, balanced on average, and posts them here.</p>` : ''}
     ${att.yes.length ? `<div class="at-faces">${faces(att.yes)}</div>` : '<p class="muted">Nobody’s confirmed yet. Be first.</p>'}
-    ${att.no.length ? `<p class="small faint">Out: ${att.no.map(x => esc(P(x.pid).name)).join(', ')}</p>` : ''}
+    ${att.no.length ? `<p class="small faint">Out: ${att.no.map(x => C.pl(x.pid)).join(', ')}</p>` : ''}
     ${S.me && att.mine == null ? `<div class="controls"><button type="button" class="btn primary" data-attend="yes">I’m in</button><button type="button" class="btn" data-attend="no">Can’t make it</button></div>` : ''}
   </section>`;
 }

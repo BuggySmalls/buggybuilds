@@ -92,7 +92,7 @@ export function renderBell() {
   bell.setAttribute('aria-label', n ? `Notifications, ${n} new` : 'Notifications');
 }
 function itemHTML(x, isNew) {
-  return `<a class="nt-item${isNew ? ' new' : ''}${x.personal ? ' you' : ''}" href="${hrefOf(x)}">${C.avatar(C.P(x.from), 34)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span><span class="nt-when">${ago(x.at)}</span></span></a>`;
+  return `<a class="nt-item${isNew ? ' new' : ''}${x.personal ? ' you' : ''}" href="${hrefOf(x)}">${C.avatar(C.P(x.from), 34)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.linkNames(x.text)}</span><span class="nt-when">${ago(x.at)}</span></span></a>`;
 }
 async function markSeen() {
   const t = Date.now();
@@ -120,7 +120,7 @@ function closePanel() {
 let toastTimer = null;
 function showToast(x) {
   const t = document.getElementById('toast'); if (!t) return;
-  t.innerHTML = `<a href="${hrefOf(x)}" class="toast-in${x.personal ? ' you' : ''}">${C.avatar(C.P(x.from), 38)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.esc(x.text)}</span></span></a><button type="button" class="toast-x" data-toast-x aria-label="Dismiss">×</button>`;
+  t.innerHTML = `<a href="${hrefOf(x)}" class="toast-in${x.personal ? ' you' : ''}">${C.avatar(C.P(x.from), 38)}<span class="nt-body"><span class="nt-kind">${label[x.kind]}${x.personal ? ' · for you' : ''}</span><span class="nt-text">${C.linkNames(x.text)}</span></span></a><button type="button" class="toast-x" data-toast-x aria-label="Dismiss">×</button>`;
   t.hidden = false; requestAnimationFrame(() => t.classList.add('show'));
   store.set(TOAST_KEY, x.id);
   clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 8000);
@@ -138,8 +138,8 @@ export function popNewest() {
  * ------------------------------------------------------------------ */
 function postRow(p) {
   const { esc, who, P } = C, mine = C.S.me?.playerId === p.from;
-  return `<div class="post${p.to && p.to === C.S.me?.playerId ? ' you' : ''}"><div class="post-head">${who(p.from, { size: 30, nick: false })}${p.to ? `<span class="post-at">→ ${esc(P(p.to).name)}</span>` : ''}<span class="post-when">${ago(p.at)}</span></div>
-    <p class="post-msg">${esc(p.msg)}</p>${mine ? `<button type="button" class="linkish small" data-unpost="${p.id}">delete</button>` : ''}</div>`;
+  return `<div class="post${p.to && p.to === C.S.me?.playerId ? ' you' : ''}"><div class="post-head">${who(p.from, { size: 30, nick: false })}${p.to ? `<span class="post-at">→ ${C.pl(p.to)}</span>` : ''}<span class="post-when">${ago(p.at)}</span></div>
+    <p class="post-msg">${C.linkNames(p.msg)}</p>${mine ? `<button type="button" class="linkish small" data-unpost="${p.id}">delete</button>` : ''}</div>`;
 }
 function bowlerOptions(placeholder) {
   const me = C.S.me?.playerId;

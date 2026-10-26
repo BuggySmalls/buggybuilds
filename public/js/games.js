@@ -115,10 +115,10 @@ export function calloutRow(c, { side = null } = {}) {
   const score = id => n?.byPid[id] ? `<span class="val">${n.byPid[id].series}</span>` : '';
   const tag = !res ? '<span class="co-tag live">On for ' + esc(C.fmtDate(c.date, { weekday: 'short' })) + '</span>'
     : res === 'NC' ? '<span class="co-tag">No contest</span>' : res === 'T' ? '<span class="co-tag">Push</span>'
-      : `<span class="co-tag ${side && ((res === 'W') === (side === c.from)) ? 'win' : side ? 'loss' : 'win'}">${esc(P(res === 'W' ? c.from : c.to).name)} wins</span>`;
+      : `<span class="co-tag ${side && ((res === 'W') === (side === c.from)) ? 'win' : side ? 'loss' : 'win'}">${C.pl(res === 'W' ? c.from : c.to)} wins</span>`;
   const mineDel = !res && C.S.me?.playerId === c.from && openDate() === c.date ? `<button type="button" class="linkish small" data-uncall="${c.id}">take it back</button>` : '';
   return `<div class="co-row"><div class="co-vs">${who(c.from, { size: 28 })}${score(c.from)}<span class="co-x">called out</span>${who(c.to, { size: 28 })}${score(c.to)}</div>
-    ${c.msg ? `<p class="co-msg">“${esc(c.msg)}”</p>` : ''}<div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(c.date, { month: 'short', day: 'numeric' }))}</span>${mineDel}</div></div>`;
+    ${c.msg ? `<p class="co-msg">“${C.linkNames(c.msg)}”</p>` : ''}<div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(c.date, { month: 'short', day: 'numeric' }))}</span>${mineDel}</div></div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -137,7 +137,7 @@ export function betRow(b, { side = null } = {}) {
   else if (res === 'T') tag = '<span class="co-tag">Push</span>';
   else {
     const winner = res === 'W' ? b.from : b.to, loser = winner === b.from ? b.to : b.from, amt = C.E.betAmount(b);
-    const st = settleState(b), wn = esc(P(winner).name), ln = esc(P(loser).name);
+    const st = settleState(b), wn = C.pl(winner), ln = C.pl(loser);
     const status = st === 'settled' ? (amt ? `Paid · $${amt} added to the purse` : 'Paid up')
       : st === 'got' ? `${wn} got paid · waiting on ${ln} to confirm`
       : st === 'paid' ? `${ln} says they paid · waiting on ${wn} to confirm`
@@ -150,7 +150,7 @@ export function betRow(b, { side = null } = {}) {
     : r && me === r.loser && !b.paidAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|paid">I paid</button>`
     : r && me === r.winner && !b.gotAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|got">Got paid</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
-    <p class="co-msg bet-stakes"><span>On the line:</span> ${esc(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
+    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
 }
 export function homeBets() {
   const g = C.S.games; if (!g?.bets) return '';
@@ -182,7 +182,7 @@ export function profileBets(pid) {
   if (me && me !== pid && date && !already) form = `<form class="co-form" data-bet="${esc(pid)}">
       <input class="txt" name="stakes" maxlength="80" required placeholder="What’s on the line? (loser pays $5, loser buys a round)">
       <button class="btn primary" type="submit">Betcha ${esc(P(pid).name)} for ${esc(C.fmtDate(date, { weekday: 'short' }))}</button>
-      <p class="small faint">${esc(P(pid).name)} has to take the bet before first ball. Higher series that night wins. Put a dollar amount in it and the winner gets that added to their purse winnings.</p></form>`;
+      <p class="small faint">${C.pl(pid)} has to take the bet before first ball. Higher series that night wins. Put a dollar amount in it and the winner gets that added to their purse winnings.</p></form>`;
   else if (!me && me !== pid && date && !S.apiDown) form = `<p class="small muted"><a href="#/login">Sign in</a> to bet ${esc(P(pid).name)}.</p>`;
   else if (me && me !== pid && !date) form = `<p class="small muted">Betchas open the week of the next league night.</p>`;
   if (!list.length && !form) return '';
@@ -239,7 +239,7 @@ function pickemPage() {
     return `<button type="button" class="pick${on ? ' on' : ''}" data-pick="${esc(k)}|${esc(v)}" aria-pressed="${on}" ${canPick ? '' : 'disabled'}>${av ? avatar(P(v), 26) : ''}<span>${esc(label)}</span>${n ? `<em>${n}</em>` : ''}</button>`;
   };
   const q = (title, pts, k, body) => `<div class="pq"><div class="pq-head"><b>${title}</b><span class="pq-pts">${pts} pt${pts > 1 ? 's' : ''}</span></div><div class="pq-opts">${body}</div>${locked && night.byPlayer ? whoPicked(k) : ''}</div>`;
-  const whoPicked = k => { const by = Object.entries(night.byPlayer || {}).filter(([, p]) => p[k]); return by.length ? `<p class="small muted pq-who">${by.map(([pid, p]) => `${esc(P(pid).name)} → ${esc(k === 'h200' ? p[k] : P(p[k]).name)}`).join(' · ')}</p>` : ''; };
+  const whoPicked = k => { const by = Object.entries(night.byPlayer || {}).filter(([, p]) => p[k]); return by.length ? `<p class="small muted pq-who">${by.map(([pid, p]) => `${C.pl(pid)} → ${k === 'h200' ? esc(p[k]) : C.pl(p[k])}`).join(' · ')}</p>` : ''; };
 
   const status = !date ? 'No league night coming up.' : locked ? `Picks are locked. Bowling ${nx.live ? 'now' : 'tonight'}. Everyone’s picks are below.`
     : `Picks lock at first ball, ${fmtTime(L.startTime)} on ${fmtDate(date, { weekday: 'long' })}. That’s in ${untilText(lockMs(date))}.`;
@@ -253,7 +253,7 @@ function pickemPage() {
     <p class="pk-status${locked ? ' locked' : ''}">${esc(status)}</p>
     ${!S.me && !locked ? `<div class="join-cta"><div><b>Want in?</b><span>Sign in to make your picks. Numbers show how many people picked each one.</span></div><a class="btn primary" href="#/login">Sign in</a></div>` : ''}
     ${bowlers.length < 2 ? empty('Need more bowlers', 'Picks open once at least two people have signed up.') : `
-    ${ms.map(m => q(`${esc(P(m.a).name)} vs ${esc(P(m.b).name)}${m.motw ? ' · Match of the week' : ''}`, PICK_POINTS.match, `m:${m.a}~${m.b}`, chip(`m:${m.a}~${m.b}`, m.a, P(m.a).name, true) + chip(`m:${m.a}~${m.b}`, m.b, P(m.b).name, true))).join('')}
+    ${ms.map(m => q(`${C.pl(m.a)} vs ${C.pl(m.b)}${m.motw ? ' · Match of the week' : ''}`, PICK_POINTS.match, `m:${m.a}~${m.b}`, chip(`m:${m.a}~${m.b}`, m.a, P(m.a).name, true) + chip(`m:${m.a}~${m.b}`, m.b, P(m.b).name, true))).join('')}
     ${q('Who bowls the top series?', PICK_POINTS.top, 'top', bowlers.map(p => chip('top', p.id, p.name, true)).join(''))}
     ${q('Who bowls the lowest series?', PICK_POINTS.low, 'low', bowlers.map(p => chip('low', p.id, p.name, true)).join(''))}
     ${q('Does anyone bowl a 200 game?', PICK_POINTS.h200, 'h200', chip('h200', 'yes', 'Yes') + chip('h200', 'no', 'No'))}
@@ -269,7 +269,7 @@ function pickemPage() {
 
   ${pastDates.map(d => { const n = nightOf(d), ans = answersFor(n), by = S.games.picks[d].byPlayer; return `
   <section class="panel"><div class="panel-head"><h2>${esc(fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' }))}</h2><a href="#/night/${d}">Results</a></div>
-    <p class="small muted">Top series: <b>${ans.top.map(id => esc(P(id).name)).join(' & ')}</b> · Lowest: <b>${ans.low.map(id => esc(P(id).name)).join(' & ')}</b> · 200 game: <b>${ans.h200}</b></p>
+    <p class="small muted">Top series: <b>${ans.top.map(id => C.pl(id)).join(' &amp; ')}</b> · Lowest: <b>${ans.low.map(id => C.pl(id)).join(' &amp; ')}</b> · 200 game: <b>${ans.h200}</b></p>
     <div class="list">${Object.entries(by).map(([pid, picks]) => { let pts = 0; const marks = Object.entries(picks).map(([k, v]) => { const r = gradePick(k, v, n, ans); pts += r.pts; return `<span class="pk-mark ${r.ok === true ? 'ok' : r.ok === false ? 'no' : ''}" title="${esc(k)}">${r.ok === true ? '✓' : r.ok === false ? '✗' : '–'}</span>`; }).join(''); return { pid, pts, marks }; }).sort((a, b) => b.pts - a.pts).map(x => `<div class="list-row"><div class="grow">${C.who(x.pid, { size: 26 })}</div><span>${x.marks}</span><span class="val">${x.pts}</span></div>`).join('')}</div>
   </section>`; }).join('')}`;
 }

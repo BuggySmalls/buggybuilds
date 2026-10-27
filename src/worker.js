@@ -114,6 +114,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS seen (ukey TEXT PRIMARY KEY, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS attendance (date TEXT NOT NULL, ukey TEXT NOT NULL, going INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey));
       CREATE TABLE IF NOT EXISTS teamdraws (date TEXT PRIMARY KEY, teams TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS poll_votes (poll TEXT NOT NULL, ukey TEXT NOT NULL, qid TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (poll, ukey, qid, v));
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
@@ -349,6 +350,41 @@ export class Accounts extends DurableObject {
         this.sql.exec('DELETE FROM posts WHERE id = ?', pst.id);
         return json(this.games(await this.league(url.origin), me));
       }
+      // League poll (Nick, Oct 27 2026): questions live in league.json `poll`; one set of answers per
+      // account, changeable while the poll is open. Results are live for everyone.
+      if (method === 'POST' && path === '/poll') {
+        const L = await this.league(url.origin);
+        const P = L.poll;
+        const { poll, answers } = await request.json();
+        if (!P || P.id !== poll) return fail(404, 'That poll is gone.');
+        if (P.open === false) return fail(400, 'This poll is closed.');
+        if (!answers || typeof answers !== 'object') return fail(400, 'Answer at least one question.');
+        const rows = [];
+        for (const q of P.questions || []) {
+          const a = answers[q.id];
+          if (a == null || a === '' || (Array.isArray(a) && !a.length)) continue;
+          const ok = new Set((q.options || []).map(o => o.v));
+          if (q.type === 'text') { const t = clean(a, 300); if (t) rows.push([q.id, t]); }
+          else if (q.type === 'many') {
+            if (!Array.isArray(a) || a.some(v => !ok.has(v))) return fail(400, `“${q.q}” has an answer that isn’t a choice.`);
+            [...new Set(a)].forEach(v => rows.push([q.id, v]));
+          } else {
+            if (!ok.has(a)) return fail(400, `“${q.q}” has an answer that isn’t a choice.`);
+            rows.push([q.id, a]);
+          }
+        }
+        if (!rows.length) return fail(400, 'Answer at least one question.');
+        const first = !this.sql.exec('SELECT 1 FROM poll_votes WHERE poll = ? AND ukey = ? LIMIT 1', P.id, me.ukey).toArray().length;
+        this.sql.exec('DELETE FROM poll_votes WHERE poll = ? AND ukey = ?', P.id, me.ukey);
+        const t = now();
+        for (const [qid, v] of rows) this.sql.exec('INSERT OR IGNORE INTO poll_votes (poll, ukey, qid, v, at) VALUES (?,?,?,?,?)', P.id, me.ukey, qid, v, t);
+        if (first) {
+          const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
+          const n = this.sql.exec('SELECT COUNT(DISTINCT ukey) AS n FROM poll_votes WHERE poll = ?', P.id).one().n;
+          this.ctx.waitUntil(this.push(L, `${name} took the league poll`, `${n} ${n === 1 ? 'bowler has' : 'bowlers have'} voted so far.`, 'ballot_box'));
+        }
+        return json(this.games(L, me));
+      }
       if (method === 'POST' && path === '/seen') {
         this.sql.exec('INSERT INTO seen (ukey, at) VALUES (?, ?) ON CONFLICT(ukey) DO UPDATE SET at = excluded.at', me.ukey, now());
         return json({ ok: true, seenAt: now() });
@@ -522,7 +558,24 @@ export class Accounts extends DurableObject {
       if (me && r.ukey === me.ukey) a.mine = !!r.going;
     }
     const teams = Object.fromEntries(this.sql.exec('SELECT date, teams, at FROM teamdraws').toArray().map(r => [r.date, { teams: JSON.parse(r.teams), at: r.at }]));
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams };
+    let poll = null;
+    if (L.poll?.id) {
+      const types = Object.fromEntries((L.poll.questions || []).map(q => [q.id, q.type]));
+      poll = { id: L.poll.id, voters: 0, counts: {}, texts: {}, mine: null };
+      const who = new Set();
+      for (const r of this.sql.exec('SELECT ukey, qid, v, at FROM poll_votes WHERE poll = ? ORDER BY at DESC', L.poll.id).toArray()) {
+        if (!live(r.ukey) || !types[r.qid]) continue;
+        who.add(r.ukey);
+        if (types[r.qid] === 'text') (poll.texts[r.qid] ??= []).push({ msg: r.v, at: r.at });
+        else (poll.counts[r.qid] ??= {})[r.v] = ((poll.counts[r.qid] || {})[r.v] || 0) + 1;
+        if (me && r.ukey === me.ukey) {
+          const m = poll.mine ??= {};
+          if (types[r.qid] === 'many') (m[r.qid] ??= []).push(r.v); else m[r.qid] = r.v;
+        }
+      }
+      poll.voters = who.size;
+    }
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

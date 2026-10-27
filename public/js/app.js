@@ -6,6 +6,7 @@ import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts,
 import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
 import { installAttend, renderAttendBar, homeAttend, nightTeams } from './attend.js';
+import { installPoll, homePoll } from './poll.js';
 
 /* ================================================================== *
  * Data loading
@@ -276,6 +277,7 @@ pages.home = () => {
     <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
     <span class="confetti" aria-hidden="true">🎉</span>
   </section>`).join('')}
+  ${homePoll()}
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
@@ -1125,7 +1127,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'talk'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   try { renderBell(); renderAttendBar(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
@@ -1167,6 +1169,7 @@ const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
 installGames({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, fmtTime, P, matches, route });
 installTalk({ S, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
+installPoll({ S, pages, esc, empty, linkNames, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *

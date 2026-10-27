@@ -53,6 +53,10 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - When logging a team night, copy the teams into the event as `"teams": [{"name", "pids"}]` (from `/api/games` → `teams[date]`; use the `Fetch roster`-style workflow or ask Nick). Walk-ins / fixes: edit that list, or before logging set `teamNights[date].override`. Validator checks every pid and no one on two teams.
 - Team scoring (`E.teamResults`): each game a team scores its bowlers' handicap games (scratch + that night's `hdcp`). A team short of the biggest team's count that game gets a blind per empty spot = its own average handicap game that game. Game points N..1 by place (ties split), total series double. Most points wins, tiebreak total pins. Individual night/points unchanged.
 
+## League poll (Nick, Oct 27 2026)
+- Questions live in `league.poll {id, open, title, intro, sections, questions[{id, section, type: one|many|text, q, options[{v, label, desc?}]}]}`. The home page shows a poll box where the Fred & Gabby congrats banner was (Nick swapped it out; that announcement stays in the list, just without `banner`), and `#/poll` (nav + More sheet) has the form with live results under each question.
+- Signed-in bowlers vote once each and can change answers while `open` isn't `false`; results are live for everyone, free-text answers show without names. Votes are stored by the account server (`poll_votes` table, `POST /api/poll`), keyed by poll id: a new `id` starts a fresh poll. Nick gets an ntfy push when someone votes for the first time. Close it with `"open": false`.
+
 ## Other admin tasks (all in league.json)
 - Roster: `players[]` → `{id, name, nickname, hand, joined, active, photo?}`. Bench with `"active": false` (history stays). Profile details now come from accounts (above).
 - League settings: `league.name`, `seasons[]`, `skipDates[]`, `startTime`, `socialTime`, `handicap`, `championship.points`.

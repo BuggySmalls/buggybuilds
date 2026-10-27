@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: League night (YYYY-MM-DD)
+        description: League night (YYYY-MM-DD), or "test" for the commissioner's test uploads
         required: true
 permissions:
   contents: write
@@ -23,14 +23,13 @@ jobs:
           git fetch origin scoresheets --depth=1 && git checkout -B scoresheets FETCH_HEAD || git checkout --orphan scoresheets
           git rm -rq --cached . >/dev/null 2>&1 || true
           find . -mindepth 1 -maxdepth 1 ! -name .git ! -name scoresheets -exec rm -rf {} +
-          mkdir -p "scoresheets/$DATE"
-          curl -sS -A "$UA" https://cerealbowlers.org/api/games \
-            | jq --arg d "$DATE" '[.sheets[] | select(.date == $d and .status == "approved")]' > "scoresheets/$DATE/sheets.json"
+          rm -rf "scoresheets/$DATE"; mkdir -p "scoresheets/$DATE"
+          curl -sS -A "$UA" "https://cerealbowlers.org/api/sheets?date=$DATE" > "scoresheets/$DATE/sheets.json"
           for row in $(jq -r '.[] | "\(.id):\(.lane):\(.game)"' "scoresheets/$DATE/sheets.json"); do
             IFS=: read -r id lane game <<< "$row"
-            curl -sS -A "$UA" -o "scoresheets/$DATE/lane${lane}-game${game}.jpg" "https://cerealbowlers.org/api/sheet/${id}.jpg"
+            curl -sS -A "$UA" -o "scoresheets/$DATE/lane${lane}-game${game}-id${id}.jpg" "https://cerealbowlers.org/api/sheet/${id}.jpg"
           done
-          echo "::notice title=scoresheets::$(jq -c 'map({lane,game,pids})' "scoresheets/$DATE/sheets.json")"
+          echo "::notice title=scoresheets::$(jq -c 'map({id,lane,game,status,pids})' "scoresheets/$DATE/sheets.json")"
           git config user.name "cerealbowlers-bot"; git config user.email "bot@users.noreply.github.com"
           git add scoresheets
           git commit -qm "Scoresheets for $DATE" || echo "nothing new"

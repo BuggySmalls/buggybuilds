@@ -121,6 +121,7 @@ export class Accounts extends DurableObject {
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
     if (!this.sql.exec('PRAGMA table_info(bets)').toArray().some(c => c.name === 'amount')) this.sql.exec('ALTER TABLE bets ADD COLUMN amount INTEGER NOT NULL DEFAULT 0');
+    if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'test')) this.sql.exec('ALTER TABLE sheets ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
     // Settling up (Nick, Oct 25 2026): the loser confirms they paid, the winner confirms they got it.
     // Dollars only reach the purse once both have confirmed.
     const cols = this.sql.exec('PRAGMA table_info(bets)').toArray().map(c => c.name);
@@ -197,16 +198,25 @@ export class Accounts extends DurableObject {
         return json(this.all().filter(a => !hidden.has(a.ukey)).map(a => ({ username: a.username, playerId: a.player_id, name: JSON.parse(a.profile).name || a.username, joined: nyDate(a.created_at) })));
       }
       if (method === 'GET' && path.startsWith('/photo/')) return this.photo(decodeURIComponent(path.slice(7)));
-      // Scoresheet photos: approved ones are public; pending/rejected only for the uploader and the commissioner.
+      // Scoresheet photos: approved ones (and test uploads, so the fetch workflow can read them) are public;
+      // pending/duplicate/rejected only for the uploader and the commissioner.
       if (method === 'GET' && /^\/sheet\/\d+\.jpg$/.test(path)) {
-        const r = this.sql.exec('SELECT img, status, ukey FROM sheets WHERE id = ?', +path.match(/\d+/)[0]).toArray()[0];
+        const r = this.sql.exec('SELECT img, status, ukey, test FROM sheets WHERE id = ?', +path.match(/\d+/)[0]).toArray()[0];
         if (!r) return new Response('Not found', { status: 404 });
-        if (r.status !== 'approved') {
+        if (r.status !== 'approved' && !r.test) {
           const viewer = await this.me(request), L = await this.league(url.origin);
           if (!viewer || (viewer.ukey !== r.ukey && viewer.player_id !== L.league?.commissioner)) return new Response('Not found', { status: 404 });
           return new Response(r.img, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, no-store' } });
         }
-        return new Response(r.img, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400' } });
+        return new Response(r.img, { headers: { 'content-type': 'image/jpeg', 'cache-control': r.test ? 'no-store' : 'public, max-age=86400' } });
+      }
+      // For the Fetch scoresheets workflow: approved sheets for a night, or every test upload (?date=test)
+      if (method === 'GET' && path === '/sheets') {
+        const d = url.searchParams.get('date') || '';
+        const rows = d === 'test'
+          ? this.sql.exec('SELECT id, date, lane, game, pids, status FROM sheets WHERE test = 1 ORDER BY lane, game, id').toArray()
+          : this.sql.exec("SELECT id, date, lane, game, pids, status FROM sheets WHERE test = 0 AND status = 'approved' AND date = ? ORDER BY lane, game", d).toArray();
+        return json(rows.map(r => ({ ...r, pids: JSON.parse(r.pids) })));
       }
       if (method === 'GET' && path === '/me') return json(this.publicMe(await this.me(request)));
       if (method === 'GET' && path === '/method') {
@@ -363,51 +373,66 @@ export class Accounts extends DurableObject {
         this.sql.exec('DELETE FROM posts WHERE id = ?', pst.id);
         return json(this.games(await this.league(url.origin), me));
       }
-      // Scoresheet photos (Nick, Oct 27 2026): a bowler snaps the lane screen, tags night + lane + game
-      // (+ optionally who's on the lane). Nick approves or rejects; approved photos show on the site and
-      // Claude logs the numbers from them. One approved photo per night/lane/game.
+      // Scoresheet photos (Nick, Oct 27 2026): a bowler snaps the lane screen, tags night + lane (typed) + game
+      // (+ optionally who's on the lane). Nick approves or rejects. Nothing is ever replaced automatically:
+      // two photos for the same night/lane/game land in Nick's duplicate queue so he can compare them.
+      // `test` uploads (commissioner only) never show publicly and can be cleared in one go.
       if (method === 'POST' && path === '/sheet') {
         const L = await this.league(url.origin);
         const lanes = L.scoresheets?.lanes || 24, q = url.searchParams;
+        const boss = me.player_id === L.league?.commissioner, test = boss && q.get('test') === '1';
         const date = q.get('date') || '', lane = +q.get('lane'), game = +q.get('game');
         const today = nyDate(now()), oldest = nyDate(now() - 14 * 864e5);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today || date < oldest) return fail(400, 'Pick tonight or a recent league night.');
-        if (!(lane >= 1 && lane <= lanes)) return fail(400, 'Pick a lane.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (!test && (date > today || date < oldest))) return fail(400, 'Pick tonight or a recent league night.');
+        if (!Number.isInteger(lane) || lane < 1 || lane > lanes) return fail(400, `Type a lane number from 1 to ${lanes}.`);
         if (![1, 2, 3].includes(game)) return fail(400, 'Pick game 1, 2 or 3.');
         const roster = new Set(this.merged(L).map(p => p.id));
         const pids = [...new Set((q.get('pids') || '').split(',').filter(Boolean))].filter(id => roster.has(id)).slice(0, 8);
         const buf = new Uint8Array(await request.arrayBuffer());
         if (!buf.length || buf.length > SHEET_MAX) return fail(413, 'That photo is too big.');
         if (!(buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)) return fail(415, 'Photos have to be JPEGs.');
-        const boss = me.player_id === L.league?.commissioner;
-        if (!boss && this.sql.exec("SELECT 1 FROM sheets WHERE date = ? AND lane = ? AND game = ? AND status = 'approved'", date, lane, game).toArray().length)
-          return fail(409, `Lane ${lane} game ${game} is already approved. Ask Nick if it’s wrong.`);
         const recent = this.sql.exec('SELECT COUNT(*) AS n FROM sheets WHERE ukey = ? AND created_at > ?', me.ukey, now() - 36e5).one().n;
-        if (recent >= 20) return fail(429, 'Easy there. Try again in a bit.');
-        // a newer photo replaces any photo still waiting for the same slot
-        this.sql.exec("DELETE FROM sheets WHERE date = ? AND lane = ? AND game = ? AND status = 'pending'", date, lane, game);
-        this.sql.exec('INSERT INTO sheets (date, lane, game, pids, ukey, img, status, created_at) VALUES (?,?,?,?,?,?,?,?)',
-          date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now());
+        if (recent >= 30) return fail(429, 'Easy there. Try again in a bit.');
+        this.sql.exec('INSERT INTO sheets (date, lane, game, pids, ukey, img, status, created_at, test) VALUES (?,?,?,?,?,?,?,?,?)',
+          date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now(), test ? 1 : 0);
+        const dup = this.sql.exec("SELECT COUNT(*) AS n FROM sheets WHERE date = ? AND lane = ? AND game = ? AND test = ? AND status IN ('pending','approved')", date, lane, game, test ? 1 : 0).one().n > 1;
         const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
-        if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to approve: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to approve it.`, 'camera'));
+        if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to ${dup ? 'check (possible duplicate)' : 'approve'}: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to ${dup ? 'compare them' : 'approve it'}.`, 'camera'));
         return json(this.games(L, me), 201);
       }
-      if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject)$/.test(path)) {
+      if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject|duplicate|restore|move)$/.test(path)) {
         const L = await this.league(url.origin);
         if (me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can do that.');
         const [, id, act] = path.match(/^\/sheet\/(\d+)\/(\w+)$/);
-        const sh = this.sql.exec('SELECT id, date, lane, game FROM sheets WHERE id = ?', +id).toArray()[0];
+        const sh = this.sql.exec('SELECT id, date, lane, game, test FROM sheets WHERE id = ?', +id).toArray()[0];
         if (!sh) return fail(404, 'That photo is gone.');
+        const set = st => this.sql.exec('UPDATE sheets SET status = ?, decided_at = ? WHERE id = ?', st, st === 'pending' ? null : now(), sh.id);
         if (act === 'approve') {
-          this.sql.exec("UPDATE sheets SET status = 'rejected', decided_at = ? WHERE date = ? AND lane = ? AND game = ? AND id != ? AND status != 'rejected'", now(), sh.date, sh.lane, sh.game, sh.id);
-          this.sql.exec("UPDATE sheets SET status = 'approved', decided_at = ? WHERE id = ?", now(), sh.id);
-        } else this.sql.exec("UPDATE sheets SET status = 'rejected', decided_at = ? WHERE id = ?", now(), sh.id);
+          // the slot keeps one approved photo; any other approved one there becomes a duplicate (kept, not deleted)
+          this.sql.exec("UPDATE sheets SET status = 'duplicate', decided_at = ? WHERE date = ? AND lane = ? AND game = ? AND test = ? AND id != ? AND status = 'approved'", now(), sh.date, sh.lane, sh.game, sh.test, sh.id);
+          set('approved');
+        } else if (act === 'reject') set('rejected');
+        else if (act === 'duplicate') set('duplicate');
+        else if (act === 'restore') set('pending');
+        else {
+          // Not a duplicate after all: fix the lane/game the uploader typed
+          const { lane, game } = await request.json().catch(() => ({}));
+          const lanes = L.scoresheets?.lanes || 24;
+          if (!Number.isInteger(+lane) || +lane < 1 || +lane > lanes || ![1, 2, 3].includes(+game)) return fail(400, `Lane 1-${lanes}, game 1-3.`);
+          this.sql.exec("UPDATE sheets SET lane = ?, game = ?, status = 'pending', decided_at = NULL WHERE id = ?", +lane, +game, sh.id);
+        }
+        return json(this.games(L, me));
+      }
+      if (method === 'DELETE' && path === '/sheets/test') {
+        const L = await this.league(url.origin);
+        if (me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can do that.');
+        this.sql.exec('DELETE FROM sheets WHERE test = 1');
         return json(this.games(L, me));
       }
       if (method === 'DELETE' && path.startsWith('/sheet/')) {
         const L = await this.league(url.origin);
-        const sh = this.sql.exec('SELECT id, ukey, status FROM sheets WHERE id = ?', +path.slice(7)).toArray()[0];
-        if (!sh || !((sh.ukey === me.ukey && sh.status === 'pending') || me.player_id === L.league?.commissioner)) return fail(404, 'Not yours to delete.');
+        const sh = this.sql.exec('SELECT id, ukey, status, test FROM sheets WHERE id = ?', +path.slice(7)).toArray()[0];
+        if (!sh || !((sh.ukey === me.ukey && sh.status === 'pending') || (sh.test && me.player_id === L.league?.commissioner))) return fail(404, 'Not yours to delete.');
         this.sql.exec('DELETE FROM sheets WHERE id = ?', sh.id);
         return json(this.games(L, me));
       }
@@ -637,10 +662,10 @@ export class Accounts extends DurableObject {
       poll.voters = who.size;
     }
     const boss = me && me.player_id === L.league?.commissioner;
-    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, ukey, status, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 300').toArray()
-      .filter(x => x.status === 'approved' || (me && (boss || x.ukey === me.ukey)))
-      .filter(x => x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
-      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), from: pidOf[x.ukey] || null, status: x.status, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
+    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, ukey, status, test, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 400').toArray()
+      .filter(x => x.test ? boss : (x.status === 'approved' || (me && (boss || x.ukey === me.ukey))))
+      .filter(x => boss || x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
+      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
     return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets };
   }
 

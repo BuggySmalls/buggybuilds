@@ -23,7 +23,7 @@ export function feedItems() {
   // Betchas only notify the two bowlers in them (Nick, Oct 25 2026); everyone else sees them on the Talk tab.
   for (const b of g.bets || []) {
     if (!me || (b.from !== me && b.to !== me)) continue;
-    if (b.to === me) out.push({ id: 'b' + b.id, at: b.at, from: b.from, kind: 'bet', personal: true,
+    if (b.to === me) out.push({ id: 'b' + b.id, at: b.at, from: b.from, kind: 'bet', personal: true, pending: b.status === 'open' && openDate() === b.date,
       text: `${N(b.from)} wants to betcha: ${b.stakes}. Take it?` });
     if (b.answeredAt && b.from === me) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: true,
       text: `${N(b.to)} ${b.status === 'accepted' ? 'took' : 'chickened out of'} your betcha: ${b.stakes}` });
@@ -66,11 +66,27 @@ export function feedItems() {
     out.push({ id: 'tm' + date, at: d.at, from: mates[0] || me, kind: 'teams', personal: true, link: '#/?teams', mine: true,
       text: `Teams are set for ${day(date)}. You’re on ${t.name}${mates.length ? ' with ' + mates.map(N).join(', ') : ''}.` });
   }
+  // Needs your input (Nick, Oct 27 2026): anything waiting on you stays lit in the bell until you act on it.
+  if (me) {
+    const boss = C.S.data.league.commissioner || me;
+    const nx = openDate();
+    if (nx && (g.attendance?.[nx]?.mine ?? null) === null) {
+      const team = C.E.isTeamNight(C.S.data, nx);
+      const q = g.attendance?.[nx]?.yes?.length || 0;
+      out.push({ id: 'ask-at' + nx, at: Date.now(), from: boss, kind: team ? 'queue' : 'attend', personal: true, pending: true, mine: true, link: '#/',
+        text: team ? `Team night queue is open for ${day(nx)}. Tap Yes to get on a team${q ? ` (${q} in so far)` : ''}.` : `Are you bowling ${day(nx)}? Confirm your attendance.` });
+    }
+    const pl = C.S.data.poll;
+    if (pl?.id && pl.open !== false && g.poll?.id === pl.id && !g.poll.mine) {
+      out.push({ id: 'ask-poll' + pl.id, at: Date.parse((pl.date || '2026-10-27') + 'T12:00:00Z'), from: boss, kind: 'poll', personal: true, pending: true, mine: true, link: '#/poll',
+        text: `New league poll: ${pl.title || 'League Poll'}. Vote on buy-ins, team nights and trophies.` });
+    }
+  }
   return out.filter(x => x.mine || !(me && x.from === me)).sort((a, b) => b.at - a.at);
 }
 const seenAt = () => Math.max(C.S.games?.seenAt || 0, +store.get(SEEN_KEY) || 0);
 const unread = () => { const since = seenAt(); return feedItems().filter(x => x.pending || x.at > since).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.at - a.at); };
-const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night' };
+const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll' };
 const hrefOf = x => x.link || (x.kind === 'settle' ? '#/talk?settle' : '#/talk');
 
 function ago(ms) {

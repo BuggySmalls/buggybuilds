@@ -1167,7 +1167,7 @@ document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.lef
 async function reload() { await load(); route(); }
 const ACCT = installAccount({ S, pages, esc, avatar, empty, reload, colorOf });
 installGames({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, fmtTime, P, matches, route });
-installTalk({ S, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
+installTalk({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 installPoll({ S, pages, esc, empty, linkNames, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });

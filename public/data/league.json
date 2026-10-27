@@ -379,6 +379,11 @@
             "label": "No"
           },
           {
+            "v": "optional",
+            "label": "Optional buy-in",
+            "desc": "Only bowlers who chip in can win from the pot."
+          },
+          {
             "v": "team",
             "label": "Only for team nights"
           }

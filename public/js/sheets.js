@@ -86,7 +86,7 @@ function formHTML({ test, nights, date, roster }) {
       <div class="sh-chips">${roster.map(p => `<label class="sh-chip"><input type="checkbox" name="pids" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div></fieldset>
     <label class="sh-file"><input type="file" name="photo" accept="image/*" required><span>📷 Take or choose a photo</span></label>
     <img class="sh-preview" alt="" hidden>
-    <div class="sh-actions"><button type="submit" class="btn primary">${test ? 'Upload test photo' : 'Send to Nick'}</button><span class="small muted" data-sheetmsg></span></div>
+    <div class="sh-actions"><button type="submit" class="btn primary">${test ? 'Upload test photo' : 'Upload'}</button><span class="small muted" data-sheetmsg></span></div>
   </form>`;
 }
 
@@ -154,7 +154,13 @@ async function send(form) {
     C.S.games = await api('/sheet?' + qs, { method: 'POST', body: blob, raw: true });
     const y = scrollY; C.route(); scrollTo(0, y);
     const m = document.querySelector(`[data-sheetform="${test ? 'test' : 'real'}"] [data-sheetmsg]`);
-    if (m) m.textContent = test ? 'Test photo uploaded. It’s in your test list below.' : boss() ? 'Uploaded. Approve it above.' : 'Sent! Nick will check it.';
+    if (test) { if (m) m.textContent = 'Test photo uploaded. It’s in your test list below.'; }
+    else {
+      const box = document.createElement('div');
+      box.className = 'sh-thanks'; box.setAttribute('role', 'status');
+      box.textContent = 'Thank you, your scores are being confirmed.';
+      document.querySelector('[data-sheetform="real"]')?.before(box);
+    }
   } catch (e) { btn.disabled = false; msg.textContent = e.message; }
 }
 

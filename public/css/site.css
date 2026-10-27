@@ -1175,3 +1175,4 @@ span.nh-arrow{display:none}
 .sh-marked{margin-top:12px}.sh-marked summary{cursor:pointer}
 .sh-test{border:2px dashed var(--cyan)}
 .sh-test .sh-form{margin-top:10px}
+.sh-thanks{margin:10px 0;padding:14px 16px;border-radius:12px;border:2px solid var(--gold);background:rgba(255,209,102,.12);font:700 16px var(--body);color:var(--text);text-align:center}

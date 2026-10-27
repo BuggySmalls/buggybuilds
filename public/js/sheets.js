@@ -108,13 +108,8 @@ function page() {
 
   let bossHTML = '', testHTML = '';
   if (boss()) {
-    const r = review(sheets()), t = review(tests());
+    const r = review(sheets());
     bossHTML = `${r.html.trim() ? `<section class="panel sh-queue"><div class="panel-head"><h2>Needs your approval</h2><span class="small muted">${r.count} waiting</span></div>${r.html}</section>` : ''}`;
-    testHTML = `<section class="panel sh-test"><div class="panel-head"><h2>Test area</h2>${tests().length ? '<button type="button" class="btn small" data-sheet-clear>Clear all test uploads</button>' : ''}</div>
-      <p class="small muted">Only you see this. Test photos never show on the site and don’t count. Approve, mark duplicates, fix lanes — try the whole thing. When you’re done, tell Claude to pull your test sheets.</p>
-      ${formHTML({ test: true, nights: nightChoices(true), date: nightChoices(true)[0], roster })}
-      ${tests().length ? `<h3 class="sh-sub">Your test uploads (${tests().length})</h3>${t.html}${tests().filter(s => s.status === 'approved').length ? `<div class="sh-list">${tests().filter(s => s.status === 'approved').map(s => card(s)).join('')}</div>` : ''}` : ''}
-    </section>`;
   }
   return `<div><h1 class="page-title">Upload scores</h1><p class="page-intro">Send a photo of the lane screen. Once Nick approves it, it shows up on the site and the scores get logged.</p></div>
     ${bossHTML}

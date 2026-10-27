@@ -122,6 +122,8 @@ export class Accounts extends DurableObject {
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
     if (!this.sql.exec('PRAGMA table_info(bets)').toArray().some(c => c.name === 'amount')) this.sql.exec('ALTER TABLE bets ADD COLUMN amount INTEGER NOT NULL DEFAULT 0');
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'test')) this.sql.exec('ALTER TABLE sheets ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
+    // Test run over (Nick, Oct 27 2026): wipe any test uploads left behind.
+    this.sql.exec('DELETE FROM sheets WHERE test = 1');
     // Settling up (Nick, Oct 25 2026): the loser confirms they paid, the winner confirms they got it.
     // Dollars only reach the purse once both have confirmed.
     const cols = this.sql.exec('PRAGMA table_info(bets)').toArray().map(c => c.name);
@@ -380,7 +382,7 @@ export class Accounts extends DurableObject {
       if (method === 'POST' && path === '/sheet') {
         const L = await this.league(url.origin);
         const lanes = L.scoresheets?.lanes || 24, q = url.searchParams;
-        const boss = me.player_id === L.league?.commissioner, test = boss && q.get('test') === '1';
+        const boss = me.player_id === L.league?.commissioner, test = false; // test area retired Oct 27 2026
         const date = q.get('date') || '', lane = +q.get('lane'), game = +q.get('game');
         const today = nyDate(now()), oldest = nyDate(now() - 14 * 864e5);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (!test && (date > today || date < oldest))) return fail(400, 'Pick tonight or a recent league night.');

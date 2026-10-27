@@ -23,6 +23,7 @@ const MAX_FAILS = 5;            // wrong codes before a lockout
 const LOCK_MINUTES = 15;        // doubles with each further lockout
 const SIGNUPS_PER_IP_HOUR = 8;
 const PHOTO_MAX = 200 * 1024;
+const SHEET_MAX = 1500 * 1024; // scoresheet photos are resized in the browser first
 const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D', '#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7'];
 const HANDS = ['Right', 'Left', 'Two-handed'];
 const TEAM_NAMES = ['Team Marshmallow', 'Team Soggy', 'Team Frosted', 'Team Crunch', 'Team Sugar Rush', 'Team Spoon'];
@@ -114,6 +115,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS seen (ukey TEXT PRIMARY KEY, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS attendance (date TEXT NOT NULL, ukey TEXT NOT NULL, going INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey));
       CREATE TABLE IF NOT EXISTS teamdraws (date TEXT PRIMARY KEY, teams TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS sheets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, lane INTEGER NOT NULL, game INTEGER NOT NULL, pids TEXT NOT NULL DEFAULT '[]', ukey TEXT NOT NULL, img BLOB NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL, decided_at INTEGER);
       CREATE TABLE IF NOT EXISTS poll_votes (poll TEXT NOT NULL, ukey TEXT NOT NULL, qid TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (poll, ukey, qid, v));
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
@@ -195,6 +197,17 @@ export class Accounts extends DurableObject {
         return json(this.all().filter(a => !hidden.has(a.ukey)).map(a => ({ username: a.username, playerId: a.player_id, name: JSON.parse(a.profile).name || a.username, joined: nyDate(a.created_at) })));
       }
       if (method === 'GET' && path.startsWith('/photo/')) return this.photo(decodeURIComponent(path.slice(7)));
+      // Scoresheet photos: approved ones are public; pending/rejected only for the uploader and the commissioner.
+      if (method === 'GET' && /^\/sheet\/\d+\.jpg$/.test(path)) {
+        const r = this.sql.exec('SELECT img, status, ukey FROM sheets WHERE id = ?', +path.match(/\d+/)[0]).toArray()[0];
+        if (!r) return new Response('Not found', { status: 404 });
+        if (r.status !== 'approved') {
+          const viewer = await this.me(request), L = await this.league(url.origin);
+          if (!viewer || (viewer.ukey !== r.ukey && viewer.player_id !== L.league?.commissioner)) return new Response('Not found', { status: 404 });
+          return new Response(r.img, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, no-store' } });
+        }
+        return new Response(r.img, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400' } });
+      }
       if (method === 'GET' && path === '/me') return json(this.publicMe(await this.me(request)));
       if (method === 'GET' && path === '/method') {
         const a = this.account(keyOf(url.searchParams.get('u') || ''));
@@ -349,6 +362,54 @@ export class Accounts extends DurableObject {
         if (!pst || pst.ukey !== me.ukey) return fail(404, 'Not your post.');
         this.sql.exec('DELETE FROM posts WHERE id = ?', pst.id);
         return json(this.games(await this.league(url.origin), me));
+      }
+      // Scoresheet photos (Nick, Oct 27 2026): a bowler snaps the lane screen, tags night + lane + game
+      // (+ optionally who's on the lane). Nick approves or rejects; approved photos show on the site and
+      // Claude logs the numbers from them. One approved photo per night/lane/game.
+      if (method === 'POST' && path === '/sheet') {
+        const L = await this.league(url.origin);
+        const lanes = L.scoresheets?.lanes || 24, q = url.searchParams;
+        const date = q.get('date') || '', lane = +q.get('lane'), game = +q.get('game');
+        const today = nyDate(now()), oldest = nyDate(now() - 14 * 864e5);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today || date < oldest) return fail(400, 'Pick tonight or a recent league night.');
+        if (!(lane >= 1 && lane <= lanes)) return fail(400, 'Pick a lane.');
+        if (![1, 2, 3].includes(game)) return fail(400, 'Pick game 1, 2 or 3.');
+        const roster = new Set(this.merged(L).map(p => p.id));
+        const pids = [...new Set((q.get('pids') || '').split(',').filter(Boolean))].filter(id => roster.has(id)).slice(0, 8);
+        const buf = new Uint8Array(await request.arrayBuffer());
+        if (!buf.length || buf.length > SHEET_MAX) return fail(413, 'That photo is too big.');
+        if (!(buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)) return fail(415, 'Photos have to be JPEGs.');
+        const boss = me.player_id === L.league?.commissioner;
+        if (!boss && this.sql.exec("SELECT 1 FROM sheets WHERE date = ? AND lane = ? AND game = ? AND status = 'approved'", date, lane, game).toArray().length)
+          return fail(409, `Lane ${lane} game ${game} is already approved. Ask Nick if it’s wrong.`);
+        const recent = this.sql.exec('SELECT COUNT(*) AS n FROM sheets WHERE ukey = ? AND created_at > ?', me.ukey, now() - 36e5).one().n;
+        if (recent >= 20) return fail(429, 'Easy there. Try again in a bit.');
+        // a newer photo replaces any photo still waiting for the same slot
+        this.sql.exec("DELETE FROM sheets WHERE date = ? AND lane = ? AND game = ? AND status = 'pending'", date, lane, game);
+        this.sql.exec('INSERT INTO sheets (date, lane, game, pids, ukey, img, status, created_at) VALUES (?,?,?,?,?,?,?,?)',
+          date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now());
+        const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
+        if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to approve: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to approve it.`, 'camera'));
+        return json(this.games(L, me), 201);
+      }
+      if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject)$/.test(path)) {
+        const L = await this.league(url.origin);
+        if (me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can do that.');
+        const [, id, act] = path.match(/^\/sheet\/(\d+)\/(\w+)$/);
+        const sh = this.sql.exec('SELECT id, date, lane, game FROM sheets WHERE id = ?', +id).toArray()[0];
+        if (!sh) return fail(404, 'That photo is gone.');
+        if (act === 'approve') {
+          this.sql.exec("UPDATE sheets SET status = 'rejected', decided_at = ? WHERE date = ? AND lane = ? AND game = ? AND id != ? AND status != 'rejected'", now(), sh.date, sh.lane, sh.game, sh.id);
+          this.sql.exec("UPDATE sheets SET status = 'approved', decided_at = ? WHERE id = ?", now(), sh.id);
+        } else this.sql.exec("UPDATE sheets SET status = 'rejected', decided_at = ? WHERE id = ?", now(), sh.id);
+        return json(this.games(L, me));
+      }
+      if (method === 'DELETE' && path.startsWith('/sheet/')) {
+        const L = await this.league(url.origin);
+        const sh = this.sql.exec('SELECT id, ukey, status FROM sheets WHERE id = ?', +path.slice(7)).toArray()[0];
+        if (!sh || !((sh.ukey === me.ukey && sh.status === 'pending') || me.player_id === L.league?.commissioner)) return fail(404, 'Not yours to delete.');
+        this.sql.exec('DELETE FROM sheets WHERE id = ?', sh.id);
+        return json(this.games(L, me));
       }
       // League poll (Nick, Oct 27 2026): questions live in league.json `poll`; one set of answers per
       // account, changeable while the poll is open. Results are live for everyone.
@@ -575,7 +636,12 @@ export class Accounts extends DurableObject {
       }
       poll.voters = who.size;
     }
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll };
+    const boss = me && me.player_id === L.league?.commissioner;
+    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, ukey, status, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 300').toArray()
+      .filter(x => x.status === 'approved' || (me && (boss || x.ukey === me.ukey)))
+      .filter(x => x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
+      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), from: pidOf[x.ukey] || null, status: x.status, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

@@ -3,6 +3,7 @@
 // /api/games (posts, betchas, call-outs) and compared with the last time you looked.
 import { api } from './account.js';
 import { renderAttendBar } from './attend.js';
+import { sheetFeed } from './sheets.js';
 import { fetchGames, betRow, calloutRow, openDate, settleRoles, settleState, settleAt } from './games.js';
 
 let C; // { S, esc, avatar, who, P, fmtDate, route, pages }
@@ -82,11 +83,12 @@ export function feedItems() {
         text: `New league poll: ${pl.title || 'League Poll'}. Vote on buy-ins, team nights and trophies.` });
     }
   }
+  out.push(...sheetFeed(day).map(x => ({ ...x, mine: true })));
   return out.filter(x => x.mine || !(me && x.from === me)).sort((a, b) => b.at - a.at);
 }
 const seenAt = () => Math.max(C.S.games?.seenAt || 0, +store.get(SEEN_KEY) || 0);
 const unread = () => { const since = seenAt(); return feedItems().filter(x => x.pending || x.at > since).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.at - a.at); };
-const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll' };
+const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll', sheet: 'Scoresheet' };
 const hrefOf = x => x.link || (x.kind === 'settle' ? '#/talk?settle' : '#/talk');
 
 function ago(ms) {

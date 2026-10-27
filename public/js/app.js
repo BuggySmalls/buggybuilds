@@ -7,6 +7,7 @@ import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
 import { installAttend, renderAttendBar, homeAttend, nightTeams } from './attend.js';
 import { installPoll, homePoll } from './poll.js';
+import { installSheets, homeSheets, sheetThumbs } from './sheets.js';
 
 /* ================================================================== *
  * Data loading
@@ -291,6 +292,7 @@ pages.home = () => {
   </section>
   ${homeAttend()}
   <div class="home-live">${homeBets()}${homeTalk()}</div>
+  ${homeSheets()}
 
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
 
@@ -426,7 +428,7 @@ pages.standings = () => {
   })[k];
   const views = [['week', 'This week'], ['month', 'This month'], ['season', 'Season'], ['all', 'All-time']];
   return `
-  <div><h1 class="page-title">Standings</h1><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
+  <div><div class="title-row"><h1 class="page-title">Standings</h1><a class="btn small upload-btn" href="#/scores">📷 Upload scores</a></div><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
   <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}" aria-pressed="${view === k}">${t}</button>`).join('')}</div></div>
   <section class="panel">
     ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>
@@ -891,6 +893,7 @@ pages.night = date => {
     <div class="nh-actions">${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
   <section class="panel"><p>${linkNames(recap(idx))}</p>${n.note ? `<p class="small muted">${linkNames(n.note)}</p>` : ''}</section>
+  ${sheetThumbs(n.date)}
   <section class="panel"><div class="panel-head"><h2>Results</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap “Frames” to see every frame.</span></div>
     ${resultCards(n, before)}
     <div class="tbl res-table"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th>${n.handicap ? '<th>Hdcp</th><th>Hdcp series</th>' : ''}<th>W-L</th><th>Pts</th><th>vs avg</th></tr></thead><tbody>
@@ -1119,7 +1122,7 @@ function route() {
   const mine = $('#sheetMine'); if (mine) { mine.hidden = !!S.apiDown; mine.href = S.me ? `#/player/${encodeURIComponent(S.me.playerId)}` : '#/login'; mine.textContent = S.me ? 'My profile' : 'Sign in'; }
   const joinBar = $('#joinBar'); if (joinBar) joinBar.hidden = !!(S.me || S.apiDown || ['join', 'login', 'me'].includes(key));
   try { ACCT.after(key); } catch (e) { console.error(e); }
-  const navKey = { player: 'players', night: 'standings', me: 'players', join: 'players', login: 'players' }[key] || key;
+  const navKey = { player: 'players', night: 'standings', scores: 'standings', me: 'players', join: 'players', login: 'players' }[key] || key;
   document.querySelectorAll('.nav a, .tabbar a, .sheet a').forEach(a => {
     const k = a.getAttribute('href').slice(2) || 'home';
     if (k === navKey) { a.setAttribute('aria-current', 'page'); if (a.closest('.nav') && innerWidth > 720) a.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else a.removeAttribute('aria-current');
@@ -1127,7 +1130,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'talk'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   try { renderBell(); renderAttendBar(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
@@ -1170,6 +1173,7 @@ installGames({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, fmt
 installTalk({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 installPoll({ S, pages, esc, empty, linkNames, route });
+installSheets({ S, E, pages, esc, empty, who, pl, fmtDate, P, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *

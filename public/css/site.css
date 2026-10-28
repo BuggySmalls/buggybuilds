@@ -1076,8 +1076,10 @@ span.nh-arrow{display:none}
 .at-btn.ghost{background:transparent;box-shadow:none;border-width:2px;padding:4px 10px;font-size:12px}
 .at-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #111}
 .at-btn:disabled{opacity:.5;cursor:wait}
-.at-faces{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.at-faces{display:flex;flex-wrap:wrap;gap:10px 8px;margin:6px 0 10px}
 .at-faces a{text-decoration:none}
+.at-face{display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;color:inherit}
+.at-name{font:600 12px/1.15 var(--body);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tm-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:10px}
 .tm-card{background:var(--panel-2);border:3px solid #111;border-top:8px solid var(--tc);border-radius:14px;padding:12px;box-shadow:4px 4px 0 #111}
 .tm-card.win{outline:3px solid var(--gold);outline-offset:2px}

@@ -72,7 +72,8 @@ export function homeAttend() {
     <p class="small muted">Teams were drawn from the queue at first ball, balanced on average. Team score is everyone’s handicap games added up. You still bowl your normal individual night too.</p>
     ${teamCards(teams, null)}</section>`;
   if (locked) return '';
-  const faces = list => list.map(x => `<a href="#/player/${encodeURIComponent(x.pid)}" title="${esc(P(x.pid).name)}">${avatar(P(x.pid), 36)}</a>`).join('');
+  // Name under each face (Nick, Oct 28 2026) so you can tell who's in without tapping.
+  const faces = list => list.map(x => `<a class="at-face" href="#/player/${encodeURIComponent(x.pid)}" title="${esc(P(x.pid).name)}">${avatar(P(x.pid), 44)}<span class="at-name">${esc(P(x.pid).name)}</span></a>`).join('');
   if (!att.yes.length && !att.no.length && !team) return '';
   return `<section class="panel at-panel"><div class="panel-head"><h2>${team ? 'Team night queue' : 'Who’s bowling'} · ${esc(day)}</h2><span class="small muted">${att.yes.length} in${att.no.length ? ` · ${att.no.length} out` : ''}</span></div>
     ${team ? `<p class="small muted">Confirm you’re in and you join the queue. At ${C.fmtTime(S.data.league.startTime || '19:15')} the site splits everyone in the queue into ${att.yes.length >= 12 ? '4' : att.yes.length >= 6 ? '3' : 'even'} teams, balanced on average, and posts them here.</p>` : ''}

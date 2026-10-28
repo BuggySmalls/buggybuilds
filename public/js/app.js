@@ -7,7 +7,7 @@ import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
 import { installAttend, renderAttendBar, homeAttend, nightTeams } from './attend.js';
 import { installPoll, homePoll } from './poll.js';
-import { installSheets, homeSheets, sheetThumbs } from './sheets.js';
+import { installSheets, homeSheets, sheetThumbs, liveNow } from './sheets.js';
 
 /* ================================================================== *
  * Data loading
@@ -438,6 +438,7 @@ pages.standings = () => {
   const views = [['week', 'This week'], ['month', 'This month'], ['season', 'Season'], ['all', 'All-time']];
   return `
   <div><div class="title-row"><h1 class="page-title">Standings</h1><a class="btn small upload-btn" href="#/scores">📷 Upload scores</a></div><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
+  ${liveNow()}
   <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}" aria-pressed="${view === k}">${t}</button>`).join('')}</div></div>
   <section class="panel">
     ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>

@@ -232,7 +232,7 @@ async function poll() {
   renderBell();
   // Live scoreboard: redraw home / scores when new scores come in (Nick, Oct 28 2026)
   const k0 = (location.hash.slice(2).split(/[/?]/)[0]) || 'home';
-  if (!fresh.length && JSON.stringify(g.live || []) !== liveBefore && ['home', 'scores'].includes(k0) && !document.activeElement?.matches?.('input,textarea,select')) { const y = scrollY; C.route(); scrollTo(0, y); }
+  if (!fresh.length && JSON.stringify(g.live || []) !== liveBefore && ['home', 'scores', 'standings'].includes(k0) && !document.activeElement?.matches?.('input,textarea,select')) { const y = scrollY; C.route(); scrollTo(0, y); }
   if (fresh.length) {
     showToast(fresh[0]);
     const key = (location.hash.slice(2).split(/[/?]/)[0]) || 'home';

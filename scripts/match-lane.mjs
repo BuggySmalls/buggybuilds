@@ -23,6 +23,15 @@ function lev(a, b) {
   return d[a.length][b.length];
 }
 const sim = (a, b) => (a && b) ? 1 - lev(a, b) / Math.max(a.length, b.length) : 0;
+// Lane screens spell "ate" as 8 (K8 = Kate, N8 = Nate) and cut long names off (POOPBIR = poopbird)
+const sound = s => norm(s).replace(/8/g, 'ate');
+function nameSim(known, screen) {
+  const k = norm(known), sc = norm(screen), ks = sound(known), ss = sound(screen);
+  if (!sc) return 0;
+  if (k === sc || ks === ss) return 1;
+  if (sc.length >= 5 && (k.startsWith(sc) || ks.startsWith(ss))) return 0.95; // name cut off by the screen
+  return Math.max(sim(k, sc), sim(ks, ss));
+}
 
 // Every name a bowler is known by: scoresheet name, aliases, account username
 const names = {};
@@ -41,7 +50,7 @@ const out = [];
 for (const row of night.rows) {
   const tagged = new Set((night.tagged || {})[row.lane] || []);
   const cands = Object.entries(names).map(([pid, list]) => {
-    const best = Math.max(...list.map(n => norm(n) === norm(row.screen) ? 1 : sim(norm(n), norm(row.screen))));
+    const best = Math.max(...list.map(n => nameSim(n, row.screen)));
     let score = best === 1 ? 60 : best >= 0.6 ? Math.round(60 * best) : 0;
     const why = [best === 1 ? 'exact name' : best >= 0.6 ? `close name (${Math.round(best * 100)}%)` : 'name not known'];
     if (!score) return { pid, score: 0, why };

@@ -1216,7 +1216,8 @@ span.nh-arrow{display:none}
 .sh-check.high .sh-meter i{background:#2E8A64}.sh-check.mid .sh-meter i:nth-child(-n+2){background:#D9A23A}.sh-check.low .sh-meter i:first-child{background:#E5383B}
 .live-board table{width:100%;min-width:0;table-layout:fixed}
 .live-board th,.live-board td{padding-left:4px;padding-right:4px}
-.live-board th:nth-child(1),.live-board td:nth-child(1){width:22px}
-.live-board th:nth-child(n+3),.live-board td:nth-child(n+3){width:44px}
-.live-board th:nth-child(6),.live-board td:nth-child(6){width:52px}
+.live-board th:nth-child(1),.live-board td:nth-child(1){width:18px}
+.live-board th:nth-child(n+3),.live-board td:nth-child(n+3){width:36px}
+.live-board th:nth-child(6),.live-board td:nth-child(6){width:50px}
 .live-board .who-cell{min-width:0}.live-board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.live-board th,.live-board td{font-size:14px}.live-board td:nth-child(n+3){font-variant-numeric:tabular-nums}

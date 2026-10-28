@@ -35,10 +35,15 @@ export function sheetThumbs(date, { title = 'Scoresheet photos', note = '', link
 }
 
 /* Home page: approved photos for a night that hasn't been logged yet */
+// Live board for the newest night that has typed scores but isn't logged yet (home + Standings)
+export function liveNow() {
+  const logged = new Set(C.S.data.events.filter(e => e.status === 'completed').map(e => e.date));
+  return liveBoard([...new Set(liveList().map(x => x.date))].sort().reverse().find(x => !logged.has(x)));
+}
 export function homeSheets() {
   const logged = new Set(C.S.data.events.filter(e => e.status === 'completed').map(e => e.date));
   const d = [...new Set(sheets().filter(s => s.status === 'approved').map(s => s.date))].sort().reverse().find(x => !logged.has(x));
-  const ld = [...new Set((C.S.games?.live || []).map(x => x.date))].sort().reverse().find(x => !logged.has(x));
+  const ld = [...new Set(liveList().map(x => x.date))].sort().reverse().find(x => !logged.has(x));
   return (ld ? liveBoard(ld) : '') + (d ? sheetThumbs(d, { title: `Scores coming · ${day(d)}`, note: 'Nick approved these from the lanes. Official results post once they’re logged.' }) : '');
 }
 
@@ -75,17 +80,21 @@ function fixScores(s) {
   return `<details class="sh-move"><summary class="small">Fix scores</summary><span class="sh-fix">${ids.map(id => `<label>${esc(P(id).name)}<input type="number" inputmode="numeric" min="0" max="300" value="${s.scores?.[id] ?? ''}" data-fixscore="${s.id}" data-pid="${esc(id)}"></label>`).join('')}<button type="button" class="btn small" data-sheet="${s.id}|scores">Save scores</button></span></details>`;
 }
 
-/* Live scoreboard (Nick, Oct 28 2026): every score typed in from the lanes tonight, before it's logged */
+/* Live scoreboard (Nick, Oct 28 2026): every score typed in from the lanes tonight, before it's logged.
+   league.json `liveTest` adds rows by hand for testing; remove it to clear them. */
+const liveList = () => [...(C.S.games?.live || []), ...(C.S.data.liveTest || []).map(x => ({ ok: true, ...x }))];
 export function liveBoard(date, { title } = {}) {
+  if (!date) return '';
   const { esc, who, S } = C;
   const rows = {};
-  for (const x of S.games?.live || []) if (x.date === date) (rows[x.pid] ??= { pid: x.pid, g: [null, null, null], ok: [true, true, true] }), rows[x.pid].g[x.game - 1] = x.score, rows[x.pid].ok[x.game - 1] = x.ok;
+  for (const x of liveList()) if (x.date === date) (rows[x.pid] ??= { pid: x.pid, g: [null, null, null], ok: [true, true, true] }), rows[x.pid].g[x.game - 1] = x.score, rows[x.pid].ok[x.game - 1] = x.ok;
   const list = Object.values(rows).map(r => ({ ...r, series: r.g.reduce((a, b) => a + (b || 0), 0), n: r.g.filter(v => v != null).length }))
     .sort((a, b) => b.series - a.series || b.n - a.n);
   if (!list.length) return '';
   const cell = (r, k) => r.g[k] == null ? '<td class="faint">—</td>' : `<td class="${r.ok[k] ? '' : 'unconf'}">${r.g[k]}${r.ok[k] ? '' : '*'}</td>`;
-  return `<section class="panel live-board"><div class="panel-head"><h2>${esc(title || `Live scoreboard · ${day(date)}`)}</h2><a href="#/scores">Upload scores</a></div>
-    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>Series</th></tr></thead><tbody>
+  const test = (S.data.liveTest || []).some(x => x.date === date);
+  return `<section class="panel live-board"><div class="panel-head"><h2>${esc(title || `Live scoreboard · ${day(date)}`)}${test ? ' <span class="sh-tag wait">Test</span>' : ''}</h2><a href="#/scores">Upload scores</a></div>
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>Total</th></tr></thead><tbody>
     ${list.map((r, i) => `<tr><td class="l">${i + 1}</td><td class="l">${who(r.pid, { size: 26, nick: false })}</td>${cell(r, 0)}${cell(r, 1)}${cell(r, 2)}<td><b>${r.series}</b></td></tr>`).join('')}
     </tbody></table></div>
     <p class="small muted">Typed in from the lanes as games finish. * = Nick hasn’t checked that photo yet. Official results post once the night is logged.</p></section>`;

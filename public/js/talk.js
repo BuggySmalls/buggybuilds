@@ -4,7 +4,8 @@
 import { api } from './account.js';
 import { reactBar } from './react.js';
 import { renderAttendBar } from './attend.js';
-import { sheetFeed } from './sheets.js';
+import { sheetFeed, liveCalc, liveDate } from './sheets.js';
+import * as E from './engine.js';
 import { fetchGames, betRow, calloutRow, openDate, settleRoles, settleState, settleAt } from './games.js';
 
 let C; // { S, esc, avatar, who, P, fmtDate, route, pages }
@@ -193,12 +194,41 @@ function betForm() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Badges in the shit talk section (Nick, Oct 28 2026): every badge as it's earned, newest first.
+ * Logged nights come from S.achievements; tonight's come from the live lane scores (marked Live, unchecked).
+ * ------------------------------------------------------------------ */
+function badgeItems() {
+  const out = [], add = (ach, live, onlyDate) => {
+    for (const [pid, keys] of Object.entries(ach || {})) for (const [key, e] of Object.entries(keys)) for (const x of e.log || []) {
+      if (!x.date || (onlyDate && x.date !== onlyDate)) continue;
+      const b = E.BADGES.find(y => y.key === key); if (!b) continue;
+      out.push({ pid, b, date: x.date, game: x.game, times: x.times || 1, detail: x.detail, live });
+    }
+  };
+  add(C.S.achievements, false);
+  try {
+    const d = liveDate(), L = d && liveCalc(d);
+    if (L) add(E.achievements(L.data, L.nights, C.S.champs), true, d);
+  } catch (e) { console.error(e); }
+  return out.sort((a, b) => b.date.localeCompare(a.date) || (b.game || 0) - (a.game || 0));
+}
+function badgeStrip(max) {
+  const list = badgeItems().slice(0, max); if (!list.length) return '';
+  const { esc, avatar, P, fmtDate } = C;
+  const cls = b => b.tone === 'shame' ? 'shame' : b.manual ? 'pick' : b.gold ? 'gold' : 'skill';
+  return `<div class="bf-list" aria-label="Badges earned">${list.map(x => `<button type="button" class="bf-item ${cls(x.b)}" data-badge="${esc(x.pid)}:${esc(x.b.key)}">
+    ${avatar(P(x.pid), 30)}<span class="bf-body"><span class="bf-top"><b>${esc(P(x.pid).name)}</b> earned <span class="bf-icon">${esc(x.b.icon || '')}</span> <b>${esc(x.b.name)}</b>${x.times > 1 ? ` ×${x.times}` : ''}</span>
+    <span class="bf-when">${x.live ? '<span class="bf-live">Live*</span> ' : ''}${esc(fmtDate(x.date, { month: 'short', day: 'numeric' }))}${x.game ? ` · Game ${x.game}` : ''}${x.detail ? ` · ${esc(x.detail)}` : ''}</span></span></button>`).join('')}</div>`;
+}
+
+/* ------------------------------------------------------------------ *
  * Home panel and Talk page
  * ------------------------------------------------------------------ */
 export function homeTalk() {
   const g = C.S.games; if (!g) return '';
   const posts = (g.posts || []).slice(0, 3);
   return `<section class="panel talk-panel"><div class="panel-head"><h2>Shit talk</h2><a href="#/talk">See it all</a></div>
+    ${badgeStrip(4)}
     ${posts.length ? `<div class="post-list">${posts.map(postRow).join('')}</div>` : '<p class="small muted">Quiet in here. Somebody say something.</p>'}
     ${postForm(true)}</section>`;
 }
@@ -218,6 +248,7 @@ function talkPage() {
     <div class="grid" style="align-content:start">
       <section class="panel talk-panel"><div class="panel-head"><h2>Shit talk</h2></div>
         ${postForm()}
+        ${badgeStrip(20)}
         ${(g.posts || []).length ? `<div class="post-list">${g.posts.slice(0, 60).map(postRow).join('')}</div>` : '<p class="small muted">Nobody’s said anything yet. Be the first.</p>'}
       </section>
     </div>

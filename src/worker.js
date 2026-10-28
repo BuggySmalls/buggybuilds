@@ -27,6 +27,8 @@ const PHOTO_MAX = 200 * 1024;
 const SHEET_MAX = 1500 * 1024; // scoresheet photos are resized in the browser first
 const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D', '#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7'];
 const HANDS = ['Right', 'Left', 'Two-handed'];
+// Stored lane draw: {rev, lanes} (older rows are a bare array)
+const laneRow = txt => { const v = JSON.parse(txt); return Array.isArray(v) ? { rev: 0, lanes: v } : v; };
 const TEAM_NAMES = ['Team Marshmallow', 'Team Soggy', 'Team Frosted', 'Team Crunch', 'Team Sugar Rush', 'Team Spoon'];
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
@@ -120,6 +122,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS sheets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, lane INTEGER NOT NULL, game INTEGER NOT NULL, pids TEXT NOT NULL DEFAULT '[]', ukey TEXT NOT NULL, img BLOB NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL, decided_at INTEGER);
       CREATE TABLE IF NOT EXISTS poll_votes (poll TEXT NOT NULL, ukey TEXT NOT NULL, qid TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (poll, ukey, qid, v));
       CREATE TABLE IF NOT EXISTS likes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
+      CREATE TABLE IF NOT EXISTS dislikes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
       CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
@@ -407,14 +410,19 @@ export class Accounts extends DurableObject {
         return json(this.games(L, me), 201);
       }
       // Likes + comments on shit talk, betchas and call-outs (Nick, Oct 28 2026)
-      if (method === 'POST' && (path === '/like' || path === '/comment')) {
+      // Dislikes (Nick, Oct 28 2026): 👎 on posts, betchas, call-outs and on each comment. Like and dislike cancel each other.
+      if (method === 'POST' && (path === '/like' || path === '/dislike' || path === '/comment')) {
         const { kind, id, msg } = await request.json().catch(() => ({}));
-        const table = { post: 'posts', bet: 'bets', callout: 'callouts' }[kind];
+        const table = { post: 'posts', bet: 'bets', callout: 'callouts', ...(path === '/comment' ? {} : { comment: 'comments' }) }[kind];
         if (!table || !this.sql.exec(`SELECT 1 FROM ${table} WHERE id = ?`, +id).toArray().length) return fail(404, 'That’s gone.');
-        if (path === '/like') {
-          const had = this.sql.exec('SELECT 1 FROM likes WHERE kind = ? AND item = ? AND ukey = ?', kind, +id, me.ukey).toArray().length;
-          if (had) this.sql.exec('DELETE FROM likes WHERE kind = ? AND item = ? AND ukey = ?', kind, +id, me.ukey);
-          else this.sql.exec('INSERT INTO likes (kind, item, ukey, at) VALUES (?,?,?,?)', kind, +id, me.ukey, now());
+        if (path === '/like' || path === '/dislike') {
+          const t = path.slice(1) + 's', other = t === 'likes' ? 'dislikes' : 'likes';
+          const had = this.sql.exec(`SELECT 1 FROM ${t} WHERE kind = ? AND item = ? AND ukey = ?`, kind, +id, me.ukey).toArray().length;
+          if (had) this.sql.exec(`DELETE FROM ${t} WHERE kind = ? AND item = ? AND ukey = ?`, kind, +id, me.ukey);
+          else {
+            this.sql.exec(`INSERT INTO ${t} (kind, item, ukey, at) VALUES (?,?,?,?)`, kind, +id, me.ukey, now());
+            this.sql.exec(`DELETE FROM ${other} WHERE kind = ? AND item = ? AND ukey = ?`, kind, +id, me.ukey);
+          }
         } else {
           const m = clean(msg, 200);
           if (!m) return fail(400, 'Say something first.');
@@ -656,12 +664,14 @@ export class Accounts extends DurableObject {
       }
     }
     // Random lanes every week (Nick, Oct 28 2026), drawn at the same time as teams from everyone who said Yes.
-    const laned = new Set(this.sql.exec('SELECT date FROM lanedraws').toArray().map(r => r.date));
+    // A redraw happens only when Nick bumps laneDraw.nights[date].rev (e.g. fewer lanes than planned).
+    const laned = Object.fromEntries(this.sql.exec('SELECT date, lanes FROM lanedraws').toArray().map(r => [r.date, laneRow(r.lanes).rev]));
     for (const { date } of this.sql.exec('SELECT DISTINCT date FROM attendance WHERE going = 1').toArray()) {
-      if (laned.has(date) || now() < this.drawAt(L, date) || now() - this.drawAt(L, date) > 2 * 86400e3) continue;
+      const rev = L.laneDraw?.nights?.[date]?.rev || 0;
+      if ((date in laned && laned[date] === rev) || now() < this.drawAt(L, date) || now() - this.drawAt(L, date) > 2 * 86400e3) continue;
       const lanes = this.drawLanes(L, date);
       if (!lanes) continue;
-      this.sql.exec('INSERT OR IGNORE INTO lanedraws (date, lanes, at) VALUES (?,?,?)', date, JSON.stringify(lanes), now());
+      this.sql.exec('INSERT INTO lanedraws (date, lanes, at) VALUES (?,?,?) ON CONFLICT(date) DO UPDATE SET lanes = excluded.lanes, at = excluded.at', date, JSON.stringify({ rev, lanes }), now());
       if (announce) {
         const P = Object.fromEntries(this.merged(L).map(p => [p.id, p.name]));
         await this.push(L, 'Lanes are set', lanes.map(l => `Lane ${l.lane}: ${l.pids.map(id => P[id] || id).join(', ')}`).join('\n'), 'bowling');
@@ -675,12 +685,12 @@ export class Accounts extends DurableObject {
     const pidOf = Object.fromEntries(this.all().filter(a => !hidden.has(a.ukey)).map(a => [a.ukey, a.player_id]));
     const pool = this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean);
     if (!pool.length) return null;
-    const cfg = L.laneDraw || {}, nums = cfg.numbers?.[date];
-    const k = Math.max(1, Math.min(Array.isArray(nums) && nums.length ? nums.length : (cfg.count || 4), Math.ceil(pool.length / 2)));
+    const cfg = L.laneDraw || {}, nums = cfg.numbers?.[date], per = cfg.nights?.[date] || {};
+    const k = Math.max(1, Math.min(Array.isArray(nums) && nums.length ? nums.length : (per.count || cfg.count || 4), Math.ceil(pool.length / 2)));
     const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
     const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const drawn = this.sql.exec('SELECT teams FROM teamdraws WHERE date = ?', date).toArray()[0];
-    const teams = drawn ? JSON.parse(drawn.teams) : null;
+    const teams = drawn ? this.swapTeams(L, date, JSON.parse(drawn.teams)) : null;
     let order;
     if (teams) {   // deal each team round the lanes so every lane has both colors
       const inTeam = new Set(teams.flatMap(t => t.pids));
@@ -725,6 +735,17 @@ export class Accounts extends DurableObject {
     return pick.map((pids, i) => ({ name: names[i % names.length], pids }));
   }
 
+  // Trades after the draw (Nick, Oct 28 2026): teamNights[date].swap = [["fontes", "liam"]] swaps two bowlers' teams.
+  swapTeams(L, date, teams) {
+    const sw = L.teamNights?.[date]?.swap; if (!Array.isArray(sw) || !teams) return teams;
+    const out = teams.map(t => ({ ...t, pids: [...t.pids] }));
+    for (const [a, b] of sw) {
+      const ta = out.find(t => t.pids.includes(a)), tb = out.find(t => t.pids.includes(b));
+      if (!ta || !tb || ta === tb) continue;
+      ta.pids[ta.pids.indexOf(a)] = b; tb.pids[tb.pids.indexOf(b)] = a;
+    }
+    return out;
+  }
   lockAt(L, date) { const lg = L.league || {}; return zonedMs(date, lg.startTime || '19:15', lg.timezone); }
   // Teams get drawn before first ball so everyone's set up by then (Nick, Oct 28 2026: draw 7:05, bowl 7:15).
   // The team queue (attendance) closes at the draw on team nights.
@@ -758,8 +779,8 @@ export class Accounts extends DurableObject {
       a[r.going ? 'yes' : 'no'].push({ pid: pidOf[r.ukey], at: r.at });
       if (me && r.ukey === me.ukey) a.mine = !!r.going;
     }
-    const teams = Object.fromEntries(this.sql.exec('SELECT date, teams, at FROM teamdraws').toArray().map(r => [r.date, { teams: JSON.parse(r.teams), at: r.at }]));
-    const lanes = Object.fromEntries(this.sql.exec('SELECT date, lanes, at FROM lanedraws').toArray().map(r => [r.date, { lanes: JSON.parse(r.lanes), at: r.at }]));
+    const teams = Object.fromEntries(this.sql.exec('SELECT date, teams, at FROM teamdraws').toArray().map(r => [r.date, { teams: this.swapTeams(L, r.date, JSON.parse(r.teams)), at: r.at }]));
+    const lanes = Object.fromEntries(this.sql.exec('SELECT date, lanes, at FROM lanedraws').toArray().map(r => [r.date, { lanes: laneRow(r.lanes).lanes, at: r.at }]));
     let poll = null;
     if (L.poll?.id) {
       const types = Object.fromEntries((L.poll.questions || []).map(q => [q.id, q.type]));
@@ -800,10 +821,16 @@ export class Accounts extends DurableObject {
       const l = likes[`${r.kind}:${r.item}`] ??= { n: 0, who: [], mine: false };
       l.n++; l.who.push(pidOf[r.ukey]); if (me && r.ukey === me.ukey) l.mine = true;
     }
+    const dislikes = {};
+    for (const r of this.sql.exec('SELECT kind, item, ukey FROM dislikes ORDER BY at').toArray()) {
+      if (!live(r.ukey)) continue;
+      const l = dislikes[`${r.kind}:${r.item}`] ??= { n: 0, who: [], mine: false };
+      l.n++; l.who.push(pidOf[r.ukey]); if (me && r.ukey === me.ukey) l.mine = true;
+    }
     const hiddenComments = new Set((L.talk?.hiddenComments || []).map(Number));
     for (const r of this.sql.exec('SELECT id, kind, item, ukey, msg, at FROM comments ORDER BY at').toArray())
       if (live(r.ukey) && !hiddenComments.has(r.id)) (comments[`${r.kind}:${r.item}`] ??= []).push({ id: r.id, from: pidOf[r.ukey], msg: r.msg, at: r.at });
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, lanes, poll, sheets, live: liveScores, likes, comments };
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, lanes, poll, sheets, live: liveScores, likes, dislikes, comments };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

@@ -362,7 +362,7 @@
     "ntfy": "cereal-bowlers-14d40f175e"
   },
   "teamNights": {
-    "2026-10-28": { "teams": 2, "names": ["Team Red", "Team Blue"] }
+    "2026-10-28": { "teams": 2, "names": ["Team Red", "Team Blue"], "swap": [["fontes", "liam"]] }
   },
   "poll": {
     "id": "league-2026-10",
@@ -681,7 +681,10 @@
   },
   "laneDraw": {
     "count": 4,
-    "numbers": {}
+    "numbers": {},
+    "nights": {
+      "2026-10-28": { "count": 3, "rev": 1 }
+    }
   },
   "scoresheets": {
     "lanes": 24,

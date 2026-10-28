@@ -38,7 +38,8 @@ export function sheetThumbs(date, { title = 'Scoresheet photos', note = '', link
 export function homeSheets() {
   const logged = new Set(C.S.data.events.filter(e => e.status === 'completed').map(e => e.date));
   const d = [...new Set(sheets().filter(s => s.status === 'approved').map(s => s.date))].sort().reverse().find(x => !logged.has(x));
-  return d ? sheetThumbs(d, { title: `Scores coming · ${day(d)}`, note: 'Nick approved these from the lanes. Official results post once they’re logged.' }) : '';
+  const ld = [...new Set((C.S.games?.live || []).map(x => x.date))].sort().reverse().find(x => !logged.has(x));
+  return (ld ? liveBoard(ld) : '') + (d ? sheetThumbs(d, { title: `Scores coming · ${day(d)}`, note: 'Nick approved these from the lanes. Official results post once they’re logged.' }) : '');
 }
 
 function card(s, { actions = '' } = {}) {
@@ -47,8 +48,47 @@ function card(s, { actions = '' } = {}) {
   return `<div class="sh-card"><a href="${img(s)}" target="_blank" rel="noopener"><img src="${img(s)}" alt="Lane ${s.lane} game ${s.game}" loading="lazy"></a>
     <div class="sh-info"><b>Lane ${s.lane} · Game ${s.game}</b> ${tag}
       <span class="small muted">${esc(day(s.date))}${s.from ? ` · sent by ${pl(s.from)}` : ''}</span>
-      ${s.pids.length ? `<span class="small">On the lane: ${s.pids.map(id => pl(id)).join(', ')}</span>` : ''}
+      ${s.pids.length ? `<span class="small">On the lane: ${s.pids.map(id => `${pl(id)}${s.scores?.[id] != null ? ` <b>${s.scores[id]}</b>` : ''}`).join(', ')}</span>` : ''}
+      ${boss() && (s.status === 'pending' || s.status === 'approved') ? lineupCheck(s) + fixScores(s) : ''}
       ${actions}</div></div>`;
+}
+
+// Lineup check for Nick (Oct 28 2026): the site can't read the names on the screen, but it can tell when the
+// tags don't add up. Claude does the real name match (scripts/match-lane.mjs) when logging the photo.
+function lineupCheck(s) {
+  const { esc, P } = C, warn = [];
+  const yes = new Set(C.S.games?.attendance?.[s.date]?.yes?.map(x => x.pid) || []);
+  if (!s.pids.length) warn.push('Nobody tagged. Claude will match the names on the screen.');
+  for (const id of s.pids) {
+    if (yes.size && !yes.has(id)) warn.push(`${P(id).name} didn’t say Yes for this night.`);
+    const other = sheets().find(o => o.id !== s.id && o.date === s.date && o.game === s.game && o.lane !== s.lane && (o.status === 'pending' || o.status === 'approved') && o.pids.includes(id));
+    if (other) warn.push(`${P(id).name} is also tagged on lane ${other.lane}.`);
+    if (s.scores?.[id] == null) warn.push(`No score typed for ${P(id).name}.`);
+  }
+  const lvl = !s.pids.length ? 'mid' : warn.length ? (warn.length > 1 ? 'low' : 'mid') : 'high';
+  const label = { high: 'Lineup looks right', mid: 'Check this one', low: 'Something’s off' }[lvl];
+  return `<div class="sh-check ${lvl}"><span class="sh-meter" aria-hidden="true"><i></i><i></i><i></i></span><b>${label}</b>${warn.length ? `<ul>${warn.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}</div>`;
+}
+function fixScores(s) {
+  const { esc, P } = C, ids = s.pids;
+  if (!ids.length) return '';
+  return `<details class="sh-move"><summary class="small">Fix scores</summary><span class="sh-fix">${ids.map(id => `<label>${esc(P(id).name)}<input type="number" inputmode="numeric" min="0" max="300" value="${s.scores?.[id] ?? ''}" data-fixscore="${s.id}" data-pid="${esc(id)}"></label>`).join('')}<button type="button" class="btn small" data-sheet="${s.id}|scores">Save scores</button></span></details>`;
+}
+
+/* Live scoreboard (Nick, Oct 28 2026): every score typed in from the lanes tonight, before it's logged */
+export function liveBoard(date, { title } = {}) {
+  const { esc, who, S } = C;
+  const rows = {};
+  for (const x of S.games?.live || []) if (x.date === date) (rows[x.pid] ??= { pid: x.pid, g: [null, null, null], ok: [true, true, true] }), rows[x.pid].g[x.game - 1] = x.score, rows[x.pid].ok[x.game - 1] = x.ok;
+  const list = Object.values(rows).map(r => ({ ...r, series: r.g.reduce((a, b) => a + (b || 0), 0), n: r.g.filter(v => v != null).length }))
+    .sort((a, b) => b.series - a.series || b.n - a.n);
+  if (!list.length) return '';
+  const cell = (r, k) => r.g[k] == null ? '<td class="faint">—</td>' : `<td class="${r.ok[k] ? '' : 'unconf'}">${r.g[k]}${r.ok[k] ? '' : '*'}</td>`;
+  return `<section class="panel live-board"><div class="panel-head"><h2>${esc(title || `Live scoreboard · ${day(date)}`)}</h2><a href="#/scores">Upload scores</a></div>
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>Series</th></tr></thead><tbody>
+    ${list.map((r, i) => `<tr><td class="l">${i + 1}</td><td class="l">${who(r.pid, { size: 26, nick: false })}</td>${cell(r, 0)}${cell(r, 1)}${cell(r, 2)}<td><b>${r.series}</b></td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="small muted">Typed in from the lanes as games finish. * = Nick hasn’t checked that photo yet. Official results post once the night is logged.</p></section>`;
 }
 
 const slot = s => `${s.date}|${s.lane}|${s.game}`;
@@ -82,8 +122,9 @@ function formHTML({ test, nights, date, roster }) {
       <label>Lane<input type="number" name="lane" inputmode="numeric" min="1" max="${lanes()}" placeholder="Lane #" required></label>
       <label>Game<select name="game" required><option value="">Game #</option><option value="1">Game 1 (green)</option><option value="2">Game 2 (yellow)</option><option value="3">Game 3 (red)</option></select></label>
     </div>
-    <fieldset class="sh-who"><legend>Who’s on this lane? <span class="faint">(optional)</span></legend>
-      <div class="sh-chips">${roster.map(p => `<label class="sh-chip"><input type="checkbox" name="pids" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div></fieldset>
+    <fieldset class="sh-who"><legend>Who’s on this lane? <span class="faint">Tap names, then type their score for this game. It goes on the live scoreboard.</span></legend>
+      <div class="sh-chips">${roster.map(p => `<label class="sh-chip"><input type="checkbox" name="pids" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div>
+      <div class="sh-scores" data-shscores></div></fieldset>
     <label class="sh-file"><input type="file" name="photo" accept="image/*" required><span>📷 Take or choose a photo</span></label>
     <img class="sh-preview" alt="" hidden>
     <div class="sh-actions"><button type="submit" class="btn primary">${test ? 'Upload test photo' : 'Upload'}</button><span class="small muted" data-sheetmsg></span></div>
@@ -112,6 +153,7 @@ function page() {
     bossHTML = `${r.html.trim() ? `<section class="panel sh-queue"><div class="panel-head"><h2>Needs your approval</h2><span class="small muted">${r.count} waiting</span></div>${r.html}</section>` : ''}`;
   }
   return `<div><h1 class="page-title">Upload scores</h1><p class="page-intro">Send a photo of the lane screen. Once Nick approves it, it shows up on the site and the scores get logged.</p></div>
+    ${liveBoard(date)}
     ${bossHTML}
     ${form}
     ${mine.length ? `<section class="panel"><div class="panel-head"><h2>Your uploads</h2></div><div class="sh-list">${mine.slice(0, 12).map(s => card(s, { actions: s.status === 'pending' ? `<button type="button" class="linkish small" data-sheet="${s.id}|delete">take it back</button>` : '' })).join('')}</div></section>` : ''}
@@ -142,10 +184,15 @@ async function send(form) {
   if (!f.game.value) { msg.textContent = 'Pick the game.'; return; }
   if (!file) { msg.textContent = 'Add a photo of the screen.'; return; }
   const pids = [...form.querySelectorAll('input[name=pids]:checked')].map(i => i.value);
+  const scores = {};
+  for (const i of form.querySelectorAll('[data-scorefor]')) if (i.value !== '' && pids.includes(i.dataset.scorefor)) {
+    const v = +i.value; if (!Number.isInteger(v) || v < 0 || v > 300) { msg.textContent = 'Scores are whole numbers from 0 to 300.'; return; }
+    scores[i.dataset.scorefor] = v;
+  }
   btn.disabled = true; msg.textContent = 'Uploading…';
   try {
     const blob = await shrink(file);
-    const qs = new URLSearchParams({ date: f.date.value, lane: String(lane), game: f.game.value, pids: pids.join(','), ...(test ? { test: '1' } : {}) });
+    const qs = new URLSearchParams({ date: f.date.value, lane: String(lane), game: f.game.value, pids: pids.join(','), scores: JSON.stringify(scores), ...(test ? { test: '1' } : {}) });
     C.S.games = await api('/sheet?' + qs, { method: 'POST', body: blob, raw: true });
     const y = scrollY; C.route(); scrollTo(0, y);
     const m = document.querySelector(`[data-sheetform="${test ? 'test' : 'real'}"] [data-sheetmsg]`);
@@ -162,7 +209,7 @@ async function send(form) {
 async function act(id, what) {
   document.querySelectorAll('[data-sheet]').forEach(b => { b.disabled = true; });
   try {
-    const body = what === 'move' ? { lane: +document.querySelector(`[data-move-lane="${id}"]`).value, game: +document.querySelector(`[name="move-game-${id}"]`).value } : {};
+    const body = what === 'scores' ? { scores: Object.fromEntries([...document.querySelectorAll(`[data-fixscore="${id}"]`)].map(i => [i.dataset.pid, i.value])) } : what === 'move' ? { lane: +document.querySelector(`[data-move-lane="${id}"]`).value, game: +document.querySelector(`[name="move-game-${id}"]`).value } : {};
     C.S.games = what === 'delete' ? await api(`/sheet/${id}`, { method: 'DELETE' }) : await api(`/sheet/${id}/${what}`, { method: 'POST', body });
     const y = scrollY; C.route(); scrollTo(0, y);
   } catch (e) { alert(e.message); C.route(); }
@@ -192,6 +239,13 @@ export function installSheets(ctx) {
   document.addEventListener('change', e => {
     const form = e.target.closest('[data-sheetform]'); if (!form) return;
     if (form.dataset.sheetform === 'real' && e.target.name === 'date') { location.hash = '#/scores?date=' + e.target.value; return; }
+    if (e.target.name === 'pids') {
+      const box = form.querySelector('[data-shscores]'), keep = {};
+      box.querySelectorAll('[data-scorefor]').forEach(i => { keep[i.dataset.scorefor] = i.value; });
+      const picked = [...form.querySelectorAll('input[name=pids]:checked')].map(i => i.value);
+      box.innerHTML = picked.map(id => `<label class="sh-score"><span>${C.esc(C.P(id).name)}</span><input type="number" inputmode="numeric" min="0" max="300" placeholder="Score" data-scorefor="${C.esc(id)}" value="${C.esc(keep[id] ?? '')}"></label>`).join('');
+      return;
+    }
     if (e.target.name !== 'photo') return;
     const pv = form.querySelector('.sh-preview'), f = e.target.files[0];
     if (pv && f) { pv.src = URL.createObjectURL(f); pv.hidden = false; }

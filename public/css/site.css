@@ -1199,3 +1199,24 @@ span.nh-arrow{display:none}
 .at-queue .at-face{width:56px;flex:none}
 .at-queue .at-name{font-size:11px;max-width:56px;color:#111}
 .at-queue a{text-decoration:none}
+
+/* Live scoreboard + lineup check (Nick, Oct 28 2026) */
+.live-board td.unconf{color:var(--muted)}
+.live-board td,.live-board th{text-align:right}.live-board td.l,.live-board th.l{text-align:left}
+.sh-scores{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.sh-score{display:flex;flex-direction:column;gap:3px;font:600 13px var(--body)}
+.sh-score input,.sh-fix input{width:100%;box-sizing:border-box;font:600 16px var(--body);padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+.sh-fix{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;align-items:end;margin-top:6px}
+.sh-fix label{display:flex;flex-direction:column;gap:3px;font:600 12px var(--body)}
+.sh-check{margin:6px 0;padding:8px 10px;border-radius:10px;border:2px solid #111;font-size:13px}
+.sh-check ul{margin:4px 0 0;padding-left:18px}
+.sh-check.high{background:#B8FFA0;color:#111}.sh-check.mid{background:#FFE347;color:#111}.sh-check.low{background:#FFB3C7;color:#111}
+.sh-meter{display:inline-flex;gap:2px;margin-right:6px;vertical-align:middle}
+.sh-meter i{width:8px;height:12px;border:1px solid #111;border-radius:2px;background:#fff}
+.sh-check.high .sh-meter i{background:#2E8A64}.sh-check.mid .sh-meter i:nth-child(-n+2){background:#D9A23A}.sh-check.low .sh-meter i:first-child{background:#E5383B}
+.live-board table{width:100%;min-width:0;table-layout:fixed}
+.live-board th,.live-board td{padding-left:4px;padding-right:4px}
+.live-board th:nth-child(1),.live-board td:nth-child(1){width:22px}
+.live-board th:nth-child(n+3),.live-board td:nth-child(n+3){width:44px}
+.live-board th:nth-child(6),.live-board td:nth-child(6){width:52px}
+.live-board .who-cell{min-width:0}.live-board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}

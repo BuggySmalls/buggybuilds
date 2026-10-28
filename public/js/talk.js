@@ -224,12 +224,15 @@ function talkPage() {
  * ------------------------------------------------------------------ */
 async function poll() {
   if (document.hidden || C.S.apiDown || !C.S.games) return;
-  const before = new Set(feedItems().map(x => x.id));
+  const before = new Set(feedItems().map(x => x.id)), liveBefore = JSON.stringify(C.S.games.live || []);
   const g = await fetchGames(); if (!g) return;
   C.S.games = g;
   try { renderAttendBar(); } catch (e) { console.error(e); }
   const fresh = feedItems().filter(x => !before.has(x.id) && x.at > seenAt());
   renderBell();
+  // Live scoreboard: redraw home / scores when new scores come in (Nick, Oct 28 2026)
+  const k0 = (location.hash.slice(2).split(/[/?]/)[0]) || 'home';
+  if (!fresh.length && JSON.stringify(g.live || []) !== liveBefore && ['home', 'scores'].includes(k0) && !document.activeElement?.matches?.('input,textarea,select')) { const y = scrollY; C.route(); scrollTo(0, y); }
   if (fresh.length) {
     showToast(fresh[0]);
     const key = (location.hash.slice(2).split(/[/?]/)[0]) || 'home';

@@ -7,6 +7,10 @@ on:
       date:
         description: League night (YYYY-MM-DD), or "test" for the commissioner's test uploads
         required: true
+  # Claude can't dispatch workflows from the sandbox: pushing to `sheets-request` runs this for the
+  # date in sheets-request.txt (or today in New York if that file is missing).
+  push:
+    branches: [sheets-request]
 permissions:
   contents: write
 jobs:
@@ -16,9 +20,11 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - env:
-          DATE: ${{ inputs.date }}
+          DATE_IN: ${{ inputs.date }}
         run: |
           set -euo pipefail
+          DATE="${DATE_IN:-$(cat sheets-request.txt 2>/dev/null || TZ=America/New_York date +%F)}"
+          DATE="$(echo "$DATE" | tr -d '[:space:]')"
           UA="Mozilla/5.0 CerealBowlersAdmin"
           git fetch origin scoresheets --depth=1 && git checkout -B scoresheets FETCH_HEAD || git checkout --orphan scoresheets
           git rm -rq --cached . >/dev/null 2>&1 || true

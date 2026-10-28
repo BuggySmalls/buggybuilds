@@ -123,6 +123,8 @@ export class Accounts extends DurableObject {
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
     if (!this.sql.exec('PRAGMA table_info(bets)').toArray().some(c => c.name === 'amount')) this.sql.exec('ALTER TABLE bets ADD COLUMN amount INTEGER NOT NULL DEFAULT 0');
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'test')) this.sql.exec('ALTER TABLE sheets ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
+    // Live scoreboard (Nick, Oct 28 2026): the uploader types each tagged bowler's score for that game.
+    if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'scores')) this.sql.exec("ALTER TABLE sheets ADD COLUMN scores TEXT NOT NULL DEFAULT '{}'");
     // Test run over (Nick, Oct 27 2026): wipe any test uploads left behind.
     this.sql.exec('DELETE FROM sheets WHERE test = 1');
     // Settling up (Nick, Oct 25 2026): the loser confirms they paid, the winner confirms they got it.
@@ -408,19 +410,21 @@ export class Accounts extends DurableObject {
         if (![1, 2, 3].includes(game)) return fail(400, 'Pick game 1, 2 or 3.');
         const roster = new Set(this.merged(L).map(p => p.id));
         const pids = [...new Set((q.get('pids') || '').split(',').filter(Boolean))].filter(id => roster.has(id)).slice(0, 8);
+        let typed = {}; try { typed = JSON.parse(q.get('scores') || '{}') || {}; } catch { typed = {}; }
+        const scores = Object.fromEntries(pids.filter(id => Number.isInteger(+typed[id]) && typed[id] !== '' && +typed[id] >= 0 && +typed[id] <= 300).map(id => [id, +typed[id]]));
         const buf = new Uint8Array(await request.arrayBuffer());
         if (!buf.length || buf.length > SHEET_MAX) return fail(413, 'That photo is too big.');
         if (!(buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)) return fail(415, 'Photos have to be JPEGs.');
         const recent = this.sql.exec('SELECT COUNT(*) AS n FROM sheets WHERE ukey = ? AND created_at > ?', me.ukey, now() - 36e5).one().n;
         if (recent >= 30) return fail(429, 'Easy there. Try again in a bit.');
-        this.sql.exec('INSERT INTO sheets (date, lane, game, pids, ukey, img, status, created_at, test) VALUES (?,?,?,?,?,?,?,?,?)',
-          date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now(), test ? 1 : 0);
+        this.sql.exec('INSERT INTO sheets (date, lane, game, pids, ukey, img, status, created_at, test, scores) VALUES (?,?,?,?,?,?,?,?,?,?)',
+          date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now(), test ? 1 : 0, JSON.stringify(scores));
         const dup = this.sql.exec("SELECT COUNT(*) AS n FROM sheets WHERE date = ? AND lane = ? AND game = ? AND test = ? AND status IN ('pending','approved')", date, lane, game, test ? 1 : 0).one().n > 1;
         const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
         if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to ${dup ? 'check (possible duplicate)' : 'approve'}: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to ${dup ? 'compare them' : 'approve it'}.`, 'camera'));
         return json(this.games(L, me), 201);
       }
-      if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject|duplicate|restore|move)$/.test(path)) {
+      if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject|duplicate|restore|move|scores)$/.test(path)) {
         const L = await this.league(url.origin);
         if (me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can do that.');
         const [, id, act] = path.match(/^\/sheet\/(\d+)\/(\w+)$/);
@@ -434,6 +438,15 @@ export class Accounts extends DurableObject {
         } else if (act === 'reject') set('rejected');
         else if (act === 'duplicate') set('duplicate');
         else if (act === 'restore') set('pending');
+        else if (act === 'scores') {
+          // Nick fixes a typed score, or adds who's on the lane + their scores (Oct 28 2026)
+          const body = await request.json().catch(() => ({}));
+          const roster = new Set(this.merged(L).map(p => p.id));
+          const sc = Object.fromEntries(Object.entries(body.scores || {}).filter(([pid, v]) => roster.has(pid) && v !== '' && v != null && Number.isInteger(+v) && +v >= 0 && +v <= 300).map(([pid, v]) => [pid, +v]));
+          const cur = JSON.parse(this.sql.exec('SELECT pids FROM sheets WHERE id = ?', sh.id).one().pids || '[]');
+          const pids = [...new Set([...cur, ...Object.keys(sc)])].slice(0, 8);
+          this.sql.exec('UPDATE sheets SET scores = ?, pids = ? WHERE id = ?', JSON.stringify(sc), JSON.stringify(pids), sh.id);
+        }
         else {
           // Not a duplicate after all: fix the lane/game the uploader typed
           const { lane, game } = await request.json().catch(() => ({}));
@@ -682,11 +695,23 @@ export class Accounts extends DurableObject {
       poll.voters = who.size;
     }
     const boss = me && me.player_id === L.league?.commissioner;
-    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, ukey, status, test, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 400').toArray()
+    // Live scoreboard: every typed score on a pending or approved photo is public (the photo itself may not be).
+    // One score per bowler per game: an approved photo beats a pending one, then the newest wins.
+    const liveBest = {};
+    for (const x of this.sql.exec("SELECT id, date, lane, game, ukey, status, scores, created_at FROM sheets WHERE test = 0 AND status IN ('pending','approved') AND date >= ? ORDER BY created_at", nyDate(now() - 14 * 864e5)).toArray()) {
+      if (!live(x.ukey)) continue;
+      let sc = {}; try { sc = JSON.parse(x.scores || '{}'); } catch { sc = {}; }
+      for (const [pid, score] of Object.entries(sc)) {
+        const k = `${x.date}|${pid}|${x.game}`, cur = liveBest[k], ok = x.status === 'approved';
+        if (!cur || (ok && !cur.ok) || (ok === cur.ok && x.created_at >= cur.at)) liveBest[k] = { date: x.date, pid, game: x.game, lane: x.lane, score, ok, at: x.created_at, sheet: x.id };
+      }
+    }
+    const liveScores = Object.values(liveBest);
+    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, scores, ukey, status, test, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 400').toArray()
       .filter(x => x.test ? boss : (x.status === 'approved' || (me && (boss || x.ukey === me.ukey))))
       .filter(x => boss || x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
-      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets };
+      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), scores: JSON.parse(x.scores || '{}'), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets, live: liveScores };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

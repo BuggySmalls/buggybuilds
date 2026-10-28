@@ -130,7 +130,14 @@
       "id": "n8",
       "name": "n8",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "Scooter McScoot III",
+        "Scoot"
+      ],
+      "formerIds": [
+        "scooter"
+      ]
     },
     {
       "id": "liam",

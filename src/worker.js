@@ -135,7 +135,24 @@ export class Accounts extends DurableObject {
   async league(origin) {
     const r = await this.env.ASSETS.fetch(new Request(origin + '/data/league.json'));
     if (!r.ok) throw new Error('league.json missing');
-    return r.json();
+    const L = await r.json();
+    this.remapIds(L);
+    return L;
+  }
+  // Old bowler ids (Nick, Oct 28 2026): a placeholder renamed in league.json (players[].formerIds,
+  // e.g. scooter -> n8) takes its call-outs, betchas, posts, picks, scoresheet tags and teams with it.
+  remapIds(L) {
+    for (const p of L.players || []) for (const old of p.formerIds || []) {
+      const key = old + '>' + p.id;
+      if ((this.remapped ??= new Set()).has(key)) continue;
+      for (const t of ['callouts', 'bets', 'posts']) this.sql.exec(`UPDATE ${t} SET to_pid = ? WHERE to_pid = ?`, p.id, old);
+      this.sql.exec('UPDATE picks SET v = ? WHERE v = ?', p.id, old);
+      this.sql.exec('UPDATE accounts SET player_id = ? WHERE player_id = ? AND NOT EXISTS (SELECT 1 FROM accounts WHERE player_id = ?)', p.id, old, p.id);
+      const q = JSON.stringify(old), n = JSON.stringify(p.id);
+      this.sql.exec('UPDATE sheets SET pids = REPLACE(pids, ?, ?) WHERE pids LIKE ?', q, n, `%${q}%`);
+      this.sql.exec('UPDATE teamdraws SET teams = REPLACE(teams, ?, ?) WHERE teams LIKE ?', q, n, `%${q}%`);
+      this.remapped.add(key);
+    }
   }
   admin(L) { const a = L.accounts || {}; return { hidden: new Set((a.hidden || []).map(keyOf)), resets: Object.fromEntries(Object.entries(a.resets || {}).map(([k, v]) => [keyOf(k), v])) }; }
   account(ukey) { return this.sql.exec('SELECT * FROM accounts WHERE ukey = ?', ukey).toArray()[0] || null; }

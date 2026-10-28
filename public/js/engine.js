@@ -743,6 +743,14 @@ export function validate(data) {
     ids.add(p.id);
     if (p.aliases != null && (!Array.isArray(p.aliases) || p.aliases.some(a => typeof a !== 'string' || !a.trim()))) errors.push(`${p.id}: aliases must be a list of names`);
   }
+  // formerIds (Nick, Oct 28 2026): old bowler ids that now belong to this bowler (scooter -> n8).
+  const idsNow = new Set((data.players || []).map(p => p.id)), oldOwner = {};
+  for (const p of data.players || []) for (const o of p.formerIds || []) {
+    if (typeof o !== 'string' || !o) errors.push(`${p.id}: formerIds must be a list of ids`);
+    else if (idsNow.has(o)) errors.push(`${p.id}: formerId "${o}" is still a bowler id`);
+    else if (oldOwner[o]) errors.push(`formerId "${o}" belongs to both ${oldOwner[o]} and ${p.id}`);
+    else oldOwner[o] = p.id;
+  }
   const aliasOwner = {};
   for (const p of data.players || []) for (const a of [p.name, ...(Array.isArray(p.aliases) ? p.aliases : [])]) {
     const k = String(a || '').trim().toLowerCase(); if (!k) continue;

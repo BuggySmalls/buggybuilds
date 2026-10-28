@@ -41,6 +41,7 @@ async function load() {
   S.nights = E.buildNights(data);
   S.champs = E.championships(data, S.nights, S.todayISO);
   S.players = Object.fromEntries(data.players.map(p => [p.id, p]));
+  S.formerId = Object.fromEntries(data.players.flatMap(p => (p.formerIds || []).map(o => [o, p.id])));
   S.active = data.players.filter(p => p.active !== false);
   S.season = E.currentSeason(data, S.todayISO);
   S.seasonNights = S.season ? S.nights.filter(n => n.date >= S.season.start && (!S.season.end || n.date <= S.season.end)) : S.nights;
@@ -56,7 +57,7 @@ async function load() {
 /* ================================================================== *
  * Helpers
  * ================================================================== */
-const P = id => S.players[id] || { id, name: id, nickname: '' };
+const P = id => S.players[id] || S.players[S.formerId?.[id]] || { id, name: id, nickname: '' };
 const AV_COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D'];
 const colorOf = p => p.color || avColor(p.id);
 function avColor(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
@@ -79,6 +80,8 @@ function linkNames(text, { ci = false } = {}) {
   const out = esc(text ?? ''); if (!out) return out;
   const byName = new Map();
   for (const p of Object.values(S.players || {})) { const k = esc(p.name || '').toLowerCase(); if (k.length >= 2 && !byName.has(k)) byName.set(k, p.id); }
+  // Known aliases link too (Nick, Oct 28 2026): "Scoot" in old shit talk opens n8's profile.
+  for (const p of Object.values(S.players || {})) for (const a of [p.sheetName, ...(p.aliases || [])]) { const k = esc(a || '').toLowerCase(); if (k.length >= 3 && !byName.has(k)) byName.set(k, p.id); }
   if (!byName.size) return out;
   const alt = [...byName.keys()].sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const re = new RegExp(`(?<![\\w&#])(${alt})(?![\\w])`, ci ? 'gi' : 'g');
@@ -476,7 +479,7 @@ pages.players = () => {
 
 /* ---------------- Player profile ---------------- */
 pages.player = id => {
-  const p = S.players[id]; if (!p) return empty('No bowler by that name', '<a href="#/players">See all players</a>');
+  const p = S.players[id] || S.players[S.formerId?.[id]]; if (!p) return empty('No bowler by that name', '<a href="#/players">See all players</a>');
   const career = memo('aggAll', () => E.aggregate(S.data, S.nights))[id];
   const season = memo('aggSeason', () => E.aggregate(S.data, S.seasonNights))[id];
   const rank = seasonRank(id);

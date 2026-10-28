@@ -35,12 +35,18 @@ export function renderAttendBar() {
   let html;
   if (locked) html = `${chip}<span class="at-msg"><b>Teams are set.</b> See who you’re bowling with.</span><a class="at-btn yes" href="#/?teams">See teams</a>`;
   else if (!S.me) html = `${chip}<span class="at-msg"><b>Bowling ${day}?</b> Sign in to confirm your attendance.</span>${count}<a class="at-btn yes" href="#/login">Sign in</a>`;
-  else if (att.mine === true) html = `${chip}<span class="at-msg"><b>You’re in for ${day}.</b> ${team ? `You’re in the team queue. Teams get drawn at ${C.fmtTime(S.data.league.startTime || '19:15')}.` : 'See you on the lanes.'}</span>${count}<button type="button" class="at-btn ghost" data-attend="no">Can’t make it</button>`;
+  else if (att.mine === true) html = `${chip}<span class="at-msg"><b>You’re in for ${day}.</b> ${team ? `You’re in the team queue. Teams get drawn at ${C.fmtTime(S.data.league.startTime || '19:15')}.` : 'See you on the lanes.'}</span>${count}<button type="button" class="at-btn ghost" data-attend="no">Can’t make it</button>${queueStrip(att)}`;
   else if (att.mine === false) html = `${chip}<span class="at-msg"><b>You’re out for ${day}.</b> Plans change?</span>${count}<button type="button" class="at-btn yes" data-attend="yes">I’m in after all</button>`;
   else html = `${chip}<span class="at-msg"><b>Confirm your attendance</b> for ${day}</span>${count}<span class="at-pair"><button type="button" class="at-btn yes" data-attend="yes">Yes</button><button type="button" class="at-btn no" data-attend="no">No</button></span>`;
   bar.className = `attend-bar${att.mine === true ? ' in' : att.mine === false ? ' out' : ''}`;
   bar.innerHTML = `<div class="wrap">${html}</div>`;
   bar.hidden = false;
+}
+
+// The queue lives in the "You're in" bubble (Nick, Oct 28 2026): everyone who said Yes, photo + name.
+function queueStrip(att) {
+  const { P, avatar, esc } = C;
+  return `<div class="at-queue" aria-label="Who's in">${att.yes.map(x => `<a class="at-face" href="#/player/${encodeURIComponent(x.pid)}" title="${esc(P(x.pid).name)}">${avatar(P(x.pid), 34)}<span class="at-name">${esc(P(x.pid).name)}</span></a>`).join('')}</div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -71,16 +77,8 @@ export function homeAttend() {
   if (team && teams) return `<section class="panel tm-panel" id="teams"><div class="panel-head"><h2>Team night · ${esc(day)}</h2><a href="#/faq">How team scoring works</a></div>
     <p class="small muted">Teams were drawn from the queue at first ball, balanced on average. Team score is everyone’s handicap games added up. You still bowl your normal individual night too.</p>
     ${teamCards(teams, null)}</section>`;
-  if (locked) return '';
-  // Name under each face (Nick, Oct 28 2026) so you can tell who's in without tapping.
-  const faces = list => list.map(x => `<a class="at-face" href="#/player/${encodeURIComponent(x.pid)}" title="${esc(P(x.pid).name)}">${avatar(P(x.pid), 44)}<span class="at-name">${esc(P(x.pid).name)}</span></a>`).join('');
-  if (!att.yes.length && !att.no.length && !team) return '';
-  return `<section class="panel at-panel"><div class="panel-head"><h2>${team ? 'Team night queue' : 'Who’s bowling'} · ${esc(day)}</h2><span class="small muted">${att.yes.length} in${att.no.length ? ` · ${att.no.length} out` : ''}</span></div>
-    ${team ? `<p class="small muted">Confirm you’re in and you join the queue. At ${C.fmtTime(S.data.league.startTime || '19:15')} the site splits everyone in the queue into ${att.yes.length >= 12 ? '4' : att.yes.length >= 6 ? '3' : 'even'} teams, balanced on average, and posts them here.</p>` : ''}
-    ${att.yes.length ? `<div class="at-faces">${faces(att.yes)}</div>` : '<p class="muted">Nobody’s confirmed yet. Be first.</p>'}
-    ${att.no.length ? `<p class="small faint">Out: ${att.no.map(x => C.pl(x.pid)).join(', ')}</p>` : ''}
-    ${S.me && att.mine == null ? `<div class="controls"><button type="button" class="btn primary" data-attend="yes">I’m in</button><button type="button" class="btn" data-attend="no">Can’t make it</button></div>` : ''}
-  </section>`;
+  // Before the draw the queue lives in the bar's "You're in" bubble and the poll takes this spot (Nick, Oct 28 2026).
+  return '';
 }
 
 /* Results page: team standings for a team night */

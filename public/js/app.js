@@ -298,11 +298,11 @@ pages.home = () => {
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>
     </div>
   </section>
+  ${homePoll()}
   ${homeAttend()}
   ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
   <div class="home-live">${homeBets()}${homeTalk()}</div>
   ${homeSheets()}
-  ${homePoll()}
 
 
   <section class="kpis">

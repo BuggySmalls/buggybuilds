@@ -1194,3 +1194,8 @@ span.nh-arrow{display:none}
 /* League leader crown */
 .crowned{position:relative;display:inline-grid;flex:none;overflow:visible}
 .crown{position:absolute;right:0;top:0;transform:translate(30%,-38%) rotate(22deg);font-size:max(12px,calc(var(--av) * .42));line-height:1;pointer-events:none;filter:drop-shadow(1px 1px 0 #111)}
+.at-queue{flex:1 1 100%;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 2px 2px;border-top:2px dashed rgba(0,0,0,.25)}
+.at-queue::-webkit-scrollbar{display:none}
+.at-queue .at-face{width:56px;flex:none}
+.at-queue .at-name{font-size:11px;max-width:56px;color:#111}
+.at-queue a{text-decoration:none}

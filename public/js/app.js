@@ -295,7 +295,7 @@ pages.home = () => {
         <span class="hero-season">★ ${esc(S.season?.name || '')} ★ ${S.active.length} bowlers ★</span>
         <h1 class="shade">${esc(L.name)}</h1>
         <p class="where">${esc(L.weekday)} nights at ${esc(L.venue)}, ${esc(L.town)}</p>
-        ${next && next.date === S.todayISO ? `<div class="rumble" role="note"><span class="rumble-tag">★ Game day ★</span><b>LET’S GET READY TO RUMBOOOWWWWWWWLLLLLLLLLLL!</b></div>` : ''}
+        ${next && next.date === S.todayISO ? `<div class="rumble" role="note"><span class="rumble-tag">★ Game day ★</span><b>LET’S GET READY TO <span class="rumble-word">RUMBOOOWWWWWWWLLLLL!</span></b></div>` : ''}
         <div class="hero-art" aria-hidden="true">${pinsArt()}<span class="burst">STRIKE!</span></div>
       </div>
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>
@@ -1152,6 +1152,7 @@ function route() {
   const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Betchas & Shit Talk', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   try { renderBell(); renderAttendBar(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
+  fitRumble();
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);
 }
 let lastPath = null;
@@ -1212,3 +1213,14 @@ Promise.all([load(), fetchMe().then(u => { S.me = u; })]).then(() => {
   console.error(err);
   $('#app').innerHTML = empty('The league data didn’t load', 'Refresh the page to try again.');
 });
+
+// Game-day banner: shrink "RUMBOOOW…L!" until it fits the box on one line (Nick, Oct 28 2026)
+function fitRumble() {
+  for (const el of document.querySelectorAll('.rumble-word')) {
+    el.style.fontSize = '';
+    const room = el.parentElement.clientWidth;
+    if (el.scrollWidth > room) el.style.fontSize = `${Math.floor(parseFloat(getComputedStyle(el).fontSize) * room / el.scrollWidth * 0.98)}px`;
+  }
+}
+document.fonts?.ready.then(fitRumble);
+addEventListener('resize', () => requestAnimationFrame(fitRumble));

@@ -82,7 +82,11 @@
       "id": "natehasboobs",
       "name": "NateHasBoobs",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "photo": "img/players/jason.jpg",
+      "aliases": [
+        "Jason"
+      ]
     },
     {
       "id": "buggy",

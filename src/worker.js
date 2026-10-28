@@ -152,6 +152,8 @@ export class Accounts extends DurableObject {
   // Nick's test photos (Oct 28 2026): ids in league.json scoresheets.reject get marked rejected, which
   // pulls them (and their typed live scores) off the public site. They stay in Nick's queue, restorable.
   rejectSheets(L) {
+    // scoresheets.remove: gone for good — the row, photo and typed scores are deleted (Nick, Oct 28 2026)
+    for (const id of L.scoresheets?.remove || []) this.sql.exec('DELETE FROM sheets WHERE id = ?', +id);
     for (const id of L.scoresheets?.reject || []) {
       if ((this.rejected ??= new Set()).has(+id)) continue;
       this.sql.exec("UPDATE sheets SET status = 'rejected', decided_at = ? WHERE id = ? AND status != 'rejected'", now(), +id);
@@ -517,7 +519,8 @@ export class Accounts extends DurableObject {
       if (method === 'DELETE' && path.startsWith('/sheet/')) {
         const L = await this.league(url.origin);
         const sh = this.sql.exec('SELECT id, ukey, status, test FROM sheets WHERE id = ?', +path.slice(7)).toArray()[0];
-        if (!sh || !((sh.ukey === me.ukey && sh.status === 'pending') || (sh.test && me.player_id === L.league?.commissioner))) return fail(404, 'Not yours to delete.');
+        const bossDel = me.player_id === L.league?.commissioner && (sh?.test || ['rejected', 'duplicate'].includes(sh?.status));
+        if (!sh || !((sh.ukey === me.ukey && sh.status === 'pending') || bossDel)) return fail(404, 'Not yours to delete.');
         this.sql.exec('DELETE FROM sheets WHERE id = ?', sh.id);
         return json(this.games(L, me));
       }

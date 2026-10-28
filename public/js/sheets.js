@@ -186,7 +186,7 @@ function review(list) {
   return { count: dupGroups.length + singles.length, html: `
     ${dupGroups.length ? `<h3 class="sh-sub">Possible duplicates</h3>${dupHTML}` : ''}
     ${singles.length ? `${dupGroups.length ? '<h3 class="sh-sub">Single photos</h3>' : ''}<div class="sh-list">${singleHTML}</div>` : ''}
-    ${marked.length ? `<details class="sh-marked"><summary class="small muted">Duplicates and rejected (${marked.length})</summary><div class="sh-list">${marked.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'restore', 'Put back in the queue')}</span>` })).join('')}</div></details>` : ''}` };
+    ${marked.length ? `<details class="sh-marked"><summary class="small muted">Duplicates and rejected (${marked.length})</summary><div class="sh-list">${marked.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'restore', 'Put back in the queue')}<button type="button" class="btn small danger" data-sheet="${s.id}|delete" data-confirm="Delete this photo for good? It can't come back.">Delete forever</button></span>` })).join('')}</div></details>` : ''}` };
 }
 
 function formHTML({ test, nights, date, roster }) {
@@ -338,6 +338,7 @@ export function installSheets(ctx) {
     }
     const b = e.target.closest('[data-sheet]'); if (!b) return;
     const [id, what] = b.dataset.sheet.split('|');
+    if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
     act(id, what);
   });
 }

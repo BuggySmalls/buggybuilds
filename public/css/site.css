@@ -1259,3 +1259,8 @@ span.nh-arrow{display:none}
 .toon-presets svg{width:56px;height:56px;border-radius:50%;border:2px solid #111}
 .toon-presets small{font:600 11px/1.15 var(--body);text-align:center}
 .toon-seg{flex-wrap:wrap}
+.toon-bases{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.toon-bases button{display:grid;justify-items:center;gap:4px;padding:8px 4px;border:3px solid #111;border-radius:14px;background:var(--panel);color:var(--text);cursor:pointer;font:600 13px var(--body)}
+.toon-bases button[aria-pressed="true"]{background:var(--maple);color:#111;box-shadow:var(--pop)}
+.toon-bases svg{width:56px;height:56px;border-radius:50%;border:2px solid #111}
+.toon-ideas summary{cursor:pointer;font:600 14px var(--body);color:var(--cyan,#3BE8FF);margin-bottom:8px}

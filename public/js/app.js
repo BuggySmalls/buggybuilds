@@ -295,6 +295,7 @@ pages.home = () => {
         <span class="hero-season">★ ${esc(S.season?.name || '')} ★ ${S.active.length} bowlers ★</span>
         <h1 class="shade">${esc(L.name)}</h1>
         <p class="where">${esc(L.weekday)} nights at ${esc(L.venue)}, ${esc(L.town)}</p>
+        ${next && next.date === S.todayISO ? `<div class="rumble" role="note"><span class="rumble-tag">★ Game day ★</span><b>LET’S GET READY TO RUMBOOOWWWWWWWLLLLLLLLLLL!</b></div>` : ''}
         <div class="hero-art" aria-hidden="true">${pinsArt()}<span class="burst">STRIKE!</span></div>
       </div>
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>

@@ -679,6 +679,7 @@
     ]
   },
   "scoresheets": {
-    "lanes": 24
+    "lanes": 24,
+    "reject": [1]
   }
 }

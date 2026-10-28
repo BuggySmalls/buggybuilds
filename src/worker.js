@@ -142,7 +142,17 @@ export class Accounts extends DurableObject {
     if (!r.ok) throw new Error('league.json missing');
     const L = await r.json();
     this.remapIds(L);
+    this.rejectSheets(L);
     return L;
+  }
+  // Nick's test photos (Oct 28 2026): ids in league.json scoresheets.reject get marked rejected, which
+  // pulls them (and their typed live scores) off the public site. They stay in Nick's queue, restorable.
+  rejectSheets(L) {
+    for (const id of L.scoresheets?.reject || []) {
+      if ((this.rejected ??= new Set()).has(+id)) continue;
+      this.sql.exec("UPDATE sheets SET status = 'rejected', decided_at = ? WHERE id = ? AND status != 'rejected'", now(), +id);
+      this.rejected.add(+id);
+    }
   }
   // Old bowler ids (Nick, Oct 28 2026): a placeholder renamed in league.json (players[].formerIds,
   // e.g. scooter -> n8) takes its call-outs, betchas, posts, picks, scoresheet tags and teams with it.

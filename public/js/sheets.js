@@ -219,13 +219,17 @@ function page() {
   if (boss()) {
     const r = review(sheets());
     bossHTML = `${r.html.trim() ? `<section class="panel sh-queue"><div class="panel-head"><h2>Needs your approval</h2><span class="small muted">${r.count} waiting</span></div>${r.html}</section>` : ''}`;
+    // Approved photos stay undoable (Nick, Oct 28 2026): reject one later, or send it back to the queue
+    const ok = sheets().filter(x => x.status === 'approved' && x.date === date).sort((a, b) => a.lane - b.lane || a.game - b.game);
+    if (ok.length) bossHTML += `<section class="panel"><div class="panel-head"><h2>Approved · ${C.esc(day(date))}</h2><span class="small muted">${ok.length}</span></div>
+      <div class="sh-list">${ok.map(x => card(x, { actions: `<span class="sh-btns"><button type="button" class="btn small" data-sheet="${x.id}|reject">Reject</button><button type="button" class="btn small" data-sheet="${x.id}|restore">Back to queue</button></span>` })).join('')}</div></section>`;
   }
   return `<div><h1 class="page-title">Upload scores</h1><p class="page-intro">Send a photo of the lane screen. Once Nick approves it, it shows up on the site and the scores get logged.</p></div>
     ${liveBoard(date)}
     ${bossHTML}
     ${form}
     ${mine.length ? `<section class="panel"><div class="panel-head"><h2>Your uploads</h2></div><div class="sh-list">${mine.slice(0, 12).map(s => card(s, { actions: s.status === 'pending' ? `<button type="button" class="linkish small" data-sheet="${s.id}|delete">take it back</button>` : '' })).join('')}</div></section>` : ''}
-    ${sheetThumbs(date, { title: `Approved · ${day(date)}`, link: false })}
+    ${boss() ? '' : sheetThumbs(date, { title: `Approved · ${day(date)}`, link: false })}
     ${testHTML}`;
 }
 

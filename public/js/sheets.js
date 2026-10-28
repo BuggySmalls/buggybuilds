@@ -58,10 +58,17 @@ function card(s, { actions = '' } = {}) {
     <div class="sh-info"><b>Lane ${s.lane} · Game ${s.game}</b> ${tag}
       <span class="small muted">${esc(day(s.date))}${s.from ? ` · sent by ${pl(s.from)}` : ''}</span>
       ${s.pids.length ? `<span class="small">On the lane: ${s.pids.map(id => `${pl(id)}${s.scores?.[id] != null ? ` <b>${s.scores[id]}</b>` : ''}`).join(', ')}</span>` : ''}
+      ${boss() && s.guess ? guessRow(s) : ''}
       ${boss() && (s.status === 'pending' || s.status === 'approved') ? lineupCheck(s) + fixScores(s) : ''}
       ${actions}</div></div>`;
 }
 
+// Guessed group from the lane draw (Nick, Oct 28 2026): who's probably on this lane, shown to Nick on each card.
+function guessRow(s) {
+  const g = s.guess, tagged = new Set(s.pids);
+  return `<div class="sh-guess"><span class="small"><b>Guessed group</b> (drawn lane ${C.esc(String(g.lane))}, by ${C.esc(g.how)}):</span>
+    <span class="sh-guess-list">${g.pids.map(id => `<span class="sh-gp${tagged.has(id) ? ' on' : ''}">${C.avatar(C.P(id), 22)}${C.pl(id)}</span>`).join('')}</span></div>`;
+}
 // Lineup check for Nick (Oct 28 2026): the site can't read the names on the screen, but it can tell when the
 // tags don't add up. Claude does the real name match (scripts/match-lane.mjs) when logging the photo.
 function lineupCheck(s) {

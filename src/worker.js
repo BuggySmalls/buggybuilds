@@ -471,7 +471,9 @@ export class Accounts extends DurableObject {
           date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now(), test ? 1 : 0, JSON.stringify(scores));
         const dup = this.sql.exec("SELECT COUNT(*) AS n FROM sheets WHERE date = ? AND lane = ? AND game = ? AND test = ? AND status IN ('pending','approved')", date, lane, game, test ? 1 : 0).one().n > 1;
         const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
-        if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to ${dup ? 'check (possible duplicate)' : 'approve'}: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to ${dup ? 'compare them' : 'approve it'}.`, 'camera'));
+        const gs = this.guessLane(L, date, lane, pids, me.player_id), P = Object.fromEntries(this.merged(L).map(p => [p.id, p.name]));
+        const guessTxt = gs ? `\nGuessed group: ${gs.pids.map(id => P[id] || id).join(', ')}` : '';
+        if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to ${dup ? 'check (possible duplicate)' : 'approve'}: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to ${dup ? 'compare them' : 'approve it'}.${guessTxt}`, 'camera'));
         return json(this.games(L, me), 201);
       }
       if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject|duplicate|restore|move|scores)$/.test(path)) {
@@ -735,6 +737,23 @@ export class Accounts extends DurableObject {
     return pick.map((pids, i) => ({ name: names[i % names.length], pids }));
   }
 
+  // Who's probably on this lane (Nick, Oct 28 2026), from the night's lane draw: the drawn group that has
+  // most of the tagged bowlers; else the real lane number (laneDraw.numbers); else the uploader's group;
+  // else the lane's rank among the lane numbers uploaded that night (lowest = first drawn lane).
+  guessLane(L, date, lane, pids = [], uploader = null) {
+    const row = this.sql.exec('SELECT lanes FROM lanedraws WHERE date = ?', date).toArray()[0]; if (!row) return null;
+    const groups = laneRow(row.lanes).lanes; if (!groups?.length) return null;
+    const pick = (g, how) => g ? { lane: g.lane, pids: g.pids, how } : null;
+    if (pids.length) {
+      const best = groups.map(g => ({ g, n: g.pids.filter(p => pids.includes(p)).length })).sort((a, b) => b.n - a.n)[0];
+      if (best.n) return pick(best.g, 'tagged bowlers');
+    }
+    const nums = L.laneDraw?.numbers?.[date];
+    if (Array.isArray(nums) && nums.includes(lane)) return pick(groups.find(g => g.lane === lane), 'lane number');
+    if (uploader) { const g = groups.find(g => g.pids.includes(uploader)); if (g) return pick(g, 'who sent it'); }
+    const seen = [...new Set(this.sql.exec("SELECT DISTINCT lane FROM sheets WHERE date = ? AND status IN ('pending','approved')", date).toArray().map(r => r.lane).concat(lane))].sort((a, b) => a - b);
+    return pick(groups[seen.indexOf(lane)], 'lane order');
+  }
   // Trades after the draw (Nick, Oct 28 2026): teamNights[date].swap = [["fontes", "liam"]] swaps two bowlers' teams.
   swapTeams(L, date, teams) {
     const sw = L.teamNights?.[date]?.swap; if (!Array.isArray(sw) || !teams) return teams;
@@ -814,7 +833,7 @@ export class Accounts extends DurableObject {
     const sheets = this.sql.exec('SELECT id, date, lane, game, pids, scores, ukey, status, test, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 400').toArray()
       .filter(x => x.test ? boss : (x.status === 'approved' || (me && (boss || x.ukey === me.ukey))))
       .filter(x => boss || x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
-      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), scores: JSON.parse(x.scores || '{}'), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
+      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), scores: JSON.parse(x.scores || '{}'), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey, guess: boss && (x.status === 'pending' || x.status === 'approved') ? this.guessLane(L, x.date, x.lane, JSON.parse(x.pids), pidOf[x.ukey]) : null }));
     const likes = {}, comments = {};
     for (const r of this.sql.exec('SELECT kind, item, ukey FROM likes ORDER BY at').toArray()) {
       if (!live(r.ukey)) continue;

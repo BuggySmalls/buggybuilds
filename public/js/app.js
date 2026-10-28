@@ -1196,7 +1196,7 @@ installGames({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, fmt
 installTalk({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 installPoll({ S, pages, esc, empty, linkNames, route });
-installSheets({ S, E, pages, esc, empty, who, pl, fmtDate, P, route });
+installSheets({ S, E, pages, esc, empty, who, pl, avatar, fmtDate, P, route });
 installReact({ S, esc, pl, P, linkNames, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 

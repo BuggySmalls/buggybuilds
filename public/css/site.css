@@ -1311,3 +1311,7 @@ span.nh-arrow{display:none}
 .bf-live{color:#FF3B3B;font-weight:700}
 .rx-sm{min-height:24px;padding:1px 7px;font-size:12px}
 .rx-btn.on.no{background:#555;border-color:#555}
+.sh-guess{display:flex;flex-direction:column;gap:4px;margin:6px 0;padding:6px 8px;border-radius:10px;background:rgba(59,232,255,.1);border:1px dashed #3BE8FF}
+.sh-guess-list{display:flex;flex-wrap:wrap;gap:6px}
+.sh-gp{display:inline-flex;align-items:center;gap:4px;font-size:13px;padding:2px 8px 2px 2px;border-radius:99px;background:rgba(0,0,0,.25)}
+.sh-gp.on{outline:2px solid var(--gold,#FFC857)}

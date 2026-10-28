@@ -2,6 +2,7 @@
 // Posts live on the account server; notifications are built in the browser from
 // /api/games (posts, betchas, call-outs) and compared with the last time you looked.
 import { api } from './account.js';
+import { reactBar } from './react.js';
 import { renderAttendBar } from './attend.js';
 import { sheetFeed } from './sheets.js';
 import { fetchGames, betRow, calloutRow, openDate, settleRoles, settleState, settleAt } from './games.js';
@@ -52,6 +53,18 @@ export function feedItems() {
         text: `Waiting on ${N(opp)} to tap “I paid.”${amt ? ' Then it goes on the purse.' : ''}` });
     }
   }
+  // Comments on your post / betcha / call-out (Nick, Oct 28 2026); likes don't ping anyone
+  if (me) {
+    const mineOf = {};
+    for (const p of g.posts || []) mineOf['post:' + p.id] = [p.from, p.to].includes(me) ? 'post' : null;
+    for (const b of g.bets || []) mineOf['bet:' + b.id] = [b.from, b.to].includes(me) ? 'betcha' : null;
+    for (const c of g.callouts || []) mineOf['callout:' + c.id] = [c.from, c.to].includes(me) ? 'call-out' : null;
+    for (const [k, list] of Object.entries(g.comments || {})) {
+      const what = mineOf[k]; if (!what) continue;
+      for (const cm of list) if (cm.from !== me) out.push({ id: 'cm' + cm.id, at: cm.at, from: cm.from, kind: 'comment', personal: true, link: '#/talk',
+        text: `${N(cm.from)} commented on your ${what}: ${cm.msg}` });
+    }
+  }
   for (const c of g.callouts || []) out.push({ id: 'c' + c.id, at: c.at, from: c.from, kind: 'callout', personal: !!me && c.to === me,
     text: `${N(c.from)} called ${c.to === me ? 'you' : N(c.to)} out${c.msg ? ': ' + c.msg : ''}` });
   // Attendance (Nick, Oct 25 2026): the commissioner hears every Yes/No; teammates hear when teams are drawn.
@@ -88,7 +101,7 @@ export function feedItems() {
 }
 const seenAt = () => Math.max(C.S.games?.seenAt || 0, +store.get(SEEN_KEY) || 0);
 const unread = () => { const since = seenAt(); return feedItems().filter(x => x.pending || x.at > since).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.at - a.at); };
-const label = { post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll', sheet: 'Scoresheet' };
+const label = { comment: 'Comment', post: 'Shit talk', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll', sheet: 'Scoresheet' };
 const hrefOf = x => x.link || (x.kind === 'settle' ? '#/talk?settle' : '#/talk');
 
 function ago(ms) {
@@ -157,7 +170,7 @@ export function popNewest() {
 function postRow(p) {
   const { esc, who, P } = C, mine = C.S.me?.playerId === p.from;
   return `<div class="post${p.to && p.to === C.S.me?.playerId ? ' you' : ''}"><div class="post-head">${who(p.from, { size: 30, nick: false })}${p.to ? `<span class="post-at">→ ${C.pl(p.to)}</span>` : ''}<span class="post-when">${ago(p.at)}</span></div>
-    <p class="post-msg">${C.linkNames(p.msg)}</p>${mine ? `<button type="button" class="linkish small" data-unpost="${p.id}">delete</button>` : ''}</div>`;
+    <p class="post-msg">${C.linkNames(p.msg)}</p>${mine ? `<button type="button" class="linkish small" data-unpost="${p.id}">delete</button>` : ''}${reactBar('post', p.id)}</div>`;
 }
 function bowlerOptions(placeholder) {
   const me = C.S.me?.playerId;

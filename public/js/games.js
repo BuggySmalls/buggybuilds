@@ -1,5 +1,6 @@
 // Pick'em and call-outs. Picks and call-outs are stored by the account server;
 // everything here is scored in the browser from the night's real results.
+import { reactBar } from './react.js';
 import { api } from './account.js';
 
 let C; // { S, E, esc, avatar, who, empty, fmtDate, fmtTime, P, matches, route }
@@ -118,7 +119,7 @@ export function calloutRow(c, { side = null } = {}) {
       : `<span class="co-tag ${side && ((res === 'W') === (side === c.from)) ? 'win' : side ? 'loss' : 'win'}">${C.pl(res === 'W' ? c.from : c.to)} wins</span>`;
   const mineDel = !res && C.S.me?.playerId === c.from && openDate() === c.date ? `<button type="button" class="linkish small" data-uncall="${c.id}">take it back</button>` : '';
   return `<div class="co-row"><div class="co-vs">${who(c.from, { size: 28 })}${score(c.from)}<span class="co-x">called out</span>${who(c.to, { size: 28 })}${score(c.to)}</div>
-    ${c.msg ? `<p class="co-msg">“${C.linkNames(c.msg)}”</p>` : ''}<div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(c.date, { month: 'short', day: 'numeric' }))}</span>${mineDel}</div></div>`;
+    ${c.msg ? `<p class="co-msg">“${C.linkNames(c.msg)}”</p>` : ''}<div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(c.date, { month: 'short', day: 'numeric' }))}</span>${mineDel}</div>${reactBar('callout', c.id)}</div>`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -150,7 +151,7 @@ export function betRow(b, { side = null } = {}) {
     : r && me === r.loser && !b.paidAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|paid">I paid</button>`
     : r && me === r.winner && !b.gotAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|got">Got paid</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
-    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div></div>`;
+    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div>${reactBar('bet', b.id)}</div>`;
 }
 export function homeBets() {
   const g = C.S.games; if (!g?.bets) return '';

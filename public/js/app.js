@@ -7,6 +7,7 @@ import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
 import { installAttend, renderAttendBar, homeAttend, nightTeams } from './attend.js';
 import { installPoll, homePoll } from './poll.js';
+import { installReact } from './react.js';
 import { installSheets, homeSheets, sheetThumbs, liveNow, liveDate, liveCalc } from './sheets.js';
 
 /* ================================================================== *
@@ -1191,6 +1192,7 @@ installTalk({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, r
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 installPoll({ S, pages, esc, empty, linkNames, route });
 installSheets({ S, E, pages, esc, empty, who, pl, fmtDate, P, route });
+installReact({ S, esc, pl, P, linkNames, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });
 
 /* ================================================================== *

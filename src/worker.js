@@ -118,6 +118,8 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS teamdraws (date TEXT PRIMARY KEY, teams TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS sheets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, lane INTEGER NOT NULL, game INTEGER NOT NULL, pids TEXT NOT NULL DEFAULT '[]', ukey TEXT NOT NULL, img BLOB NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL, decided_at INTEGER);
       CREATE TABLE IF NOT EXISTS poll_votes (poll TEXT NOT NULL, ukey TEXT NOT NULL, qid TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (poll, ukey, qid, v));
+      CREATE TABLE IF NOT EXISTS likes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
+      CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
@@ -388,6 +390,31 @@ export class Accounts extends DurableObject {
         if (last && now() - last.created_at < 10e3) return fail(429, 'Easy. Wait a few seconds between posts.');
         this.sql.exec('INSERT INTO posts (ukey, to_pid, msg, created_at) VALUES (?,?,?,?)', me.ukey, target, m, now());
         return json(this.games(L, me), 201);
+      }
+      // Likes + comments on shit talk, betchas and call-outs (Nick, Oct 28 2026)
+      if (method === 'POST' && (path === '/like' || path === '/comment')) {
+        const { kind, id, msg } = await request.json().catch(() => ({}));
+        const table = { post: 'posts', bet: 'bets', callout: 'callouts' }[kind];
+        if (!table || !this.sql.exec(`SELECT 1 FROM ${table} WHERE id = ?`, +id).toArray().length) return fail(404, 'That’s gone.');
+        if (path === '/like') {
+          const had = this.sql.exec('SELECT 1 FROM likes WHERE kind = ? AND item = ? AND ukey = ?', kind, +id, me.ukey).toArray().length;
+          if (had) this.sql.exec('DELETE FROM likes WHERE kind = ? AND item = ? AND ukey = ?', kind, +id, me.ukey);
+          else this.sql.exec('INSERT INTO likes (kind, item, ukey, at) VALUES (?,?,?,?)', kind, +id, me.ukey, now());
+        } else {
+          const m = clean(msg, 200);
+          if (!m) return fail(400, 'Say something first.');
+          const last = this.sql.exec('SELECT at FROM comments WHERE ukey = ? ORDER BY at DESC LIMIT 1', me.ukey).toArray()[0];
+          if (last && now() - last.at < 5e3) return fail(429, 'Easy. Wait a few seconds.');
+          this.sql.exec('INSERT INTO comments (kind, item, ukey, msg, at) VALUES (?,?,?,?,?)', kind, +id, me.ukey, m, now());
+        }
+        return json(this.games(await this.league(url.origin), me));
+      }
+      if (method === 'DELETE' && path.startsWith('/comment/')) {
+        const L = await this.league(url.origin);
+        const cm = this.sql.exec('SELECT id, ukey FROM comments WHERE id = ?', +path.slice(9)).toArray()[0];
+        if (!cm || (cm.ukey !== me.ukey && me.player_id !== L.league?.commissioner)) return fail(404, 'Not your comment.');
+        this.sql.exec('DELETE FROM comments WHERE id = ?', cm.id);
+        return json(this.games(L, me));
       }
       if (method === 'DELETE' && path.startsWith('/post/')) {
         const pst = this.sql.exec('SELECT * FROM posts WHERE id = ?', +path.slice(6)).toArray()[0];
@@ -711,7 +738,16 @@ export class Accounts extends DurableObject {
       .filter(x => x.test ? boss : (x.status === 'approved' || (me && (boss || x.ukey === me.ukey))))
       .filter(x => boss || x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
       .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), scores: JSON.parse(x.scores || '{}'), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey }));
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets, live: liveScores };
+    const likes = {}, comments = {};
+    for (const r of this.sql.exec('SELECT kind, item, ukey FROM likes ORDER BY at').toArray()) {
+      if (!live(r.ukey)) continue;
+      const l = likes[`${r.kind}:${r.item}`] ??= { n: 0, who: [], mine: false };
+      l.n++; l.who.push(pidOf[r.ukey]); if (me && r.ukey === me.ukey) l.mine = true;
+    }
+    const hiddenComments = new Set((L.talk?.hiddenComments || []).map(Number));
+    for (const r of this.sql.exec('SELECT id, kind, item, ukey, msg, at FROM comments ORDER BY at').toArray())
+      if (live(r.ukey) && !hiddenComments.has(r.id)) (comments[`${r.kind}:${r.item}`] ??= []).push({ id: r.id, from: pidOf[r.ukey], msg: r.msg, at: r.at });
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets, live: liveScores, likes, comments };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

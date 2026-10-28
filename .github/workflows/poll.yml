@@ -15,11 +15,15 @@ jobs:
         with: { fetch-depth: 1 }
       - run: |
           set -euo pipefail
-          curl -sS -A "Mozilla/5.0 CerealBowlersAdmin" https://cerealbowlers.org/api/games | jq '{fetchedAt: (now|todate), poll, attendance}' > /tmp/poll.json
+          curl -sS -A "Mozilla/5.0 CerealBowlersAdmin" -w '\nHTTP %{http_code}\n' https://cerealbowlers.org/api/games > /tmp/raw.txt || true
+          head -n -1 /tmp/raw.txt > /tmp/games.json
+          (jq '{fetchedAt: (now|todate), poll, attendance}' /tmp/games.json || echo '{}') > /tmp/poll.json
+          # live night snapshot for Claude (Nick, Oct 28 2026): live scores, teams, lanes, scoresheets (no photos)
+          (jq '{fetchedAt: (now|todate), live, teams, lanes, sheets: [.sheets[]? | {id, date, lane, game, pids, scores, status}]}' /tmp/games.json || cat /tmp/raw.txt) > /tmp/live.json
           git fetch origin pollresults --depth=1 && git checkout -B pollresults FETCH_HEAD || git checkout --orphan pollresults
           git rm -rq --cached . >/dev/null 2>&1 || true
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp /tmp/poll.json poll.json
+          cp /tmp/poll.json poll.json; cp /tmp/live.json live.json
           git config user.name "cerealbowlers-bot"; git config user.email "bot@users.noreply.github.com"
-          git add poll.json; git commit -qm "Poll results" || echo "nothing new"
+          git add poll.json live.json; git commit -qm "Poll results" || echo "nothing new"
           git push -q origin HEAD:pollresults

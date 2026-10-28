@@ -1,0 +1,74 @@
+{
+  "fetchedAt": "2026-10-28T23:58:47Z",
+  "live": [],
+  "teams": {
+    "2026-10-28": {
+      "teams": [
+        {
+          "name": "Team Red",
+          "pids": [
+            "tony",
+            "kate",
+            "n8",
+            "liam",
+            "vcosta99"
+          ]
+        },
+        {
+          "name": "Team Blue",
+          "pids": [
+            "buggy",
+            "fontes",
+            "deedra",
+            "poopbird",
+            "natehasboobs"
+          ]
+        }
+      ],
+      "at": 1793228704375
+    }
+  },
+  "lanes": {
+    "2026-10-28": {
+      "lanes": [
+        {
+          "lane": 1,
+          "pids": [
+            "fontes",
+            "tony",
+            "kate"
+          ]
+        },
+        {
+          "lane": 2,
+          "pids": [
+            "deedra",
+            "liam",
+            "n8",
+            "buggy"
+          ]
+        },
+        {
+          "lane": 3,
+          "pids": [
+            "poopbird",
+            "vcosta99",
+            "natehasboobs"
+          ]
+        }
+      ],
+      "at": 1793229422304
+    }
+  },
+  "sheets": [
+    {
+      "id": 2,
+      "date": "2026-10-28",
+      "lane": 23,
+      "game": 1,
+      "pids": [],
+      "scores": {},
+      "status": "approved"
+    }
+  ]
+}

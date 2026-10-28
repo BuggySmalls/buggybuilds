@@ -1,0 +1,25 @@
+name: Fetch poll results
+# Saves live league poll results (+ attendance) to the `pollresults` branch as poll.json so Claude can read them.
+# Run it from the Actions tab, or push anything to the `poll-request` branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [poll-request]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+      - run: |
+          set -euo pipefail
+          curl -sS -A "Mozilla/5.0 CerealBowlersAdmin" https://cerealbowlers.org/api/games | jq '{fetchedAt: (now|todate), poll, attendance}' > /tmp/poll.json
+          git fetch origin pollresults --depth=1 && git checkout -B pollresults FETCH_HEAD || git checkout --orphan pollresults
+          git rm -rq --cached . >/dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp /tmp/poll.json poll.json
+          git config user.name "cerealbowlers-bot"; git config user.email "bot@users.noreply.github.com"
+          git add poll.json; git commit -qm "Poll results" || echo "nothing new"
+          git push -q origin HEAD:pollresults

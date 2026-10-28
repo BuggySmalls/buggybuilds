@@ -6,6 +6,7 @@ const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A'
 const HANDS = ['Right', 'Left', 'Two-handed'];
 
 import { BADGES } from './engine.js';
+import { PRESETS, builderHTML, bindBuilder, toonJpeg } from './toons.js';
 
 let C; // context from app.js: { S, pages, esc, avatar, empty, reload, colorOf }
 
@@ -245,9 +246,11 @@ function mePage() {
         <span id="mePhoto">${C.avatar({ ...p, photo: S.me.photo, color }, 92)}</span>
         <div class="photo-btns">
           <label class="btn">${S.me.photo ? 'Change photo' : 'Add a photo'}<input type="file" accept="image/*" id="photoIn" hidden></label>
+          <button type="button" class="btn" id="toonBtn" aria-expanded="false">🎳 Make a cartoon</button>
           ${S.me.photo ? '<button type="button" class="linkish" id="photoDel">Remove photo</button>' : ''}
         </div>
       </div>
+      <div id="toonHost" hidden></div>
       <div class="form-grid">
         <label class="field">Name on the scoresheet<input class="txt" name="name" maxlength="24" value="${esc(pr.name || '')}" placeholder="${esc(S.me.username)}"></label>
         <label class="field">Nickname<input class="txt" name="nickname" maxlength="28" value="${esc(pr.nickname || '')}" placeholder="The Gutter Gourmet"></label>
@@ -307,6 +310,19 @@ function afterMe() {
     msg('Uploading…', 'ok');
     try { const blob = await squareJpeg(file, 360); const r = await api('/photo', { method: 'POST', body: blob, raw: true }); S.me = r.user; await C.reload(); }
     catch (err) { msg(err.message || 'That photo didn’t work. Try another one.'); }
+  };
+  // Cartoon profile pictures (Nick, Oct 28 2026): pick a silly bowling character, customize it, save it as your photo.
+  document.getElementById('toonBtn').onclick = e => {
+    const host = document.getElementById('toonHost'), btn = e.currentTarget;
+    const open = host.hidden; host.hidden = !open; btn.setAttribute('aria-expanded', open);
+    if (!open || host.innerHTML) return;
+    const { name, ...t } = PRESETS[Math.floor(Math.random() * PRESETS.length)];
+    host.innerHTML = builderHTML(t, C.esc);
+    bindBuilder(host, t, async (toon, useBtn) => {
+      useBtn.disabled = true; msg('Saving your cartoon…', 'ok');
+      try { const r = await api('/photo', { method: 'POST', body: await toonJpeg(toon), raw: true }); S.me = r.user; await C.reload(); }
+      catch (err) { msg(err.message || 'That didn’t work. Try again.'); useBtn.disabled = false; }
+    });
   };
   document.getElementById('photoDel')?.addEventListener('click', async () => { try { const r = await api('/photo', { method: 'DELETE' }); S.me = r.user; await C.reload(); } catch (err) { msg(err.message); } });
   document.getElementById('logoutBtn').onclick = async () => { await api('/logout', { method: 'POST' }).catch(() => { }); S.me = null; await C.reload(); location.hash = '#/'; };

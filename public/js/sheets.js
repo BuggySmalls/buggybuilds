@@ -47,7 +47,7 @@ export function liveNow() {
 export function homeSheets() {
   const logged = new Set(C.S.data.events.filter(e => e.status === 'completed').map(e => e.date));
   const d = [...new Set(sheets().filter(s => s.status === 'approved').map(s => s.date))].sort().reverse().find(x => !logged.has(x));
-  const ld = [...new Set(liveList().map(x => x.date))].sort().reverse().find(x => !logged.has(x));
+  const ld = [...new Set(liveList().map(x => x.date).concat(sheets().filter(s => s.status === 'approved' || s.status === 'pending').map(s => s.date)))].sort().reverse().find(x => !logged.has(x));
   return (ld ? liveBoard(ld) : '') + (d ? sheetThumbs(d, { title: `Scores coming · ${day(d)}`, note: 'Nick approved these from the lanes. Official results post once they’re logged.' }) : '');
 }
 
@@ -86,9 +86,12 @@ function lineupCheck(s) {
   return `<div class="sh-check ${lvl}"><span class="sh-meter" aria-hidden="true"><i></i><i></i><i></i></span><b>${label}</b>${warn.length ? `<ul>${warn.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}</div>`;
 }
 function fixScores(s) {
-  const { esc, P } = C, ids = s.pids;
+  const { esc, P } = C;
+  let ids = [...new Set([...s.pids, ...(s.guess?.pids || [])])];
+  if (!ids.length) ids = (C.S.games?.attendance?.[s.date]?.yes || []).map(x => x.pid);   // no tags, no lane draw: everyone who said Yes
   if (!ids.length) return '';
-  return `<details class="sh-move"><summary class="small">Fix scores</summary><span class="sh-fix">${ids.map(id => `<label>${esc(P(id).name)}<input type="number" inputmode="numeric" min="0" max="300" value="${s.scores?.[id] ?? ''}" data-fixscore="${s.id}" data-pid="${esc(id)}"></label>`).join('')}<button type="button" class="btn small" data-sheet="${s.id}|scores">Save scores</button></span></details>`;
+  const none = !Object.keys(s.scores || {}).length;
+  return `<details class="sh-move"${none ? ' open' : ''}><summary class="small">${none ? 'Type scores (they go live right away)' : 'Fix scores'}</summary><span class="sh-fix">${ids.map(id => `<label>${esc(P(id).name)}<input type="number" inputmode="numeric" min="0" max="300" value="${s.scores?.[id] ?? ''}" data-fixscore="${s.id}" data-pid="${esc(id)}"></label>`).join('')}<button type="button" class="btn small" data-sheet="${s.id}|scores">Save scores</button></span></details>`;
 }
 
 /* Live scoreboard (Nick, Oct 28 2026): every score typed in from the lanes tonight, before it's logged.
@@ -140,8 +143,22 @@ function needs(L) {
 }
 const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 
+// Photos that came in tonight with no scores typed yet (Nick, Oct 28 2026: a lane 23 photo never showed up live
+// because nobody typed its scores). Listed under the board so it's clear a photo is in and waiting.
+function waitingPhotos(date) {
+  const live = new Set(liveList().filter(x => x.date === date).map(x => `${x.lane}|${x.game}`));
+  return sheets().filter(s => s.date === date && (s.status === 'approved' || s.status === 'pending') && !Object.keys(s.scores || {}).length && !live.has(`${s.lane}|${s.game}`))
+    .sort((a, b) => a.lane - b.lane || a.game - b.game);
+}
+function waitingStrip(date) {
+  const w = waitingPhotos(date); if (!w.length) return '';
+  const nick = boss();
+  return `<div class="lb-wait"><b>📷 Photos in, scores not typed yet</b><ul>${w.map(s => `<li>Lane ${s.lane} · Game ${s.game}${s.from ? ` · from ${C.pl(s.from)}` : ''}${s.status === 'pending' ? ' · waiting on Nick' : ''}</li>`).join('')}</ul>
+    <p class="small muted">${nick ? 'Type them in on the card in <a href="#/scores">Upload scores</a> (Type scores) and they go live.' : 'Sent it? Nick can type the scores in, or upload again and tap each bowler to type their score.'}</p></div>`;
+}
 export function liveBoard(date, { title } = {}) {
-  const L = liveCalc(date); if (!L) return '';
+  const L = liveCalc(date);
+  if (!L) { const w = waitingStrip(date); return w ? `<section class="panel live-board"><div class="panel-head"><h2>${C.esc(title || `Live scoreboard · ${day(date)}`)}</h2></div>${w}</section>` : ''; }
   const { esc, who, S } = C;
   const nd = needs(L), key = L.night.handicap ? 'hdcpSeries' : 'series';
   const leaderBefore = L.before[0]?.id, leaderNow = L.after[0]?.id;
@@ -163,6 +180,7 @@ export function liveBoard(date, { title } = {}) {
       ${hold && L.night.byPid[leaderBefore] ? `<p class="small">${C.pl(leaderBefore)} stays on top by finishing ${ord(hold.stealAt || 1)} or better tonight.</p>` : leaderBefore && !L.night.byPid[leaderBefore] ? `<p class="small">${C.pl(leaderBefore)} hasn’t bowled tonight.</p>` : ''}
       ${steal.length ? `<ul>${steal.map(r => `<li>${C.pl(r.pid)}: finish ${ord(nd[r.pid].stealAt)} or better${nd[r.pid].stealPins ? ` (+${nd[r.pid].stealPins} pins)` : ' (there now)'}</li>`).join('')}</ul>` : '<p class="small muted">Nobody else can catch the leader tonight.</p>'}
     </div>` : ''}
+    ${waitingStrip(date)}
     <p class="small muted">Typed in from the lanes as games finish. Places and points are “if the night ended now,” counting only games bowled so far. * = Nick hasn’t checked that photo yet. Official results post once the night is logged.</p></section>`;
 }
 

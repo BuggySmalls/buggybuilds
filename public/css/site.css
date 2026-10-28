@@ -1316,3 +1316,5 @@ span.nh-arrow{display:none}
 .sh-gp{display:inline-flex;align-items:center;gap:4px;font-size:13px;padding:2px 8px 2px 2px;border-radius:99px;background:rgba(0,0,0,.25)}
 .sh-gp.on{outline:2px solid var(--gold,#FFC857)}
 .btn.danger{border-color:#c0392b;color:#ff6b5b}
+.lb-wait{margin:10px 0;padding:8px 10px;border-radius:10px;border:1px dashed var(--gold,#FFC857);background:rgba(255,200,87,.08)}
+.lb-wait ul{margin:4px 0;padding-left:18px;font-size:14px}

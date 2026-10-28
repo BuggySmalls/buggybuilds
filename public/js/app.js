@@ -281,7 +281,6 @@ pages.home = () => {
     <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
     <span class="confetti" aria-hidden="true">🎉</span>
   </section>`).join('')}
-  ${homePoll()}
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
@@ -294,15 +293,16 @@ pages.home = () => {
     </div>
   </section>
   ${homeAttend()}
+  ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
   <div class="home-live">${homeBets()}${homeTalk()}</div>
   ${homeSheets()}
+  ${homePoll()}
 
-  ${S.games && next && !next.live ? (() => { const n = Object.values(S.games.picks[next.date]?.counts?.top || {}).reduce((a, b) => a + b, 0); const mine = S.games.picks[next.date]?.mine || {}; return `<a class="pk-promo" href="#/pickem"><b>Pick’em</b><span>${S.me ? (Object.keys(mine).length ? 'Your picks are in. Change them until first ball.' : 'You haven’t made your picks yet.') : 'Call the top and bottom series before first ball.'}${n ? ` ${n} ${n === 1 ? 'person has' : 'people have'} picked.` : ''}</span><i>→</i></a>`; })() : ''}
 
   <section class="kpis">
     <a class="kpi" href="#/standings"><span class="lbl">League leader</span>${leader ? `<span class="v">${leader.points} pts</span><span class="who">${pl(leader.id)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'}</a>
-    <a class="kpi" href="#/championships"><span class="lbl">Reigning monthly champ</span>${lastChamp ? `<span class="v">${esc(E.monthName(lastChamp.key, true).split(' ')[0])}</span><span class="who">${pl(lastChamp.champion.id)}</span>` : '<span class="v">—</span><span class="who muted">Crowned at month\u2019s end</span>'}</a>
-    <a class="kpi" href="#/championships"><span class="lbl">${race ? esc(E.monthName(race.key).split(' ').slice(0, -1).join(' ')) + ' race leader' : 'Month race'}</span>${race?.leader ? `<span class="v">${race.leader.points} pts</span><span class="who">${pl(race.leader.id)}</span>` : '<span class="v">—</span><span class="who muted">Starts opening night</span>'}</a>
+    ${lastChamp ? `<a class="kpi" href="#/championships"><span class="lbl">Reigning monthly champ</span><span class="v">${esc(E.monthName(lastChamp.key, true).split(' ')[0])}</span><span class="who">${pl(lastChamp.champion.id)}</span></a>` : ''}
+    ${race?.leader && leader && race.leader.id === leader.id && race.leader.points === leader.points ? '' : `<a class="kpi" href="#/championships"><span class="lbl">${race ? esc(E.monthName(race.key).split(' ').slice(0, -1).join(' ')) + ' race leader' : 'Month race'}</span>${race?.leader ? `<span class="v">${race.leader.points} pts</span><span class="who">${pl(race.leader.id)}</span>` : '<span class="v">—</span><span class="who muted">Starts opening night</span>'}</a>`}
     <a class="kpi" href="#/stats"><span class="lbl">Top average</span>${(() => { const t = [...table].filter(r => r.games >= 3).sort((a, b) => b.avgExact - a.avgExact)[0]; return t ? `<span class="v">${t.avg}</span><span class="who">${pl(t.id)}</span>` : '<span class="v">—</span><span class="who muted">After week 1</span>'; })()}</a>
   </section>
 
@@ -344,7 +344,7 @@ pages.home = () => {
         ${movers.map(m => `<div class="list-row"><div class="grow">${who(m.id, { size: 28 })}</div><span class="move ${m.d > 0 ? 'up' : 'down'}">${Math.abs(m.d)}</span><span class="muted small">now ${E.ordinal(m.now)}</span></div>`).join('')}
       </div></section>` : ''}
 
-      ${feat ? `<section class="panel"><div class="panel-head"><h2>Featured rivalry</h2><a href="#/rivalries?a=${feat.a}&b=${feat.b}">Head to head</a></div>
+      ${feat && !matches().some(m => (m.a === feat.a && m.b === feat.b) || (m.a === feat.b && m.b === feat.a)) ? `<section class="panel"><div class="panel-head"><h2>Featured rivalry</h2><a href="#/rivalries?a=${feat.a}&b=${feat.b}">Head to head</a></div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
           <div style="text-align:center;min-width:0">${avatar(P(feat.a), 52)}<div class="small" style="margin-top:4px">${pl(feat.a)}</div></div>
           <div style="text-align:center"><div class="vs-record" style="font-size:44px">${feat.h.w}–${feat.h.l}${feat.h.t ? '–' + feat.h.t : ''}</div><div class="small muted">${feat.h.games} games</div></div>

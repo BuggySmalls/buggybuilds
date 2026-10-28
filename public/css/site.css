@@ -1178,3 +1178,19 @@ span.nh-arrow{display:none}
 .sh-test{border:2px dashed var(--cyan)}
 .sh-test .sh-form{margin-top:10px}
 .sh-thanks{margin:10px 0;padding:14px 16px;border-radius:12px;border:2px solid var(--gold);background:rgba(255,209,102,.12);font:700 16px var(--body);color:var(--text);text-align:center}
+
+/* Leaderboards on phones (Nick, Oct 28 2026) */
+.lb-list{display:flex;flex-direction:column}
+.lb-row{display:grid;grid-template-columns:34px 64px minmax(0,1fr);align-items:center;gap:10px;padding:9px 4px;border-bottom:1px dashed var(--line-soft)}
+.lb-row:last-child{border-bottom:0}
+.lb-row.top3 .lb-score{font-size:32px}
+.lb-score{font:400 28px/1 var(--pixel);color:var(--lime);text-align:right}
+.lb-who{min-width:0;display:flex;flex-direction:column;gap:2px}
+.lb-who .who-cell{min-width:0}
+.lb-who .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.lb-meta{font-size:12px;line-height:1.3;color:var(--muted);text-decoration:none;padding-left:40px}
+.lb-controls{flex-direction:column;align-items:stretch}
+.lb-controls .seg{max-width:100%;flex-wrap:wrap}
+/* League leader crown */
+.crowned{position:relative;display:inline-grid;flex:none;overflow:visible}
+.crown{position:absolute;right:0;top:0;transform:translate(30%,-38%) rotate(22deg);font-size:max(12px,calc(var(--av) * .42));line-height:1;pointer-events:none;filter:drop-shadow(1px 1px 0 #111)}

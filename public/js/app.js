@@ -62,7 +62,13 @@ const AV_COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A
 const colorOf = p => p.color || avColor(p.id);
 function avColor(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
 function initials(name) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
+// League leader's crown (Nick, Oct 28 2026): whoever is #1 in the season standings wears it on every avatar.
+const leaderId = () => memo('leaderId', () => { const t = seasonTable()[0]; return t && t.points > 0 ? t.id : null; });
 function avatar(p, size = 36) {
+  const a = avatarPlain(p, size);
+  return p.id && p.id === leaderId() ? `<span class="crowned" style="--av:${size}px" title="League leader">${a}<span class="crown" aria-hidden="true">👑</span></span>` : a;
+}
+function avatarPlain(p, size = 36) {
   const st = `--av:${size}px;--av-fs:${Math.round(size * .42)}px;--av-bg:${colorOf(p)}`;
   // no photo yet: bowler silhouette placeholder, with initials once there's room to read them
   return p.photo ? `<span class="avatar" style="${st}"><img src="${esc(p.photo)}" alt=""></span>`
@@ -741,23 +747,24 @@ pages.leaderboards = () => {
     return out.reverse(); };
   const boards = [['games', 'Top games'], ['series', 'Top series'], ['history', 'Record history'], ['hundreds', '200 games']];
   const periods = [['month', 'This month'], ['season', 'Season'], ['all', 'All-time']];
-  const row = (x, i, extra) => `<tr class="${i < 3 ? `top3 p${i + 1}` : ''}"><td class="l">${medal(i + 1)}</td><td class="big">${scoreSpan(x.v)}</td><td class="l">${who(x.pid, { size: 28 })}</td><td class="l txt"><a href="#/night/${x.date}">${fmtDate(x.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</a></td><td class="l txt">${extra}</td></tr>`;
+  // Phone-friendly rows (Nick, Oct 28 2026): rank, score, bowler, and the date + detail on a second line.
+  const row = (x, i, extra) => `<div class="lb-row${i < 3 ? ` top3 p${i + 1}` : ''}"><span class="lb-rank">${medal(i + 1)}</span><span class="lb-score">${scoreSpan(x.v)}</span><div class="lb-who">${who(x.pid, { size: 30, nick: false })}<a class="lb-meta" href="#/night/${x.date}">${fmtDate(x.date, { month: 'short', day: 'numeric' })} · ${extra}</a></div></div>`;
   let body = '';
   if (!S.nights.length) body = empty('The leaderboards open on opening night', 'Every game and series ever bowled gets ranked here, with who bowled it and when.');
-  else if (board === 'games') body = games.length ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th>Score</th><th class="l">Bowler</th><th class="l">Date</th><th class="l">Game</th></tr></thead><tbody>${games.slice(0, 25).map((x, i) => row(x, i, `Game ${x.k + 1} · week ${weekNo(x.n)}`)).join('')}</tbody></table></div>` : empty('No games in this period');
-  else if (board === 'series') body = series.length ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th>Series</th><th class="l">Bowler</th><th class="l">Date</th><th class="l">Games</th></tr></thead><tbody>${series.slice(0, 25).map((x, i) => row(x, i, x.totals.join(' · '))).join('')}</tbody></table></div>` : empty('No full three-game nights in this period');
+  else if (board === 'games') body = games.length ? `<div class="lb-list">${games.slice(0, 25).map((x, i) => row(x, i, `Game ${x.k + 1} · week ${weekNo(x.n)}`)).join('')}</div>` : empty('No games in this period');
+  else if (board === 'series') body = series.length ? `<div class="lb-list">${series.slice(0, 25).map((x, i) => row(x, i, `Week ${weekNo(x.n)} · ${x.totals.join(' · ')}`)).join('')}</div>` : empty('No full three-game nights in this period');
   else if (board === 'hundreds') {
     const two = games.filter(g => g.v >= 200);
     const counts = Object.entries(two.reduce((m, g) => (m[g.pid] = (m[g.pid] || 0) + 1, m), {})).sort((a, b) => b[1] - a[1]);
     body = two.length ? `<div class="grid g2"><div><h3 style="margin-bottom:8px">Most 200 games</h3><div class="list">${counts.map(([id, c], i) => `<div class="list-row">${medal(i + 1)}<div class="grow">${who(id, { size: 28 })}</div><span class="val">${c}</span></div>`).join('')}</div></div>
-      <div><h3 style="margin-bottom:8px">Every 200 game</h3><div class="list">${two.slice().sort((a, b) => b.date.localeCompare(a.date) || b.v - a.v).map(g => `<a class="list-row" href="#/night/${g.date}" style="text-decoration:none"><span class="small muted" style="width:86px">${fmtDate(g.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span><div class="grow">${who(g.pid, { size: 24, link: false, nick: false })}</div><span class="val">${scoreSpan(g.v)}</span></a>`).join('')}</div></div></div>` : empty('Nobody has cleared 200 yet');
+      <div><h3 style="margin-bottom:8px">Every 200 game</h3><div class="list">${two.slice().sort((a, b) => b.date.localeCompare(a.date) || b.v - a.v).map(g => `<a class="list-row" href="#/night/${g.date}" style="text-decoration:none"><span class="small muted" style="width:76px;flex:none">${fmtDate(g.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span><div class="grow">${who(g.pid, { size: 24, link: false, nick: false })}</div><span class="val">${scoreSpan(g.v)}</span></a>`).join('')}</div></div></div>` : empty('Nobody has cleared 200 yet');
   } else {
-    const block = (title, list, fmt) => `<div><h3 style="margin-bottom:8px">${title}</h3>${list.length ? `<div class="list">${list.map((x, i) => `<a class="list-row" href="#/night/${x.date}" style="text-decoration:none"><span class="small ${i === 0 ? 'up' : 'muted'}" style="width:86px">${i === 0 ? 'Current' : 'Set'}<br>${fmtDate(x.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span><div class="grow">${who(x.pid, { size: 26, link: false })}<div class="small faint" style="margin-top:2px">${fmt(x)}</div></div><span class="val">${x.v}</span></a>`).join('')}</div>` : empty('No record yet')}</div>`;
+    const block = (title, list, fmt) => `<div><h3 style="margin-bottom:8px">${title}</h3>${list.length ? `<div class="list">${list.map((x, i) => `<a class="list-row" href="#/night/${x.date}" style="text-decoration:none"><span class="small ${i === 0 ? 'up' : 'muted'}" style="width:76px;flex:none">${i === 0 ? 'Current' : 'Set'}<br>${fmtDate(x.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span><div class="grow">${who(x.pid, { size: 26, link: false })}<div class="small faint" style="margin-top:2px">${fmt(x)}</div></div><span class="val">${x.v}</span></a>`).join('')}</div>` : empty('No record yet')}</div>`;
     body = `<div class="grid g2">${block('High game record', prog('game'), x => `Game ${x.k + 1}${x.prev ? `, beat ${x.prev.v}` : ', first record'}`)}${block('High series record', prog('series'), x => `${x.totals.join(' · ')}${x.prev ? `, beat ${x.prev.v}` : ', first record'}`)}</div><p class="small faint">Every time the league record changed hands, newest first.</p>`;
   }
   return `
   <div><h1 class="page-title">Leaderboards</h1><p class="page-intro">The highest scores ever bowled in the league: who bowled them, and when. Scratch scores, no handicap.</p></div>
-  <div class="controls"><div class="seg" role="group" aria-label="Board">${boards.map(([k, t]) => `<button data-q="board=${k}" aria-pressed="${board === k}">${t}</button>`).join('')}</div>
+  <div class="controls lb-controls"><div class="seg" role="group" aria-label="Board">${boards.map(([k, t]) => `<button data-q="board=${k}" aria-pressed="${board === k}">${t}</button>`).join('')}</div>
   ${board === 'history' ? '' : `<div class="seg" role="group" aria-label="Period">${periods.map(([k, t]) => `<button data-q="period=${k}" aria-pressed="${period === k}">${t}</button>`).join('')}</div>`}</div>
   <section class="panel">${body}</section>`;
 };

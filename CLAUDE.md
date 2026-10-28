@@ -76,6 +76,7 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - Exception: **Lubed Up** (Hall of Shame, `manual: true`) — given by hand when someone slips on the lane (Nick, Oct 21 2026). Give it with `badges[] {pid, key: "lubedUp", date, note?}`; one entry per slip. Only badges marked `manual` in BADGES can be handed out this way.
 - Results list lives on the Standings page (below the table, `#/standings?results` jumps to it); Schedule is only upcoming nights (Nick, Oct 26 2026).
 - Every bowler name anywhere on the site opens their profile (Nick, Oct 26 2026): use `who()` for avatar+name rows, `pl(id)` for a bare name, and `linkNames(text)` for free text that may mention bowlers (recaps, award notes, posts, stakes). `pl`/`linkNames` render a `span.plink` (works inside other links/cards); a capture-phase click handler opens the profile. Exceptions: buttons that pick a bowler (chips, selects) and the bowler's own profile heading.
+- League leader's crown (Nick, Oct 28 2026): `avatar()` puts a 👑 on whoever is #1 in the season standings (`seasonTable()[0]`, once they have points), everywhere their avatar shows. Leaderboards (Top games / Top series) are phone-friendly card rows, not tables (Nick, Oct 28 2026).
 - Fonts: no handwriting font and no italics anywhere on the site (Nick, Oct 21 2026). Body text is Rubik; Bungee only for headings and labels.
 - Custom records: `customRecords[] {kind: "fame"|"shame", title, holder, value, date, detail?}`.
 - Photos for the home gallery: `photos[] {src: "img/gallery/…", caption, date}`.

@@ -36,6 +36,10 @@ export function sheetThumbs(date, { title = 'Scoresheet photos', note = '', link
 
 /* Home page: approved photos for a night that hasn't been logged yet */
 // Live board for the newest night that has typed scores but isn't logged yet (home + Standings)
+export function liveDate() {
+  const logged = new Set(C.S.data.events.filter(e => e.status === 'completed').map(e => e.date));
+  return [...new Set(liveList().map(x => x.date))].sort().reverse().find(x => !logged.has(x));
+}
 export function liveNow() {
   const logged = new Set(C.S.data.events.filter(e => e.status === 'completed').map(e => e.date));
   return liveBoard([...new Set(liveList().map(x => x.date))].sort().reverse().find(x => !logged.has(x)));
@@ -83,21 +87,76 @@ function fixScores(s) {
 /* Live scoreboard (Nick, Oct 28 2026): every score typed in from the lanes tonight, before it's logged.
    league.json `liveTest` adds rows by hand for testing; remove it to clear them. */
 const liveList = () => [...(C.S.games?.live || []), ...(C.S.data.liveTest || []).map(x => ({ ok: true, ...x }))];
+// Tonight as if the night ended now (Nick, Oct 28 2026): the live scores run through the same engine as a
+// logged night, so places, points, handicap and W/L all match what the official results will say.
+export function liveCalc(date) {
+  const { S, E } = C;
+  if (!date) return null;
+  const scores = {}, ok = {};
+  for (const x of liveList()) if (x.date === date) { (scores[x.pid] ??= [null, null, null])[x.game - 1] = x.score; (ok[x.pid] ??= [true, true, true])[x.game - 1] = x.ok; }
+  if (!Object.keys(scores).length) return null;
+  const data = { ...S.data, events: [...S.data.events.filter(e => e.date !== date), { date, status: 'completed', scores }] };
+  const nights = E.buildNights(data);
+  const night = nights.find(n => n.date === date);
+  if (!night) return null;
+  const season = S.season;
+  const seasonNights = season ? nights.filter(n => n.date >= season.start && (!season.end || n.date <= season.end)) : nights;
+  const before = E.standings(S.data, S.seasonNights, 'points').filter(r => r.games);
+  const after = E.standings(data, seasonNights, 'points').filter(r => r.games);
+  return { date, data, nights, night, seasonNights, before, after, ok };
+}
+
+// What each bowler needs tonight: pins to win the night, and the worst finish that still takes the season lead
+function needs(L) {
+  const { E, S } = C;
+  const key = L.night.handicap ? 'hdcpSeries' : 'series';
+  const field = L.night.rows; // ranked best first
+  const ptsBefore = Object.fromEntries(L.before.map(r => [r.id, r.points]));
+  const cfg = S.data.league?.championship || {};
+  const out = {};
+  for (const b of field) {
+    const others = field.filter(r => r !== b);
+    const top = others[0];
+    const toWin = top ? top[key] - b[key] + 1 : 0;
+    let stealAt = 0;
+    for (let p = 1; p <= field.length; p++) {
+      const order = [...others]; order.splice(p - 1, 0, b);
+      const tot = { ...ptsBefore };
+      order.forEach((r, i) => { tot[r.pid] = (tot[r.pid] || 0) + E.champPointsFor(i + 1, order.length, cfg); });
+      const mine = tot[b.pid], best = Math.max(...Object.entries(tot).filter(([id]) => id !== b.pid).map(([, v]) => v), 0);
+      if (mine > best) stealAt = p; else break;
+    }
+    const target = stealAt ? others[stealAt - 1] : null; // who's in that spot now
+    out[b.pid] = { toWin, stealAt, stealPins: target ? Math.max(0, target[key] - b[key] + 1) : 0, key };
+  }
+  return out;
+}
+const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
+
 export function liveBoard(date, { title } = {}) {
-  if (!date) return '';
+  const L = liveCalc(date); if (!L) return '';
   const { esc, who, S } = C;
-  const rows = {};
-  for (const x of liveList()) if (x.date === date) (rows[x.pid] ??= { pid: x.pid, g: [null, null, null], ok: [true, true, true] }), rows[x.pid].g[x.game - 1] = x.score, rows[x.pid].ok[x.game - 1] = x.ok;
-  const list = Object.values(rows).map(r => ({ ...r, series: r.g.reduce((a, b) => a + (b || 0), 0), n: r.g.filter(v => v != null).length }))
-    .sort((a, b) => b.series - a.series || b.n - a.n);
-  if (!list.length) return '';
-  const cell = (r, k) => r.g[k] == null ? '<td class="faint">—</td>' : `<td class="${r.ok[k] ? '' : 'unconf'}">${r.g[k]}${r.ok[k] ? '' : '*'}</td>`;
+  const nd = needs(L), key = L.night.handicap ? 'hdcpSeries' : 'series';
+  const leaderBefore = L.before[0]?.id, leaderNow = L.after[0]?.id;
+  const cell = (r, k) => r.totals[k] == null ? '<td class="faint">—</td>' : `<td class="${L.ok[r.pid]?.[k] === false ? 'unconf' : ''}">${r.totals[k]}${L.ok[r.pid]?.[k] === false ? '*' : ''}</td>`;
   const test = (S.data.liveTest || []).some(x => x.date === date);
-  return `<section class="panel live-board"><div class="panel-head"><h2>${esc(title || `Live scoreboard · ${day(date)}`)}${test ? ' <span class="sh-tag wait">Test</span>' : ''}</h2><a href="#/scores">Upload scores</a></div>
-    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>Total</th></tr></thead><tbody>
-    ${list.map((r, i) => `<tr><td class="l">${i + 1}</td><td class="l">${who(r.pid, { size: 26, nick: false })}</td>${cell(r, 0)}${cell(r, 1)}${cell(r, 2)}<td><b>${r.series}</b></td></tr>`).join('')}
+  const line = r => {
+    const n = nd[r.pid], bits = [`${r.points} pts`];
+    bits.push(r.pointsPlace === 1 ? 'leading' : `+${n.toWin} to win`);
+    return `<div class="lb-need">${bits.join(' · ')}</div>`;
+  };
+  const steal = L.night.rows.filter(r => r.pid !== leaderBefore && nd[r.pid].stealAt).slice(0, 5);
+  const hold = leaderBefore && nd[leaderBefore];
+  return `<section class="panel live-board"><div class="panel-head"><h2>${esc(title || `Live scoreboard · ${day(date)}`)}${test ? ' <span class="sh-tag wait">Test</span>' : ''}</h2><a href="#/standings">Live standings</a></div>
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>${key === 'hdcpSeries' ? 'Hdcp' : 'Total'}</th></tr></thead><tbody>
+    ${L.night.rows.map(r => `<tr><td class="l">${r.pointsPlace}</td><td class="l">${who(r.pid, { size: 26, nick: false })}${line(r)}</td>${cell(r, 0)}${cell(r, 1)}${cell(r, 2)}<td><b>${r[key]}</b></td></tr>`).join('')}
     </tbody></table></div>
-    <p class="small muted">Typed in from the lanes as games finish. * = Nick hasn’t checked that photo yet. Official results post once the night is logged.</p></section>`;
+    ${leaderBefore ? `<div class="steal"><b>Race for 1st in the standings</b>
+      ${leaderNow === leaderBefore ? `<p>${C.pl(leaderBefore)} keeps the lead if it ended now.</p>` : `<p><b>${C.pl(leaderNow)}</b> takes the lead from ${C.pl(leaderBefore)} if it ended now.</p>`}
+      ${hold && L.night.byPid[leaderBefore] ? `<p class="small">${C.pl(leaderBefore)} stays on top by finishing ${ord(hold.stealAt || 1)} or better tonight.</p>` : leaderBefore && !L.night.byPid[leaderBefore] ? `<p class="small">${C.pl(leaderBefore)} hasn’t bowled tonight.</p>` : ''}
+      ${steal.length ? `<ul>${steal.map(r => `<li>${C.pl(r.pid)}: finish ${ord(nd[r.pid].stealAt)} or better${nd[r.pid].stealPins ? ` (+${nd[r.pid].stealPins} pins)` : ' (there now)'}</li>`).join('')}</ul>` : '<p class="small muted">Nobody else can catch the leader tonight.</p>'}
+    </div>` : ''}
+    <p class="small muted">Typed in from the lanes as games finish. Places and points are “if the night ended now,” counting only games bowled so far. * = Nick hasn’t checked that photo yet. Official results post once the night is logged.</p></section>`;
 }
 
 const slot = s => `${s.date}|${s.lane}|${s.game}`;

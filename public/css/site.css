@@ -1221,3 +1221,11 @@ span.nh-arrow{display:none}
 .live-board th:nth-child(6),.live-board td:nth-child(6){width:50px}
 .live-board .who-cell{min-width:0}.live-board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .live-board th,.live-board td{font-size:14px}.live-board td:nth-child(n+3){font-variant-numeric:tabular-nums}
+
+.live-note{background:#B8FFA0;color:#111;border:2px solid #111;border-radius:10px;padding:8px 12px;font-size:14px;margin:4px 0}
+.live-note a{color:#111;font-weight:700}
+.mv{display:inline-block;margin-left:6px;font:700 12px var(--body);padding:1px 5px;border-radius:6px;vertical-align:middle}
+.mv.up{background:#2E8A64;color:#fff}.mv.down{background:#E5383B;color:#fff}.mv.new{background:#7B2FF7;color:#fff}
+.lb-need{font-size:12px;color:var(--muted);margin:1px 0 0 32px;white-space:nowrap;line-height:1.2}
+.steal{margin-top:10px;padding:10px 12px;border:2px dashed var(--line);border-radius:10px;font-size:14px}
+.steal p{margin:4px 0}.steal ul{margin:4px 0 0;padding-left:18px}

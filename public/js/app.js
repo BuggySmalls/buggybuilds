@@ -7,7 +7,7 @@ import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
 import { installAttend, renderAttendBar, homeAttend, nightTeams } from './attend.js';
 import { installPoll, homePoll } from './poll.js';
-import { installSheets, homeSheets, sheetThumbs, liveNow } from './sheets.js';
+import { installSheets, homeSheets, sheetThumbs, liveNow, liveDate, liveCalc } from './sheets.js';
 
 /* ================================================================== *
  * Data loading
@@ -171,14 +171,15 @@ function q() { const [, query = ''] = location.hash.split('?'); return Object.fr
 function setQ(obj) { const [path] = location.hash.split('?'); const cur = q(); const next = new URLSearchParams({ ...cur, ...obj }); for (const [k, v] of [...next]) if (v === '' || v == null) next.delete(k); history.replaceState(null, '', `${path}?${next}`); route(); }
 const memo = (k, f) => (S.cache[k] ??= f());
 
-function standingsFor(view) {
-  const lastN = S.nights.at(-1);
+function standingsFor(view, live) {
+  const all = live ? live.nights : S.nights;
+  const lastN = all.at(-1);
   const curMonth = lastN?.month;
   const slices = {
     week: lastN ? [lastN] : [],
-    month: S.nights.filter(n => n.month === curMonth),
-    season: S.seasonNights,
-    all: S.nights,
+    month: all.filter(n => n.month === curMonth),
+    season: live ? live.seasonNights : S.seasonNights,
+    all,
   };
   return { nights: slices[view] || slices.season, label: { week: lastN ? `Week ${weekNo(lastN)}, ${fmtDate(lastN.date)}` : 'This week', month: curMonth ? E.monthName(curMonth) : 'This month', season: S.season?.name || 'Season', all: 'All-time' }[view] };
 }
@@ -421,12 +422,16 @@ const COLS = [
   ['points', 'Pts'], ['avg', 'Avg'], ['hdcp', 'Hdcp'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Total score'], ['pinsDown', 'Pins down'],
   ['strikePct', 'Strike %'], ['sparePct', 'Spare %'], ['streak', 'Streak'], ['monthPts', 'Month pts'],
 ];
+const move = (was, now) => !was ? '<span class="mv new">new</span>' : was === now ? '' : `<span class="mv ${was > now ? 'up' : 'down'}">${was > now ? '▲' : '▼'}${Math.abs(was - now)}</span>`;
 pages.standings = () => {
-  const { view = 'season', sort = 'points' } = q();
-  const { nights, label } = standingsFor(view);
+  const { view = 'season', sort = 'points', live: liveQ } = q();
+  // Live standings (Nick, Oct 28 2026): tonight's typed-in scores count as if the night ended now
+  const ld = liveDate(), L = ld && liveQ !== '0' ? liveCalc(ld) : null;
+  const { nights, label } = standingsFor(view, L);
+  const placeBefore = L ? Object.fromEntries(E.standings(S.data, standingsFor(view).nights, 'points').filter(r => r.games).map((r, i) => [r.id, i + 1])) : {};
   const lastMonth = S.nights.at(-1)?.month;
   const monthPts = Object.fromEntries((S.champs.months.find(m => m.key === lastMonth)?.table || []).map(r => [r.id, r.points]));
-  let rows = E.standings(S.data, nights, sort === 'monthPts' || sort === 'streak' ? 'points' : sort).filter(r => r.games || view === 'season');
+  let rows = E.standings(L ? L.data : S.data, nights, sort === 'monthPts' || sort === 'streak' ? 'points' : sort).filter(r => r.games || view === 'season');
   if (sort === 'monthPts') rows.sort((a, b) => (monthPts[b.id] || 0) - (monthPts[a.id] || 0));
   if (sort === 'streak') rows.sort((a, b) => ((b.streak?.kind === 'W' ? 1 : -1) * (b.streak?.len || 0)) - ((a.streak?.kind === 'W' ? 1 : -1) * (a.streak?.len || 0)));
   const hasFrames = rows.some(r => r.hasFrames);
@@ -439,10 +444,11 @@ pages.standings = () => {
   return `
   <div><div class="title-row"><h1 class="page-title">Standings</h1><a class="btn small upload-btn" href="#/scores">📷 Upload scores</a></div><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
   ${liveNow()}
+  ${ld ? `<div class="live-note">${L ? `<b>● Live</b> These standings include tonight’s unofficial scores, as if the night ended now. <a href="#/standings?view=${view}&live=0">Show before tonight</a>` : `Showing standings before tonight. <a href="#/standings?view=${view}">Show live</a>`}</div>` : ''}
   <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}" aria-pressed="${view === k}">${t}</button>`).join('')}</div></div>
   <section class="panel">
     ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>
-    ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
+    ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}${L && sort === 'points' && r.games ? move(placeBefore[r.id], i + 1) : ''}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div>` : empty('Nothing bowled in this period yet', 'Check back after the next league night.')}
   </section>
   ${!hasFrames && rows.some(r => r.games) ? '<p class="small muted">Strike and spare percentages appear once frame-by-frame scores are logged.</p>' : ''}

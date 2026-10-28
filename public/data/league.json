@@ -508,6 +508,24 @@
         ]
       },
       {
+        "id": "betsettle",
+        "section": "money",
+        "type": "one",
+        "q": "How should betchas be settled?",
+        "options": [
+          {
+            "v": "pins",
+            "label": "Total pins",
+            "desc": "Higher 3-game series wins the bet."
+          },
+          {
+            "v": "frames",
+            "label": "Frames against frames",
+            "desc": "Each frame is head-to-head; whoever wins more frames wins the bet."
+          }
+        ]
+      },
+      {
         "id": "teamscore",
         "section": "team",
         "type": "one",

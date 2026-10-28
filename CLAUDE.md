@@ -34,7 +34,7 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - `players[]` in league.json is now "bowlers on the scoresheet". When logging scores, use the bowler's account id if they have one (`cerealbowlers.org/api/roster` lists them; the sandbox can't reach the site, so run the `Fetch roster` GitHub Actions workflow via `gh api -X POST repos/BuggySmalls/buggybuilds/actions/workflows/roster.yml/dispatches -f ref=main` and read the JSON from the run's check-run annotations). If someone bowled without an account, add a placeholder `{id, name, joined, active: true}` from the lane-screen name; when they sign up they pick that name and the scores become theirs. If an account bowled, also add `{id: <their playerId>, name}` to `players[]` so the validator accepts the scores.
 - Forgot code/pattern: `accounts.resets["<username lowercase>"] = "<today YYYY-MM-DD>"`. Their next sign-in sets a new one. Remove the entry afterwards.
 - Remove a fake or duplicate account: add the lowercase username to `accounts.hidden`.
-- Five wrong tries locks an account for 15 min (longer each time). A reset also clears the lock.
+- Ten wrong tries locks an account for 5 min, doubling each time up to 1 hour max (loosened by Nick, Oct 28 2026; was 5 tries / 15 min). A correct sign-in or a reset clears it.
 - Can't merge two accounts or move scores between ids from here without editing `events`; if someone claimed the wrong bowler, hide the account and have them sign up again.
 
 ## Pick'em, call-outs, fun facts (Nick, Oct 21 2026)

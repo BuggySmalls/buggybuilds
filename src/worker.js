@@ -19,8 +19,9 @@ export default {
 /* ------------------------------------------------------------------ */
 const COOKIE = 'cb_session';
 const SESSION_DAYS = 365;
-const MAX_FAILS = 5;            // wrong codes before a lockout
-const LOCK_MINUTES = 15;        // doubles with each further lockout
+const MAX_FAILS = 10;           // wrong codes before a lockout (was 5; loosened by Nick, Oct 28 2026)
+const LOCK_MINUTES = 5;         // doubles with each further lockout, capped at LOCK_MAX_MINUTES (was 15, no cap)
+const LOCK_MAX_MINUTES = 60;
 const SIGNUPS_PER_IP_HOUR = 8;
 const PHOTO_MAX = 200 * 1024;
 const SHEET_MAX = 1500 * 1024; // scoresheet photos are resized in the browser first
@@ -753,7 +754,7 @@ export class Accounts extends DurableObject {
     if (!(await this.verify(a, String(secret || '')))) {
       const fails = a.fails + 1;
       if (fails >= MAX_FAILS) {
-        const until = now() + LOCK_MINUTES * 60e3 * 2 ** Math.min(a.lockouts, 6);
+        const until = now() + Math.min(LOCK_MINUTES * 2 ** a.lockouts, LOCK_MAX_MINUTES) * 60e3;
         this.sql.exec('UPDATE accounts SET fails = 0, lockouts = lockouts + 1, locked_until = ? WHERE ukey = ?', until, a.ukey);
         return fail(429, `Too many wrong tries. Locked for ${Math.round((until - now()) / 60000)} min.`);
       }

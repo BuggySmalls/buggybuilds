@@ -679,6 +679,10 @@
       }
     ]
   },
+  "laneDraw": {
+    "count": 4,
+    "numbers": {}
+  },
   "scoresheets": {
     "lanes": 24,
     "reject": [1]

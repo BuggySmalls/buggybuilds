@@ -1285,3 +1285,16 @@ span.nh-arrow{display:none}
 .tb-foot{margin:8px 0 0;opacity:.8;text-align:center}
 .tb-foot a{color:#3BE8FF}
 @media (max-width:420px){.tb-score{font-size:32px}.team-board.two .tb-row{gap:6px}}
+
+/* Random lane draw (Nick, Oct 28 2026) */
+.lane-board{background:#0d0b1f;border:3px solid #111;border-radius:16px;box-shadow:4px 4px 0 #111;padding:12px;margin:0 0 16px;color:#fff}
+.lb-grid{display:grid;gap:8px;margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.lb-lane{background:#1a1636;border:2px solid #3BE8FF;border-radius:10px;padding:8px 10px}
+.lb-num{font-family:Bungee,Rubik,sans-serif;color:#3BE8FF;font-size:14px}
+.lb-lane ol{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6}
+.lb-lane .plink{color:#fff}
+.lb-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--tc);margin-right:6px;vertical-align:middle}
+.tb-stats{display:flex;gap:14px;justify-content:center}
+.tb-stats>span{display:flex;flex-direction:column;align-items:center;font-size:11px;text-transform:uppercase;letter-spacing:.04em;opacity:.95}
+.tb-stats b{font-family:Bungee,Rubik,sans-serif;font-size:30px;line-height:1.05;color:#fff;text-shadow:3px 3px 0 #000;text-transform:none}
+@media (max-width:420px){.tb-stats b{font-size:24px}.tb-stats{gap:8px}}

@@ -68,8 +68,8 @@ function teamCards(teams, n) {
   const byName = res ? Object.fromEntries(res.map(r => [r.name, r])) : {};
   const order = res ? res.map(r => teams.find(t => t.name === r.name)) : teams;
   return `<div class="tm-grid">${order.map((t, i) => { const r = byName[t.name]; return `
-    <div class="tm-card${r?.place === 1 ? ' win' : ''}" style="--tc:${teamColor(t, teams.indexOf(t))}">
-      <div class="tm-head"><b>${C.esc(t.name)}</b>${r ? `<span class="tm-pts">${r.place === 1 ? '★ ' : ''}${r.points} pts</span>` : `<span class="tm-pts">${t.pids.length} bowlers</span>`}</div>
+    <div class="tm-card" style="--tc:${teamColor(t, teams.indexOf(t))}">
+      <div class="tm-head"><b>${C.esc(t.name)}</b>${r ? `<span class="tm-pts">${r.wins} ${r.wins === 1 ? 'win' : 'wins'} · ${r.series} pts</span>` : `<span class="tm-pts">${t.pids.length} bowlers</span>`}</div>
       <ul class="tm-list">${t.pids.map(pid => memberRow(pid, n)).join('')}</ul>
       ${r ? `<div class="tm-games">${r.games.map((g, k) => `<span>G${k + 1} <b>${g ?? '—'}</b>${r.blinds[k] ? `<i title="includes ${r.blinds[k]} blind">+B</i>` : ''}</span>`).join('')}<span>Total <b>${r.series}</b></span></div>` : ''}
     </div>`; }).join('')}</div>`;
@@ -77,6 +77,21 @@ function teamCards(teams, n) {
 const TEAM_COLORS = ['#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7', '#2E8A64', '#B87A2E'];
 const NAMED = { red: '#FF3B3B', blue: '#3B8BFF', green: '#2ECC71', yellow: '#FFC857', purple: '#9B5CFF', orange: '#FF8A3D', pink: '#FF3D9A' };
 const teamColor = (t, i) => NAMED[(t.name.match(/\b(red|blue|green|yellow|purple|orange|pink)\b/i)?.[1] || '').toLowerCase()] || TEAM_COLORS[i % TEAM_COLORS.length];
+
+/* Lane draw (Nick, Oct 28 2026): random lanes every week, drawn with the teams. Shown right under the team board. */
+export function homeLaneBoard() {
+  const st = state(); if (!st) return '';
+  const got = C.S.games?.lanes?.[st.date]; if (!got?.lanes?.length) return '';
+  const teamOf = {};
+  (st.teams || []).forEach((t, i) => t.pids.forEach(pid => { teamOf[pid] = { t, i }; }));
+  const assigned = new Set(got.lanes.flatMap(l => l.pids));
+  const late = (st.att.yes || []).map(x => x.pid).filter(p => !assigned.has(p));
+  return `<section class="lane-board" id="lanes">
+    <div class="tb-head"><b>Lanes · ${C.esc(st.day)}</b><span class="tb-lead">Drawn at random · top bowls first</span></div>
+    <div class="lb-grid">${got.lanes.map(l => `<div class="lb-lane"><span class="lb-num">Lane ${C.esc(String(l.lane))}</span>
+      <ol>${l.pids.map(pid => { const tm = teamOf[pid]; return `<li${tm ? ` style="--tc:${teamColor(tm.t, tm.i)}"` : ''}>${tm ? '<i class="lb-dot" aria-hidden="true"></i>' : ''}${C.pl(pid)}</li>`; }).join('')}</ol></div>`).join('')}</div>
+    ${late.length ? `<p class="tb-foot small">Said Yes after the draw: ${late.map(p => C.pl(p)).join(', ')}. Grab an open spot.</p>` : ''}</section>`;
+}
 
 /* Live team scoreboard, top of the home page (Nick, Oct 28 2026): "Team Red vs Team Blue" with scores that
    update all night from the typed lane scores (same live feed as the Live scoreboard), handicap games. */
@@ -88,16 +103,19 @@ export function homeTeamBoard() {
   const by = res ? Object.fromEntries(res.map(r => [r.name, r])) : {};
   const side = (t, i) => { const r = by[t.name]; return `<div class="tb-side" style="--tc:${teamColor(t, i)}">
       <span class="tb-name">${esc(t.name)}</span>
-      <span class="tb-score">${r ? r.series : 0}</span>
-      <span class="tb-pts">${r ? `${r.points} pts` : '0 pts'}</span>
+      <span class="tb-stats"><span><b>${r ? r.wins : 0}</b>Team wins</span><span><b>${r ? r.series : 0}</b>Total points</span></span>
       <span class="tb-games">${[0, 1, 2].map(k => `<i>G${k + 1} <b>${r?.games[k] ?? '–'}</b></i>`).join('')}</span>
       <span class="tb-who">${t.pids.map(pid => C.pl(pid)).join(' · ')}</span></div>`; };
-  const lead = res && res[0].series > 0 ? (res[1] && res[0].points === res[1].points && res[0].series === res[1].series ? 'All tied up' : `${esc(res[0].name)} leads`) : 'Waiting on game 1 scores';
+  let lead = 'Waiting on game 1 scores';
+  if (res && res.some(r => r.series > 0)) {
+    const top = (f) => { const m = Math.max(...res.map(f)), w = res.filter(r => f(r) === m); return w.length > 1 ? 'tied' : esc(w[0].name); };
+    lead = `Wins: ${top(r => r.wins)} · Points: ${top(r => r.series)}`;
+  }
   const vs = teams.length === 2 ? `${side(teams[0], 0)}<span class="tb-vs">VS</span>${side(teams[1], 1)}` : teams.map(side).join('');
   return `<section class="team-board${teams.length === 2 ? ' two' : ''}" id="teamboard">
     <div class="tb-head"><span class="tb-live">● LIVE</span><b>${teams.map(t => esc(t.name)).join(' vs ')}</b><span class="tb-lead">${lead}</span></div>
     <div class="tb-row">${vs}</div>
-    <p class="tb-foot small">Handicap pins as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a> · <a href="#/faq">How team scoring works</a></p></section>`;
+    <p class="tb-foot small">Team wins = games won. Total points = all handicap pins. Live as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a> · <a href="#/faq">How team scoring works</a></p></section>`;
 }
 
 export function homeAttend() {
@@ -115,9 +133,9 @@ export function nightTeams(n) {
   const teams = C.E.teamsFor(C.S.data, n.date, C.S.games); if (!teams) return '';
   const res = C.E.teamResults(n, teams); if (!res) return '';
   return `<section class="panel tm-panel"><div class="panel-head"><h2>Team night</h2><span class="small muted">Handicap games · ${res.length} teams</span></div>
-    <p><b>${C.esc(res.filter(r => r.place === 1).map(r => r.name).join(' & '))}</b> ${res.filter(r => r.place === 1).length > 1 ? 'tie' : 'wins'} with ${res[0].points} points.</p>
+    <p>${(() => { const best = f => { const m = Math.max(...res.map(f)), w = res.filter(r => f(r) === m); return `<b>${C.esc(w.map(r => r.name).join(' & '))}</b>${w.length > 1 ? ' (tie)' : ''}`; }; return `Most team wins: ${best(r => r.wins)} · Most total points: ${best(r => r.series)}`; })()}</p>
     ${teamCards(teams, n)}
-    <p class="small faint">Each game the top team gets ${res.length} points down to 1 for last; total series counts double. A team short a bowler gets a blind worth its own average that game (+B).</p></section>`;
+    <p class="small faint">Two separate stats: team wins (one per game for the higher team) and total points (all handicap pins). A team short a bowler gets a blind worth its own average that game (+B).</p></section>`;
 }
 
 /* ------------------------------------------------------------------ */

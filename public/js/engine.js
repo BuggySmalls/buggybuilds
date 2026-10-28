@@ -975,6 +975,14 @@ export function teamResults(night, teams) {
     for (const r of bowled) { r.gamePts[k] = r._p; delete r._p; }
   }
   for (const r of rows) r.series = sum(r.games.filter(g => g != null));
+  // Team wins (Nick, Oct 28 2026): a separate stat from total points — one win per game for the top team
+  // that game (ties split). Total points = the team's total handicap pins (series).
+  for (const r of rows) r.wins = 0;
+  for (let k = 0; k < 3; k++) {
+    const bowled = rows.filter(r => r.games[k] != null); if (bowled.length < 2) continue;
+    const top = Math.max(...bowled.map(r => r.games[k])), tied = bowled.filter(r => r.games[k] === top);
+    for (const r of tied) r.wins += Math.round(10 / tied.length) / 10;
+  }
   const any = rows.filter(r => r.series > 0);
   if (!any.length) return null;
   rankPoints(any, r => r.series, 2, 'seriesPts');

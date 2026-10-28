@@ -116,6 +116,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS seen (ukey TEXT PRIMARY KEY, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS attendance (date TEXT NOT NULL, ukey TEXT NOT NULL, going INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (date, ukey));
       CREATE TABLE IF NOT EXISTS teamdraws (date TEXT PRIMARY KEY, teams TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS lanedraws (date TEXT PRIMARY KEY, lanes TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS sheets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, lane INTEGER NOT NULL, game INTEGER NOT NULL, pids TEXT NOT NULL DEFAULT '[]', ukey TEXT NOT NULL, img BLOB NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL, decided_at INTEGER);
       CREATE TABLE IF NOT EXISTS poll_votes (poll TEXT NOT NULL, ukey TEXT NOT NULL, qid TEXT NOT NULL, v TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (poll, ukey, qid, v));
       CREATE TABLE IF NOT EXISTS likes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
@@ -166,6 +167,7 @@ export class Accounts extends DurableObject {
       const q = JSON.stringify(old), n = JSON.stringify(p.id);
       this.sql.exec('UPDATE sheets SET pids = REPLACE(pids, ?, ?) WHERE pids LIKE ?', q, n, `%${q}%`);
       this.sql.exec('UPDATE teamdraws SET teams = REPLACE(teams, ?, ?) WHERE teams LIKE ?', q, n, `%${q}%`);
+      this.sql.exec('UPDATE lanedraws SET lanes = REPLACE(lanes, ?, ?) WHERE lanes LIKE ?', q, n, `%${q}%`);
       this.remapped.add(key);
     }
   }
@@ -627,7 +629,8 @@ export class Accounts extends DurableObject {
   }
   // Wake up at the next team night's first ball to draw the teams even if nobody has the site open.
   async armAlarm(L) {
-    const due = Object.keys(L.teamNights || {}).map(d => this.drawAt(L, d)).filter(t => t > now()).sort((a, b) => a - b)[0];
+    const dates = new Set([...Object.keys(L.teamNights || {}), ...this.sql.exec('SELECT DISTINCT date FROM attendance WHERE going = 1').toArray().map(r => r.date)]);
+    const due = [...dates].map(d => this.drawAt(L, d)).filter(t => t > now()).sort((a, b) => a - b)[0];
     if (!due) return;
     const cur = await this.ctx.storage.getAlarm();
     if (!cur || cur > due || cur < now()) await this.ctx.storage.setAlarm(due + 5e3);
@@ -652,6 +655,41 @@ export class Accounts extends DurableObject {
         await this.push(L, 'Teams are set', teams.map(t => `${t.name}: ${t.pids.map(id => P[id] || id).join(', ')}`).join('\n'), 'bowling');
       }
     }
+    // Random lanes every week (Nick, Oct 28 2026), drawn at the same time as teams from everyone who said Yes.
+    const laned = new Set(this.sql.exec('SELECT date FROM lanedraws').toArray().map(r => r.date));
+    for (const { date } of this.sql.exec('SELECT DISTINCT date FROM attendance WHERE going = 1').toArray()) {
+      if (laned.has(date) || now() < this.drawAt(L, date) || now() - this.drawAt(L, date) > 2 * 86400e3) continue;
+      const lanes = this.drawLanes(L, date);
+      if (!lanes) continue;
+      this.sql.exec('INSERT OR IGNORE INTO lanedraws (date, lanes, at) VALUES (?,?,?)', date, JSON.stringify(lanes), now());
+      if (announce) {
+        const P = Object.fromEntries(this.merged(L).map(p => [p.id, p.name]));
+        await this.push(L, 'Lanes are set', lanes.map(l => `Lane ${l.lane}: ${l.pids.map(id => P[id] || id).join(', ')}`).join('\n'), 'bowling');
+      }
+    }
+  }
+  // Spread the Yes list evenly over the night's lanes (league.laneDraw.count, default 4), random order = bowling order.
+  // On team nights each lane gets a mix of every team. Real lane numbers: laneDraw.numbers["<date>"] = [17, 18, …].
+  drawLanes(L, date) {
+    const { hidden } = this.admin(L);
+    const pidOf = Object.fromEntries(this.all().filter(a => !hidden.has(a.ukey)).map(a => [a.ukey, a.player_id]));
+    const pool = this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean);
+    if (!pool.length) return null;
+    const cfg = L.laneDraw || {}, nums = cfg.numbers?.[date];
+    const k = Math.max(1, Math.min(Array.isArray(nums) && nums.length ? nums.length : (cfg.count || 4), Math.ceil(pool.length / 2)));
+    const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const drawn = this.sql.exec('SELECT teams FROM teamdraws WHERE date = ?', date).toArray()[0];
+    const teams = drawn ? JSON.parse(drawn.teams) : null;
+    let order;
+    if (teams) {   // deal each team round the lanes so every lane has both colors
+      const inTeam = new Set(teams.flatMap(t => t.pids));
+      order = shuffle(teams.map(t => shuffle([...t.pids]))).flat().concat(shuffle(pool.filter(p => !inTeam.has(p))));
+    } else order = shuffle([...pool]);
+    const lanes = Array.from({ length: k }, () => []);
+    order.forEach((p, i) => lanes[i % k].push(p));
+    const labels = Array.isArray(nums) && nums.length ? nums : Array.from({ length: k }, (_, i) => i + 1);
+    return shuffle(lanes).map((pids, i) => ({ lane: labels[i], pids: shuffle(pids) })).sort((a, b) => a.lane - b.lane);
   }
   // Even teams from the queue: thousands of random splits, keep the most even ones (team average of
   // each bowler's average), then pick one of those at random. New bowlers count as the league average.
@@ -721,6 +759,7 @@ export class Accounts extends DurableObject {
       if (me && r.ukey === me.ukey) a.mine = !!r.going;
     }
     const teams = Object.fromEntries(this.sql.exec('SELECT date, teams, at FROM teamdraws').toArray().map(r => [r.date, { teams: JSON.parse(r.teams), at: r.at }]));
+    const lanes = Object.fromEntries(this.sql.exec('SELECT date, lanes, at FROM lanedraws').toArray().map(r => [r.date, { lanes: JSON.parse(r.lanes), at: r.at }]));
     let poll = null;
     if (L.poll?.id) {
       const types = Object.fromEntries((L.poll.questions || []).map(q => [q.id, q.type]));
@@ -764,7 +803,7 @@ export class Accounts extends DurableObject {
     const hiddenComments = new Set((L.talk?.hiddenComments || []).map(Number));
     for (const r of this.sql.exec('SELECT id, kind, item, ukey, msg, at FROM comments ORDER BY at').toArray())
       if (live(r.ukey) && !hiddenComments.has(r.id)) (comments[`${r.kind}:${r.item}`] ??= []).push({ id: r.id, from: pidOf[r.ukey], msg: r.msg, at: r.at });
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, poll, sheets, live: liveScores, likes, comments };
+    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, lanes, poll, sheets, live: liveScores, likes, comments };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

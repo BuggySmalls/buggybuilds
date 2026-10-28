@@ -8,6 +8,7 @@
     "weekday": "Wednesday",
     "socialTime": "18:30",
     "startTime": "19:15",
+    "teamDrawTime": "19:05",
     "timezone": "America/New_York",
     "format": "individual",
     "seasons": [
@@ -361,7 +362,7 @@
     "ntfy": "cereal-bowlers-14d40f175e"
   },
   "teamNights": {
-    "2026-10-28": {}
+    "2026-10-28": { "teams": 2, "names": ["Team Red", "Team Blue"] }
   },
   "poll": {
     "id": "league-2026-10",

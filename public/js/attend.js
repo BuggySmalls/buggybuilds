@@ -1,22 +1,27 @@
 // Attendance + team nights (Nick, Oct 25 2026).
 // A bar at the top of every page asks signed-in bowlers if they're in for the next Wednesday.
 // Yes puts them on that night's lineup (and the team queue on a team night); Nick gets a phone push.
-// On a team night the server draws even teams at first ball (7:15) from everyone in the queue.
+// On a team night the server draws even teams at league.teamDrawTime (7:05, Nick Oct 28 2026) so everyone's
+// set up by first ball (7:15). Team Red vs Team Blue live board sits at the very top of the home page.
 import { api } from './account.js';
+import { liveCalc } from './sheets.js';
 
 let C; // { S, E, esc, avatar, who, fmtDate, fmtTime, P, route }
 const $ = s => document.querySelector(s);
 
+// When teams get drawn: teamNights[date].drawTime, else league.teamDrawTime, else first ball.
+export function drawTimeStr(date) { const L = C.S.data; return L.teamNights?.[date]?.drawTime || L.league.teamDrawTime || L.league.startTime || '19:15'; }
+function drawMs(date) { const [h, m] = drawTimeStr(date).split(':').map(Number); return C.E.zonedTime(date, h, m, C.S.data.league.timezone || 'America/New_York').getTime(); }
+
 function state() {
   const { S, E } = C;
   const next = S.next; if (!next || S.apiDown) return null;
-  const date = next.date;
+  const date = next.date, team = E.isTeamNight(S.data, date);
   return {
-    next, date,
-    team: E.isTeamNight(S.data, date),
+    next, date, team,
     att: S.games?.attendance?.[date] || { yes: [], no: [], mine: null },
     teams: E.teamsFor(S.data, date, S.games),
-    locked: Date.now() >= next.start.getTime(),
+    locked: Date.now() >= (team ? drawMs(date) : next.start.getTime()),
     day: C.fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' }),
   };
 }
@@ -35,7 +40,7 @@ export function renderAttendBar() {
   let html;
   if (locked) html = `${chip}<span class="at-msg"><b>Teams are set.</b> See who you’re bowling with.</span><a class="at-btn yes" href="#/?teams">See teams</a>`;
   else if (!S.me) html = `${chip}<span class="at-msg"><b>Bowling ${day}?</b> Sign in to confirm your attendance.</span>${count}<a class="at-btn yes" href="#/login">Sign in</a>`;
-  else if (att.mine === true) html = `${chip}<span class="at-msg"><b>You’re in for ${day}.</b> ${team ? `You’re in the team queue. Teams get drawn at ${C.fmtTime(S.data.league.startTime || '19:15')}.` : 'See you on the lanes.'}</span>${count}<button type="button" class="at-btn ghost" data-attend="no">Can’t make it</button>${queueStrip(att)}`;
+  else if (att.mine === true) html = `${chip}<span class="at-msg"><b>You’re in for ${day}.</b> ${team ? `You’re in the team queue. Teams get drawn at ${C.fmtTime(drawTimeStr(st.date))}.` : 'See you on the lanes.'}</span>${count}<button type="button" class="at-btn ghost" data-attend="no">Can’t make it</button>${queueStrip(att)}`;
   else if (att.mine === false) html = `${chip}<span class="at-msg"><b>You’re out for ${day}.</b> Plans change?</span>${count}<button type="button" class="at-btn yes" data-attend="yes">I’m in after all</button>`;
   else html = `${chip}<span class="at-msg"><b>Confirm your attendance</b> for ${day}</span>${count}<span class="at-pair"><button type="button" class="at-btn yes" data-attend="yes">Yes</button><button type="button" class="at-btn no" data-attend="no">No</button></span>`;
   bar.className = `attend-bar${att.mine === true ? ' in' : att.mine === false ? ' out' : ''}`;
@@ -63,19 +68,43 @@ function teamCards(teams, n) {
   const byName = res ? Object.fromEntries(res.map(r => [r.name, r])) : {};
   const order = res ? res.map(r => teams.find(t => t.name === r.name)) : teams;
   return `<div class="tm-grid">${order.map((t, i) => { const r = byName[t.name]; return `
-    <div class="tm-card${r?.place === 1 ? ' win' : ''}" style="--tc:${TEAM_COLORS[teams.indexOf(t) % TEAM_COLORS.length]}">
+    <div class="tm-card${r?.place === 1 ? ' win' : ''}" style="--tc:${teamColor(t, teams.indexOf(t))}">
       <div class="tm-head"><b>${C.esc(t.name)}</b>${r ? `<span class="tm-pts">${r.place === 1 ? '★ ' : ''}${r.points} pts</span>` : `<span class="tm-pts">${t.pids.length} bowlers</span>`}</div>
       <ul class="tm-list">${t.pids.map(pid => memberRow(pid, n)).join('')}</ul>
       ${r ? `<div class="tm-games">${r.games.map((g, k) => `<span>G${k + 1} <b>${g ?? '—'}</b>${r.blinds[k] ? `<i title="includes ${r.blinds[k]} blind">+B</i>` : ''}</span>`).join('')}<span>Total <b>${r.series}</b></span></div>` : ''}
     </div>`; }).join('')}</div>`;
 }
 const TEAM_COLORS = ['#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7', '#2E8A64', '#B87A2E'];
+const NAMED = { red: '#FF3B3B', blue: '#3B8BFF', green: '#2ECC71', yellow: '#FFC857', purple: '#9B5CFF', orange: '#FF8A3D', pink: '#FF3D9A' };
+const teamColor = (t, i) => NAMED[(t.name.match(/\b(red|blue|green|yellow|purple|orange|pink)\b/i)?.[1] || '').toLowerCase()] || TEAM_COLORS[i % TEAM_COLORS.length];
+
+/* Live team scoreboard, top of the home page (Nick, Oct 28 2026): "Team Red vs Team Blue" with scores that
+   update all night from the typed lane scores (same live feed as the Live scoreboard), handicap games. */
+export function homeTeamBoard() {
+  const st = state(); if (!st || !st.team || !st.teams) return '';
+  const { esc } = C, teams = st.teams;
+  const live = liveCalc(st.date);
+  const res = live ? C.E.teamResults(live.night, teams) : null;
+  const by = res ? Object.fromEntries(res.map(r => [r.name, r])) : {};
+  const side = (t, i) => { const r = by[t.name]; return `<div class="tb-side" style="--tc:${teamColor(t, i)}">
+      <span class="tb-name">${esc(t.name)}</span>
+      <span class="tb-score">${r ? r.series : 0}</span>
+      <span class="tb-pts">${r ? `${r.points} pts` : '0 pts'}</span>
+      <span class="tb-games">${[0, 1, 2].map(k => `<i>G${k + 1} <b>${r?.games[k] ?? '–'}</b></i>`).join('')}</span>
+      <span class="tb-who">${t.pids.map(pid => C.pl(pid)).join(' · ')}</span></div>`; };
+  const lead = res && res[0].series > 0 ? (res[1] && res[0].points === res[1].points && res[0].series === res[1].series ? 'All tied up' : `${esc(res[0].name)} leads`) : 'Waiting on game 1 scores';
+  const vs = teams.length === 2 ? `${side(teams[0], 0)}<span class="tb-vs">VS</span>${side(teams[1], 1)}` : teams.map(side).join('');
+  return `<section class="team-board${teams.length === 2 ? ' two' : ''}" id="teamboard">
+    <div class="tb-head"><span class="tb-live">● LIVE</span><b>${teams.map(t => esc(t.name)).join(' vs ')}</b><span class="tb-lead">${lead}</span></div>
+    <div class="tb-row">${vs}</div>
+    <p class="tb-foot small">Handicap pins as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a> · <a href="#/faq">How team scoring works</a></p></section>`;
+}
 
 export function homeAttend() {
   const st = state(); if (!st) return '';
   const { att, team, teams, day, locked, date } = st, { S, P, avatar, esc } = C;
   if (team && teams) return `<section class="panel tm-panel" id="teams"><div class="panel-head"><h2>Team night · ${esc(day)}</h2><a href="#/faq">How team scoring works</a></div>
-    <p class="small muted">Teams were drawn from the queue at first ball, balanced on average. Team score is everyone’s handicap games added up. You still bowl your normal individual night too.</p>
+    <p class="small muted">Teams were drawn from the queue before first ball, balanced on average. Team score is everyone’s handicap games added up. You still bowl your normal individual night too.</p>
     ${teamCards(teams, null)}</section>`;
   // Before the draw the queue lives in the bar's "You're in" bubble and the poll takes this spot (Nick, Oct 28 2026).
   return '';

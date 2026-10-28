@@ -276,6 +276,8 @@ export class Accounts extends DurableObject {
       if (method === 'GET' && path === '/games') {
         const L = await this.league(url.origin);
         await this.drawDue(L);
+        await this.ctx.storage.put('origin', url.origin);
+        await this.armAlarm(L);
         return json(this.games(L, await this.me(request)));
       }
 
@@ -371,6 +373,7 @@ export class Accounts extends DurableObject {
         const { date, going } = await request.json();
         const L = await this.league(url.origin);
         const bad = this.openNight(L, date); if (bad) return fail(400, bad.replace('Picks lock', 'Attendance locks').replace('Picks open', 'Attendance opens'));
+        if (L.teamNights?.[date] && now() >= this.drawAt(L, date)) return fail(400, 'Too late. Teams are already drawn.');
         if (typeof going !== 'boolean') return fail(400, 'Yes or no?');
         const prev = this.sql.exec('SELECT going FROM attendance WHERE date = ? AND ukey = ?', date, me.ukey).toArray()[0];
         this.sql.exec('INSERT INTO attendance (date, ukey, going, at) VALUES (?,?,?,?) ON CONFLICT(date, ukey) DO UPDATE SET going = excluded.going, at = excluded.at', date, me.ukey, going ? 1 : 0, now());
@@ -624,7 +627,7 @@ export class Accounts extends DurableObject {
   }
   // Wake up at the next team night's first ball to draw the teams even if nobody has the site open.
   async armAlarm(L) {
-    const due = Object.keys(L.teamNights || {}).map(d => this.lockAt(L, d)).filter(t => t > now()).sort((a, b) => a - b)[0];
+    const due = Object.keys(L.teamNights || {}).map(d => this.drawAt(L, d)).filter(t => t > now()).sort((a, b) => a - b)[0];
     if (!due) return;
     const cur = await this.ctx.storage.getAlarm();
     if (!cur || cur > due || cur < now()) await this.ctx.storage.setAlarm(due + 5e3);
@@ -639,8 +642,8 @@ export class Accounts extends DurableObject {
   async drawDue(L, announce = true) {
     const drawn = new Set(this.sql.exec('SELECT date FROM teamdraws').toArray().map(r => r.date));
     for (const date of Object.keys(L.teamNights || {})) {
-      if (drawn.has(date) || now() < this.lockAt(L, date)) continue;
-      if (now() - this.lockAt(L, date) > 2 * 86400e3) continue;     // don't redraw old nights
+      if (drawn.has(date) || now() < this.drawAt(L, date)) continue;
+      if (now() - this.drawAt(L, date) > 2 * 86400e3) continue;     // don't redraw old nights
       const teams = this.drawTeams(L, date);
       if (!teams) continue;
       this.sql.exec('INSERT OR IGNORE INTO teamdraws (date, teams, at) VALUES (?,?,?)', date, JSON.stringify(teams), now());
@@ -679,11 +682,15 @@ export class Accounts extends DurableObject {
     const best = Math.min(...tries.map(t => t.spread));
     const close = tries.filter(t => t.spread <= best + 2);
     const pick = close[rnd(close.length)].split;
-    const names = shuffle([...TEAM_NAMES]);
+    // Fixed team names for the night (Nick, Oct 28 2026: Team Red vs Team Blue), else random cereal names
+    const names = Array.isArray(cfg.names) && cfg.names.length >= k ? cfg.names : shuffle([...TEAM_NAMES]);
     return pick.map((pids, i) => ({ name: names[i % names.length], pids }));
   }
 
   lockAt(L, date) { const lg = L.league || {}; return zonedMs(date, lg.startTime || '19:15', lg.timezone); }
+  // Teams get drawn before first ball so everyone's set up by then (Nick, Oct 28 2026: draw 7:05, bowl 7:15).
+  // The team queue (attendance) closes at the draw on team nights.
+  drawAt(L, date) { const lg = L.league || {}; return zonedMs(date, L.teamNights?.[date]?.drawTime || lg.teamDrawTime || lg.startTime || '19:15', lg.timezone); }
 
   games(L, me) {
     const { hidden } = this.admin(L);
@@ -709,7 +716,7 @@ export class Accounts extends DurableObject {
     const attendance = {};
     for (const r of this.sql.exec('SELECT date, ukey, going, at FROM attendance ORDER BY at').toArray()) {
       if (!live(r.ukey)) continue;
-      const a = attendance[r.date] ??= { lockAt: this.lockAt(L, r.date), yes: [], no: [], mine: null };
+      const a = attendance[r.date] ??= { lockAt: L.teamNights?.[r.date] ? this.drawAt(L, r.date) : this.lockAt(L, r.date), drawAt: L.teamNights?.[r.date] ? this.drawAt(L, r.date) : null, yes: [], no: [], mine: null };
       a[r.going ? 'yes' : 'no'].push({ pid: pidOf[r.ukey], at: r.at });
       if (me && r.ukey === me.ukey) a.mine = !!r.going;
     }

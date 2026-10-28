@@ -658,35 +658,5 @@
   },
   "scoresheets": {
     "lanes": 24
-  },
-  "liveTest": [
-    {
-      "date": "2026-10-28",
-      "pid": "tony",
-      "game": 3,
-      "lane": 2,
-      "score": 99
-    },
-    {
-      "date": "2026-10-28",
-      "pid": "deedra",
-      "game": 3,
-      "lane": 2,
-      "score": 100
-    },
-    {
-      "date": "2026-10-28",
-      "pid": "kate",
-      "game": 3,
-      "lane": 2,
-      "score": 106
-    },
-    {
-      "date": "2026-10-28",
-      "pid": "poopbird",
-      "game": 3,
-      "lane": 2,
-      "score": 157
-    }
-  ]
+  }
 }

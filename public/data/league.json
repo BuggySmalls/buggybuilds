@@ -693,7 +693,9 @@
     {"date": "2026-10-28", "pid": "kate", "game": 1, "lane": 24, "score": 89, "frames": "9- 9- 63 5/ 72 -7 81 -3 9- 8-"},
     {"date": "2026-10-28", "pid": "natehasboobs", "game": 2, "lane": 24, "score": 112, "frames": "81 33 51 X 9/ 63 8/ 3/ S8- 61", "ok": false},
     {"date": "2026-10-28", "pid": "vcosta99", "game": 2, "lane": 24, "score": 115, "frames": "X X 8- 81 9- -3 X -7 S61 9-", "ok": false},
-    {"date": "2026-10-28", "pid": "poopbird", "game": 2, "lane": 24, "score": 165, "frames": "81 9/ 8/ 9/ 8/ X 9/ 6/ S81 9/8"}
+    {"date": "2026-10-28", "pid": "poopbird", "game": 2, "lane": 24, "score": 165, "frames": "81 9/ 8/ 9/ 8/ X 9/ 6/ S81 9/8"},
+    {"date": "2026-10-28", "pid": "buggy", "game": 2, "lane": 23, "score": 145},
+    {"date": "2026-10-28", "pid": "deedra", "game": 2, "lane": 23, "score": 135}
   ],
   "laneDraw": {
     "count": 4,

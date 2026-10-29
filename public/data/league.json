@@ -319,6 +319,137 @@
         ]
       },
       "note": "Big Money's game 3 was cut off when the lane's time ran out."
+    },
+    {
+      "date": "2026-10-28",
+      "status": "completed",
+      "scores": {
+        "tony": [
+          129,
+          143,
+          96
+        ],
+        "fontes": [
+          142,
+          106,
+          115
+        ],
+        "kate": [
+          89,
+          113,
+          135
+        ],
+        "natehasboobs": [
+          106,
+          112,
+          133
+        ],
+        "poopbird": [
+          119,
+          165,
+          172
+        ],
+        "vcosta99": [
+          73,
+          115,
+          73
+        ],
+        "buggy": [
+          97,
+          145,
+          144
+        ],
+        "deedra": [
+          113,
+          135,
+          132
+        ],
+        "liam": [
+          99,
+          109,
+          103
+        ],
+        "n8": [
+          125,
+          161,
+          null
+        ]
+      },
+      "frames": {
+        "tony": [
+          "X 71 6/ 7- 9- 7- 7- X 8/ 7/9",
+          "72 X 7/ 7- 8/ X 6/ 6- X 9-",
+          "9/ 15 7/ 7/ 16 S72 71 9- 63 9-"
+        ],
+        "fontes": [
+          "81 6- 62 8/ X 9- 9/ X 8/ 6/5",
+          "S8- 9- 7/ X 8- 13 3/ 27 6/ 16",
+          "6/ 51 9- 6/ 6- 8- 9/ 9/ 9- 8-"
+        ],
+        "kate": [
+          "9- 9- 63 5/ 72 -7 81 -3 9- 8-",
+          "81 15 7- 34 X 8/ 9- 17 X 9-",
+          "9- 7/ 72 71 35 8- S81 X X X-7"
+        ],
+        "natehasboobs": [
+          "9/ 51 4- X 17 8- 62 1/ 7/ 6-",
+          "81 33 51 X 9/ 63 8/ 3/ S8- 61",
+          "8- -6 5/ 9/ X -/ 7- 36 7- X9/"
+        ],
+        "poopbird": [
+          "8- 9- -7 X 6/ 3/ S81 63 72 7/7",
+          "81 9/ 8/ 9/ 8/ X 9/ 6/ S81 9/8",
+          "9/ 9/ 8/ X 62 7/ 8/ 5/ 8/ 8/X"
+        ],
+        "vcosta99": [
+          "63 -9 8- 4- 7- S8- 7- -8 -6 S7-",
+          "X X 8- 81 9- -3 X -7 S61 9-",
+          "9- 3- 3- 9- 3/ -8 -- 9- -3 7/9"
+        ],
+        "buggy": [
+          "7/ 8- 9- 61 7- X -7 9- S62 7-",
+          "9- 7- 36 8/ 9/ 9- 4/ 3/ X 7/X",
+          "7- 35 S8/ 81 1/ 9- 44 X X 9/7"
+        ],
+        "deedra": [
+          "9- S8- 9- 8/ 62 8/ X 8- 54 62",
+          "8- X 8/ X 9- 71 X 7- 8- 9/9",
+          "X 7/ 63 8/ 8/ 8- 9/ 9- 33 S81"
+        ],
+        "liam": [
+          "15 9- 4- 26 18 3/ -/ X 7- 63",
+          "6- 7/ S7- 9/ 7- -7 6/ 9/ 6- -7",
+          "-- 9- X 34 8- 31 X X 63 4-"
+        ],
+        "n8": [
+          "S6- 7- 7/ 6/ X 6- 7/ 8- X 9-",
+          "24 9- 9- 7/ X 8/ S81 X 9/ XXX",
+          null
+        ]
+      },
+      "teams": [
+        {
+          "name": "Team Red",
+          "pids": [
+            "tony",
+            "kate",
+            "n8",
+            "liam",
+            "vcosta99"
+          ]
+        },
+        {
+          "name": "Team Blue",
+          "pids": [
+            "buggy",
+            "fontes",
+            "deedra",
+            "poopbird",
+            "natehasboobs"
+          ]
+        }
+      ],
+      "note": "Team night: Team Red vs Team Blue. Logged from Kingstown Bowl's printed scoresheets."
     }
   ],
   "announcements": [
@@ -366,7 +497,19 @@
     "ntfy": "cereal-bowlers-14d40f175e"
   },
   "teamNights": {
-    "2026-10-28": { "teams": 2, "names": ["Team Red", "Team Blue"], "swap": [["fontes", "liam"]] }
+    "2026-10-28": {
+      "teams": 2,
+      "names": [
+        "Team Red",
+        "Team Blue"
+      ],
+      "swap": [
+        [
+          "fontes",
+          "liam"
+        ]
+      ]
+    }
   },
   "poll": {
     "id": "league-2026-10",
@@ -683,30 +826,21 @@
       }
     ]
   },
-  "liveAdd": [
-    {"date": "2026-10-28", "pid": "deedra", "game": 1, "lane": 23, "score": 113, "frames": "9- S8- 9- 8/ 62 8/ X 8- 54 62"},
-    {"date": "2026-10-28", "pid": "liam", "game": 1, "lane": 23, "score": 99, "frames": "15 9- 4- 26 18 3/ -/ X 7- 63", "ok": false},
-    {"date": "2026-10-28", "pid": "n8", "game": 1, "lane": 23, "score": 125, "frames": "S6- 7- 7/ 6/ X 6- 7/ 8- X 9-"},
-    {"date": "2026-10-28", "pid": "buggy", "game": 1, "lane": 23, "score": 97, "frames": "7/ 8- 9- 61 7- X -7 9- S62 7-"},
-    {"date": "2026-10-28", "pid": "fontes", "game": 1, "lane": 24, "score": 142, "frames": "81 6- 62 8/ X 9- 9/ X 8/ 6/5"},
-    {"date": "2026-10-28", "pid": "tony", "game": 1, "lane": 24, "score": 129, "frames": "X 71 6/ 7- 9- 7- 7- X 8/ 7/9"},
-    {"date": "2026-10-28", "pid": "kate", "game": 1, "lane": 24, "score": 89, "frames": "9- 9- 63 5/ 72 -7 81 -3 9- 8-"},
-    {"date": "2026-10-28", "pid": "natehasboobs", "game": 2, "lane": 24, "score": 112, "frames": "81 33 51 X 9/ 63 8/ 3/ S8- 61", "ok": false},
-    {"date": "2026-10-28", "pid": "vcosta99", "game": 2, "lane": 24, "score": 115, "frames": "X X 8- 81 9- -3 X -7 S61 9-", "ok": false},
-    {"date": "2026-10-28", "pid": "poopbird", "game": 2, "lane": 24, "score": 165, "frames": "81 9/ 8/ 9/ 8/ X 9/ 6/ S81 9/8"},
-    {"date": "2026-10-28", "pid": "buggy", "game": 2, "lane": 23, "score": 145},
-    {"date": "2026-10-28", "pid": "deedra", "game": 2, "lane": 23, "score": 135}
-  ],
   "laneDraw": {
     "count": 4,
     "numbers": {},
     "nights": {
-      "2026-10-28": { "count": 3, "rev": 1 }
+      "2026-10-28": {
+        "count": 3,
+        "rev": 1
+      }
     }
   },
   "scoresheets": {
     "lanes": 24,
     "reject": [],
-    "remove": [1]
+    "remove": [
+      1
+    ]
   }
 }

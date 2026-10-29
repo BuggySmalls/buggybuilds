@@ -683,7 +683,10 @@
     { "date": "2026-10-28", "pid": "deedra", "game": 1, "lane": 23, "score": 113 },
     { "date": "2026-10-28", "pid": "liam", "game": 1, "lane": 23, "score": 99, "ok": false },
     { "date": "2026-10-28", "pid": "n8", "game": 1, "lane": 23, "score": 125 },
-    { "date": "2026-10-28", "pid": "buggy", "game": 1, "lane": 23, "score": 97 }
+    { "date": "2026-10-28", "pid": "buggy", "game": 1, "lane": 23, "score": 97 },
+    { "date": "2026-10-28", "pid": "fontes", "game": 1, "lane": 24, "score": 142 },
+    { "date": "2026-10-28", "pid": "tony", "game": 1, "lane": 24, "score": 129 },
+    { "date": "2026-10-28", "pid": "kate", "game": 1, "lane": 24, "score": 89 }
   ],
   "laneDraw": {
     "count": 4,

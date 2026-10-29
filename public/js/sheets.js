@@ -163,8 +163,9 @@ function waitingPhotos(date) {
 function waitingStrip(date) {
   const w = waitingPhotos(date); if (!w.length) return '';
   const nick = boss();
-  return `<div class="lb-wait"><b>📷 Photos in, scores not typed yet</b><ul>${w.map(s => `<li>Lane ${s.lane} · Game ${s.game}${s.from ? ` · from ${C.pl(s.from)}` : ''}${s.status === 'pending' ? ' · waiting on Nick' : ''}</li>`).join('')}</ul>
-    <p class="small muted">${nick ? 'Type them in on the card in <a href="#/scores">Upload scores</a> (Type scores) and they go live.' : 'Sent it? Nick can type the scores in, or upload again and tap each bowler to type their score.'}</p></div>`;
+  // "Loading scores" (Nick, Oct 28 2026): approved photos are read automatically every few minutes on league night.
+  return `<div class="lb-wait"><b class="lb-loading"><span class="lb-spin" aria-hidden="true"></span>Loading scores</b><ul>${w.map(s => `<li>Lane ${s.lane} · Game ${s.game}${s.status === 'pending' ? ' · waiting on Nick to approve' : ' · reading the photo…'}</li>`).join('')}</ul>
+    <p class="small muted">Approved photos get read frame by frame and posted within a few minutes.${nick ? ' Want it now? Type them on the card in <a href="#/scores">Upload scores</a>.' : ''}</p></div>`;
 }
 export function liveBoard(date, { title } = {}) {
   const L = liveCalc(date);

@@ -1318,3 +1318,6 @@ span.nh-arrow{display:none}
 .btn.danger{border-color:#c0392b;color:#ff6b5b}
 .lb-wait{margin:10px 0;padding:8px 10px;border-radius:10px;border:1px dashed var(--gold,#FFC857);background:rgba(255,200,87,.08)}
 .lb-wait ul{margin:4px 0;padding-left:18px;font-size:14px}
+.lb-loading{display:inline-flex;align-items:center;gap:8px}
+.lb-spin{width:14px;height:14px;border-radius:50%;border:3px solid rgba(255,200,87,.3);border-top-color:var(--gold,#FFC857);animation:lbspin .8s linear infinite}
+@keyframes lbspin{to{transform:rotate(360deg)}}

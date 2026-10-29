@@ -430,7 +430,7 @@ const rankMove = (was, now) => { const mv = was ? was - now : 0; return `<small 
 const move = (was, now) => !was ? '<span class="mv new">new</span>' : was === now ? '' : `<span class="mv ${was > now ? 'up' : 'down'}">${was > now ? '▲' : '▼'}${Math.abs(was - now)}</span>`;
 pages.standings = () => {
   const { sort = 'points', live: liveQ, cum } = q();
-  // Week filter + running-total toggle (N8's ask, Oct 29 2026): ?wk=N shows that one night; &cum=1 shows the season through that week
+  // Week filter + running-total toggle (N8's ask, Oct 29 2026): only under "This week" (Nick); ?wk=N shows that one night; &cum=1 shows the season through that week
   const wkN = +q().wk, wkNight = wkN ? S.nights[wkN - 1] : null;
   const view = wkNight ? 'pick' : (q().view || 'season');
   // Live standings (Nick, Oct 28 2026): tonight's typed-in scores count as if the night ended now
@@ -460,8 +460,8 @@ pages.standings = () => {
   <div><div class="title-row"><h1 class="page-title">Standings</h1><a class="btn small upload-btn" href="#/scores">📷 Upload scores</a></div><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
   ${liveNow()}
   ${ld && !wkNight ? `<div class="live-note">${L ? `<b>● Live</b> These standings include tonight’s unofficial scores, as if the night ended now. <a href="#/standings?view=${view}&live=0">Show before tonight</a>` : `Showing standings before tonight. <a href="#/standings?view=${view}">Show live</a>`}</div>` : ''}
-  <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}&wk=&cum=" aria-pressed="${view === k}">${t}</button>`).join('')}</div>
-    ${S.nights.length ? `<label class="field">Week<select data-qsel="wk"><option value="">Pick a week</option>${S.nights.map((x, i) => `<option value="${i + 1}" ${wkNight === x ? 'selected' : ''}>Week ${i + 1} · ${fmtDate(x.date)}</option>`).join('')}</select></label>` : ''}
+  <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}&wk=&cum=" aria-pressed="${view === k || (wkNight && k === 'week')}">${t}</button>`).join('')}</div>
+    ${(view === 'week' || wkNight) && S.nights.length ? `<label class="field">Week<select data-qsel="wk">${S.nights.map((x, i) => `<option value="${i + 1}" ${(wkNight || S.nights.at(-1)) === x ? 'selected' : ''}>Week ${i + 1} · ${fmtDate(x.date)}</option>`).join('')}</select></label>` : ''}
     ${wkNight ? `<div class="seg" role="group" aria-label="Running total"><button data-q="cum=" aria-pressed="${!cum}">Just that week</button><button data-q="cum=1" aria-pressed="${!!cum}">Running total</button></div>` : ''}</div>
   <section class="panel">
     ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>

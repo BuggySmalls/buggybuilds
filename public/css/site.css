@@ -1325,3 +1325,29 @@ span.nh-arrow{display:none}
 /* Power-ranking style moves on standings + home top five (Nick, Oct 29 2026) */
 .rk{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:30px}
 .rmv{font:700 11px/1 var(--body);white-space:nowrap}
+
+/* Suggestion box strip (Nick, Oct 29 2026) */
+.ideas-bar{background:var(--cyan);color:#111;border-bottom:3px solid #111;font:500 13px/1.3 var(--body)}
+.ideas-bar .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding-block:5px}
+.id-msg{flex:1 1 200px;min-width:0}
+.id-msg b{font-weight:800}
+.id-btn{font:400 12px var(--display);text-transform:uppercase;border:2px solid #111;border-radius:8px;padding:3px 10px;background:#111;color:var(--cyan);cursor:pointer;white-space:nowrap}
+.id-btn:disabled{opacity:.5;cursor:wait}
+.id-link{background:none;border:0;padding:2px 0;font:600 13px var(--body);color:#111;text-decoration:underline;cursor:pointer}
+.id-form{flex:1 1 100%;display:flex;flex-direction:column;gap:6px;padding-block:3px}
+.id-form textarea,.id-form input{width:100%;box-sizing:border-box;font:500 15px var(--body);border:2px solid #111;border-radius:8px;padding:6px 8px;background:#fff;color:#111;resize:vertical}
+.id-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.id-err{color:#9F1239;font-weight:700}
+.id-boss{margin-left:auto}
+.id-list{flex:1 1 100%;display:flex;flex-direction:column;gap:6px;padding-bottom:6px;max-height:320px;overflow:auto}
+.id-item{background:#fff;border:2px solid #111;border-radius:8px;padding:6px 9px}
+.id-item p{margin:0 0 2px;font-size:14px}
+.id-item span{font-size:12px;color:#555}
+
+/* Everyone's frames on Standings (Nick, Oct 29 2026) */
+.af-list{display:flex;flex-direction:column;gap:10px}
+.af-row{display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:10px;background:var(--panel-2)}
+.af-row.top{outline:2px solid var(--maple)}
+.af-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.af-total{font:400 20px var(--display)}
+.af-none{margin:0}

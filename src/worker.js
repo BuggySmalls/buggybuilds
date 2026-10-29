@@ -124,6 +124,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS likes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
       CREATE TABLE IF NOT EXISTS dislikes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
       CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS ideas (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT, name TEXT NOT NULL DEFAULT '', ip TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): dollars, cents OK since Oct 28 2026 (stored as REAL in this column), 0 = nothing
@@ -258,6 +259,26 @@ export class Accounts extends DurableObject {
           ? this.sql.exec('SELECT id, date, lane, game, pids, status FROM sheets WHERE test = 1 ORDER BY lane, game, id').toArray()
           : this.sql.exec("SELECT id, date, lane, game, pids, status FROM sheets WHERE test = 0 AND status = 'approved' AND date = ? ORDER BY lane, game", d).toArray();
         return json(rows.map(r => ({ ...r, pids: JSON.parse(r.pids) })));
+      }
+      // Suggestion box (Nick, Oct 29 2026): "Got ideas for the site?" Anyone can send one, signed in or not.
+      // Nick gets the whole idea as an ntfy push; only the commissioner can list them (GET /api/ideas).
+      if (method === 'POST' && path === '/idea') {
+        const { msg, name } = await request.json();
+        const m = clean(msg, 500); if (!m) return fail(400, 'Type your idea first.');
+        const ip = request.headers.get('cf-connecting-ip') || 'local', t = now();
+        const recent = this.sql.exec('SELECT COUNT(*) AS n, MAX(at) AS last FROM ideas WHERE ip = ? AND at > ?', ip, t - 3600e3).one();
+        if (recent.n >= 8) return fail(429, 'That’s a lot of ideas. Try again in an hour.');
+        if (recent.last && t - recent.last < 15e3) return fail(429, 'Give it a few seconds between ideas.');
+        const me = await this.me(request), L = await this.league(url.origin);
+        const who = me ? (this.merged(L).find(p => p.id === me.player_id)?.name || me.username) : clean(name, 40);
+        this.sql.exec('INSERT INTO ideas (ukey, name, ip, msg, at) VALUES (?,?,?,?,?)', me?.ukey || null, who || '', ip, m, t);
+        this.ctx.waitUntil(this.push(L, `Site idea from ${who || 'someone'}`, m, 'bulb'));
+        return json({ ok: true }, 201);
+      }
+      if (method === 'GET' && path === '/ideas') {
+        const me = await this.me(request), L = await this.league(url.origin);
+        if (!me || me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can see these.');
+        return json(this.sql.exec('SELECT id, name, msg, at FROM ideas ORDER BY at DESC LIMIT 200').toArray());
       }
       if (method === 'GET' && path === '/me') return json(this.publicMe(await this.me(request)));
       if (method === 'GET' && path === '/method') {

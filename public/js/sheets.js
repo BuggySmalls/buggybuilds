@@ -96,7 +96,9 @@ function fixScores(s) {
 
 /* Live scoreboard (Nick, Oct 28 2026): every score typed in from the lanes tonight, before it's logged.
    league.json `liveTest` adds rows by hand for testing; remove it to clear them. */
-const liveList = () => [...(C.S.games?.live || []), ...(C.S.data.liveTest || []).map(x => ({ ok: true, ...x }))];
+// liveAdd (Nick, Oct 28 2026): scores Claude read off an approved photo nobody typed, put live from league.json.
+// Listed first so anything typed on the site for the same bowler + game wins.
+const liveList = () => [...(C.S.data.liveAdd || []).map(x => ({ ok: true, ...x })), ...(C.S.games?.live || []), ...(C.S.data.liveTest || []).map(x => ({ ok: true, ...x }))];
 // Tonight as if the night ended now (Nick, Oct 28 2026): the live scores run through the same engine as a
 // logged night, so places, points, handicap and W/L all match what the official results will say.
 export function liveCalc(date) {

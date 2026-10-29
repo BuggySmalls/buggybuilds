@@ -104,10 +104,13 @@ function finalTeamNight() {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: C.S.data.league?.timezone || 'America/New_York' });
   return today < mon ? { n, teams } : null;
 }
-export function homeTeamBoard() {
+// where: 'top' = live board only (bowling night, above the hero); 'below' = final board only, under the hero photo
+// once the night is over (Nick, Oct 29 2026: "after Wednesday night, move the team scoring below the photo").
+export function homeTeamBoard(where = 'top') {
   const st = state();
   const fin = (!st || !st.team || !st.teams || C.S.nights?.some(n => n.date === st.date)) ? finalTeamNight() : null;
   if (!fin && (!st || !st.team || !st.teams)) return '';
+  if ((where === 'below') !== !!fin) return '';
   const { esc } = C, teams = fin ? fin.teams : st.teams;
   const live = fin ? null : liveCalc(st.date);
   const res = fin ? C.E.teamResults(fin.n, teams) : live ? C.E.teamResults(live.night, teams) : null;

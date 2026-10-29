@@ -1,0 +1,315 @@
+{
+  "id": "league-2026-10",
+  "open": true,
+  "title": "League Poll",
+  "date": "2026-10-27",
+  "intro": "Help decide buy-ins, team nights and trophies. Answer as many as you want and change your answers any time while the poll is open.",
+  "sections": {
+    "money": "Money",
+    "team": "Team play",
+    "awards": "Trophies & awards"
+  },
+  "questions": [
+    {
+      "id": "buyin",
+      "section": "money",
+      "type": "one",
+      "q": "Should we have a weekly buy-in?",
+      "options": [
+        {
+          "v": "yes",
+          "label": "Yes"
+        },
+        {
+          "v": "no",
+          "label": "No"
+        },
+        {
+          "v": "optional",
+          "label": "Optional buy-in",
+          "desc": "Only bowlers who chip in can win from the pot."
+        },
+        {
+          "v": "team",
+          "label": "Only for team nights"
+        }
+      ]
+    },
+    {
+      "id": "amount",
+      "section": "money",
+      "type": "one",
+      "q": "How much per week?",
+      "options": [
+        {
+          "v": "0",
+          "label": "$0"
+        },
+        {
+          "v": "3",
+          "label": "$3"
+        },
+        {
+          "v": "5",
+          "label": "$5"
+        },
+        {
+          "v": "10",
+          "label": "$10"
+        }
+      ]
+    },
+    {
+      "id": "split",
+      "section": "money",
+      "type": "one",
+      "q": "Where should most of the money go?",
+      "options": [
+        {
+          "v": "weekly",
+          "label": "Weekly winners"
+        },
+        {
+          "v": "monthly",
+          "label": "Monthly pot"
+        },
+        {
+          "v": "even",
+          "label": "Even split"
+        }
+      ]
+    },
+    {
+      "id": "jackpot",
+      "section": "money",
+      "type": "one",
+      "q": "Want a progressive jackpot that rolls over?",
+      "options": [
+        {
+          "v": "yes",
+          "label": "Yes"
+        },
+        {
+          "v": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "trigger",
+      "section": "money",
+      "type": "one",
+      "q": "What should trigger the jackpot?",
+      "options": [
+        {
+          "v": "200",
+          "label": "200 scratch game"
+        },
+        {
+          "v": "turkey10",
+          "label": "Turkey in the 10th"
+        },
+        {
+          "v": "clean",
+          "label": "Clean game (no open frames)"
+        }
+      ]
+    },
+    {
+      "id": "sidepots",
+      "section": "money",
+      "type": "many",
+      "q": "Which side pots sound fun? Pick any.",
+      "options": [
+        {
+          "v": "brackets",
+          "label": "Brackets",
+          "desc": "$1–2 to enter, head-to-head elimination over 3 games, winner takes the bracket."
+        },
+        {
+          "v": "gutter",
+          "label": "Gutter tax",
+          "desc": "$0.25 per gutter ball, added to the jackpot."
+        },
+        {
+          "v": "mystery",
+          "label": "Mystery frame",
+          "desc": "A frame is drawn at random after the night, and anyone who struck in it splits a small pot."
+        },
+        {
+          "v": "none",
+          "label": "None"
+        }
+      ]
+    },
+    {
+      "id": "betsettle",
+      "section": "money",
+      "type": "one",
+      "q": "How should betchas be settled?",
+      "options": [
+        {
+          "v": "pins",
+          "label": "Total pins",
+          "desc": "Higher 3-game series wins the bet."
+        },
+        {
+          "v": "frames",
+          "label": "Frames against frames",
+          "desc": "Each frame is head-to-head; whoever wins more frames wins the bet."
+        }
+      ]
+    },
+    {
+      "id": "teamscore",
+      "section": "team",
+      "type": "one",
+      "q": "How should team nights be scored?",
+      "options": [
+        {
+          "v": "overavg",
+          "label": "Over-average",
+          "desc": "Each bowler adds their pins over or under their own average, so skill gaps and uneven teams even out."
+        },
+        {
+          "v": "hdcp",
+          "label": "Handicap pin total",
+          "desc": "The team’s handicapped scores added together, the classic league method."
+        },
+        {
+          "v": "points",
+          "label": "Points per game",
+          "desc": "Teams are ranked each game (4-3-2-1 points), plus a bonus for the best series."
+        }
+      ]
+    },
+    {
+      "id": "teamfreq",
+      "section": "team",
+      "type": "one",
+      "q": "How often should we have team nights?",
+      "options": [
+        {
+          "v": "weekly",
+          "label": "Every week"
+        },
+        {
+          "v": "biweekly",
+          "label": "Every other week"
+        },
+        {
+          "v": "monthly",
+          "label": "Once a month"
+        }
+      ]
+    },
+    {
+      "id": "teamtitle",
+      "section": "team",
+      "type": "one",
+      "q": "Should team wins count toward the monthly title?",
+      "options": [
+        {
+          "v": "yes",
+          "label": "Yes (+1 point)"
+        },
+        {
+          "v": "no",
+          "label": "No, keep it separate"
+        }
+      ]
+    },
+    {
+      "id": "teamfixed",
+      "section": "team",
+      "type": "one",
+      "q": "Should teams be random every week or stay fixed for a month?",
+      "options": [
+        {
+          "v": "random",
+          "label": "Random weekly"
+        },
+        {
+          "v": "fixed",
+          "label": "Fixed monthly"
+        }
+      ]
+    },
+    {
+      "id": "shortteam",
+      "section": "team",
+      "type": "one",
+      "q": "What should a team with fewer bowlers use for the missing slot?",
+      "options": [
+        {
+          "v": "avg",
+          "label": "Average per bowler"
+        },
+        {
+          "v": "blind",
+          "label": "A “blind” score"
+        }
+      ]
+    },
+    {
+      "id": "travel",
+      "section": "awards",
+      "type": "one",
+      "q": "Monthly traveling trophy?",
+      "options": [
+        {
+          "v": "yes",
+          "label": "Yes"
+        },
+        {
+          "v": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "season",
+      "section": "awards",
+      "type": "one",
+      "q": "Season-end engraved trophy?",
+      "options": [
+        {
+          "v": "yes",
+          "label": "Yes"
+        },
+        {
+          "v": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "booby",
+      "section": "awards",
+      "type": "one",
+      "q": "A booby prize for last place?",
+      "options": [
+        {
+          "v": "yes",
+          "label": "Yes"
+        },
+        {
+          "v": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "badges",
+      "section": "awards",
+      "type": "text",
+      "q": "Any badges we should add?"
+    },
+    {
+      "id": "ideas",
+      "section": "awards",
+      "type": "text",
+      "q": "Open suggestion box"
+    }
+  ]
+}

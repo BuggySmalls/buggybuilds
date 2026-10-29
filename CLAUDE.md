@@ -82,6 +82,9 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 - Pulling photos without gh: write the date to `sheets-request.txt` and push to the `sheets-request` branch; the workflow runs for that date. Only approved photos can be pulled.
 - Pulling photos: run the `Fetch scoresheets` workflow (`gh api -X POST repos/BuggySmalls/buggybuilds/actions/workflows/scoresheets.yml/dispatches -f ref=main -f inputs[date]=YYYY-MM-DD`), then `git fetch origin scoresheets` and read `scoresheets/<date>/lane<L>-game<G>-id<N>.jpg` (+ `sheets.json` with tagged bowlers). Public list endpoint: `GET /api/sheets?date=…`. Transcribe as in "Logging a night". The photos are a source, not the record: league.json `events` stays the only real data; never log test sheets into `events`.
 
+## Lane & shoe costs (Nick, Oct 29 2026) — off the site
+- Nick wants nightly and monthly totals of what he pays Kingstown Bowl, kept on the side, never on the site. Ledger: `expenses/lane-costs.md` on the `records` branch (one row per night: lanes, hours, shoe pairs, paid, expected at the agreed rate; plus a monthly totals table). Agreed rate: $25 per lane per hour, shoes half off (believed $2/pair, was $4). Flag when what he paid doesn't match the agreed rate.
+
 ## Other admin tasks (all in league.json)
 - Roster: `players[]` → `{id, name, nickname, hand, joined, active, photo?}`. Bench with `"active": false` (history stays). Profile details now come from accounts (above).
 - League settings: `league.name`, `seasons[]`, `skipDates[]`, `startTime`, `socialTime`, `handicap`, `championship.points`.

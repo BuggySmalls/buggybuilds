@@ -95,11 +95,22 @@ export function homeLaneBoard() {
 
 /* Live team scoreboard, top of the home page (Nick, Oct 28 2026): "Team Red vs Team Blue" with scores that
    update all night from the typed lane scores (same live feed as the Live scoreboard), handicap games. */
+// After a team night is logged, its final board stays on the home page until the following Monday (Nick, Oct 28 2026)
+function finalTeamNight() {
+  const n = (C.S.nights || []).at(-1); if (!n) return null;
+  const teams = C.E.teamsFor(C.S.data, n.date, C.S.games); if (!teams) return null;
+  const [y, m, d] = n.date.split('-').map(Number), dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const mon = new Date(Date.UTC(y, m - 1, d + (((8 - dow) % 7) || 7))).toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: C.S.data.league?.timezone || 'America/New_York' });
+  return today < mon ? { n, teams } : null;
+}
 export function homeTeamBoard() {
-  const st = state(); if (!st || !st.team || !st.teams) return '';
-  const { esc } = C, teams = st.teams;
-  const live = liveCalc(st.date);
-  const res = live ? C.E.teamResults(live.night, teams) : null;
+  const st = state();
+  const fin = (!st || !st.team || !st.teams || C.S.nights?.some(n => n.date === st.date)) ? finalTeamNight() : null;
+  if (!fin && (!st || !st.team || !st.teams)) return '';
+  const { esc } = C, teams = fin ? fin.teams : st.teams;
+  const live = fin ? null : liveCalc(st.date);
+  const res = fin ? C.E.teamResults(fin.n, teams) : live ? C.E.teamResults(live.night, teams) : null;
   const by = res ? Object.fromEntries(res.map(r => [r.name, r])) : {};
   const side = (t, i) => { const r = by[t.name]; return `<div class="tb-side" style="--tc:${teamColor(t, i)}">
       <span class="tb-name">${esc(t.name)}</span>
@@ -109,13 +120,14 @@ export function homeTeamBoard() {
   let lead = 'Waiting on game 1 scores';
   if (res && res.some(r => r.series > 0)) {
     const top = (f) => { const m = Math.max(...res.map(f)), w = res.filter(r => f(r) === m); return w.length > 1 ? 'tied' : esc(w[0].name); };
-    lead = `Wins: ${top(r => r.wins)} · Points: ${top(r => r.series)}`;
+    lead = `${fin ? 'Most wins' : 'Wins'}: ${top(r => r.wins)} · ${fin ? 'Most points' : 'Points'}: ${top(r => r.series)}`;
   }
+  const day = fin ? C.fmtDate(fin.n.date, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
   const vs = teams.length === 2 ? `${side(teams[0], 0)}<span class="tb-vs">VS</span>${side(teams[1], 1)}` : teams.map(side).join('');
   return `<section class="team-board${teams.length === 2 ? ' two' : ''}" id="teamboard">
-    <div class="tb-head"><span class="tb-live">● LIVE</span><b>${teams.map(t => esc(t.name)).join(' vs ')}</b><span class="tb-lead">${lead}</span></div>
+    <div class="tb-head"><span class="tb-live">${fin ? 'FINAL · ' + esc(day) : '● LIVE'}</span><b>${teams.map(t => esc(t.name)).join(' vs ')}</b><span class="tb-lead">${lead}</span></div>
     <div class="tb-row">${vs}</div>
-    <p class="tb-foot small">Team wins = games won. Total points = all handicap pins. Live as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a> · <a href="#/faq">How team scoring works</a></p></section>`;
+    <p class="tb-foot small">Team wins = games won. Total points = all handicap pins. ${fin ? `Final, from the official scoresheets. <a href="#/night/${fin.n.date}">Full night</a>` : 'Live as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a>'} · <a href="#/faq">How team scoring works</a></p></section>`;
 }
 
 export function homeAttend() {

@@ -812,7 +812,8 @@ export function stakesDollars(text) {
   return Math.min(v, 100);
 }
 export function betAmount(b) { return b.amount > 0 ? Math.min(b.amount, 100) : stakesDollars(b.stakes); }
-export function betSettled(b, data) { return !!(b.paidAt && b.gotAt) || (data?.betcha?.settled || []).map(Number).includes(Number(b.id)); }
+// Only the winner has to confirm (Nick, Oct 28 2026); the loser's "I paid" is optional.
+export function betSettled(b, data) { return !!b.gotAt || (data?.betcha?.settled || []).map(Number).includes(Number(b.id)); }
 export function purse(data, nights, bets = []) {
   const cfg = data.league?.purse;
   const totals = Object.fromEntries(data.players.map(p => [p.id, { id: p.id, won: 0, paidIn: 0, cashes: 0, nights: 0, betWon: 0 }]));

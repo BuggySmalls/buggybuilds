@@ -73,7 +73,7 @@ export function calloutRecord(pid) {
 
 // Betcha result, same rules as a call-out but only once the other bowler took the bet
 function betResult(b) { return b.status === 'accepted' ? calloutResult(b) : null; }
-// Settling up (Nick, Oct 25 2026): loser taps "I paid", winner taps "Got paid". Dollars hit the purse after both.
+// Settling up: the winner taps "Got paid" and it's settled (Nick, Oct 28 2026). The loser's "I paid" is an optional heads-up.
 export function settleRoles(b) {
   const res = betResult(b); if (res !== 'W' && res !== 'L') return null;
   return res === 'W' ? { winner: b.from, loser: b.to } : { winner: b.to, loser: b.from };
@@ -140,7 +140,6 @@ export function betRow(b, { side = null } = {}) {
     const winner = res === 'W' ? b.from : b.to, loser = winner === b.from ? b.to : b.from, amt = C.E.betAmount(b);
     const st = settleState(b), wn = C.pl(winner), ln = C.pl(loser);
     const status = st === 'settled' ? (amt ? `Paid · $${amt} added to the purse` : 'Paid up')
-      : st === 'got' ? `${wn} got paid · waiting on ${ln} to confirm`
       : st === 'paid' ? `${ln} says they paid · waiting on ${wn} to confirm`
       : `${ln} owes ${amt ? '$' + amt : 'up'}`;
     tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${wn} wins</span><span class="co-tag${st === 'settled' ? '' : ' live'}">${status}</span>`;
@@ -150,8 +149,13 @@ export function betRow(b, { side = null } = {}) {
     : b.status === 'open' && open && me === b.from ? `<button type="button" class="linkish small" data-unbet="${b.id}">take it back</button>`
     : r && me === r.loser && !b.paidAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|paid">I paid</button>`
     : r && me === r.winner && !b.gotAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|got">Got paid</button>` : '';
+  // Optional dollar amount after the fact (Nick, Oct 28 2026): either bowler before it's settled, Nick any time
+  const boss = me && me === C.S.data.league?.commissioner;
+  const canAmt = b.status === 'accepted' && me && (boss || ((me === b.from || me === b.to) && !b.gotAt));
+  const amtLbl = b.amount ? 'change $' : C.E.betAmount(b) ? '' : '+ add $';
+  const amtBtn = canAmt && amtLbl ? `<button type="button" class="linkish small" data-betamt="${b.id}|${b.amount || ''}">${amtLbl}</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
-    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}</div>${reactBar('bet', b.id)}</div>`;
+    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}${amtBtn}</div>${reactBar('bet', b.id)}</div>`;
 }
 export function homeBets() {
   const g = C.S.games; if (!g?.bets) return '';
@@ -307,6 +311,17 @@ export function installGames(ctx) {
       if (!confirm(act === 'paid' ? 'Confirm you paid up?' : 'Confirm you got paid?')) return;
       bs.disabled = true;
       try { C.S.games = await api(`/bet/${id}/${act}`, { method: 'POST', body: {} }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { bs.disabled = false; alert(err.message); }
+      return;
+    }
+    const am = e.target.closest('[data-betamt]');
+    if (am && !am.disabled) {
+      const [id, cur] = am.dataset.betamt.split('|');
+      const v = prompt('Put a dollar amount on this betcha (optional, whole dollars up to $100). Leave blank or 0 for none.', cur || '');
+      if (v === null) return;
+      const n = v.replace(/[$\s]/g, '');
+      if (n && !/^\d+$/.test(n)) return alert('Whole dollars only, like 5.');
+      am.disabled = true;
+      try { C.S.games = await api(`/bet/${id}/amount`, { method: 'POST', body: { amount: n ? Number(n) : 0 } }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { am.disabled = false; alert(err.message); }
       return;
     }
     const ub = e.target.closest('[data-unbet]');

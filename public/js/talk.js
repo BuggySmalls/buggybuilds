@@ -31,27 +31,24 @@ export function feedItems() {
     if (b.answeredAt && b.from === me) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: true,
       text: `${N(b.to)} ${b.status === 'accepted' ? 'took' : 'chickened out of'} your betcha: ${b.stakes}` });
   }
-  // Settling up (Nick, Oct 25 2026): after the night, tell the loser to pay and the winner to confirm.
-  // These stay lit ("pending") until you've tapped your button.
+  // Settling up: after the night, tell the loser to pay and the winner to confirm. Only the winner's
+  // "Got paid" settles it and stays lit until tapped (Nick, Oct 28 2026); the loser's "I paid" is optional.
   for (const b of g.bets || []) {
     const r = me && settleRoles(b); if (!r || (me !== r.winner && me !== r.loser)) continue;
     const st = settleState(b), amt = C.E.betAmount(b), opp = me === r.winner ? r.loser : r.winner;
     const owed = amt ? `$${amt}` : `“${b.stakes}”`;
     if (st === 'settled') {
       out.push({ id: 'z' + b.id, at: Math.max(b.paidAt || 0, b.gotAt || 0, settleAt(b)), from: opp, kind: 'settle', personal: true,
-        text: me === r.winner ? `${N(opp)} paid up. ${amt ? `$${amt} added to your purse winnings.` : 'Betcha settled.'}` : `${N(opp)} confirmed your payment. Betcha settled.` });
+        text: me === r.winner ? `${N(opp)} paid up. ${amt ? `$${amt} added to your purse winnings.` : 'Betcha settled.'}` : `${N(opp)} confirmed they got paid. Betcha settled.` });
     } else if (me === r.loser && !b.paidAt) {
-      out.push({ id: 'sL' + b.id, at: settleAt(b), from: opp, kind: 'settle', personal: true, pending: true, bet: b.id,
-        text: `You lost your betcha to ${N(opp)}. Pay up ${owed}, then tap “I paid.”` });
+      out.push({ id: 'sL' + b.id, at: settleAt(b), from: opp, kind: 'settle', personal: true, bet: b.id,
+        text: `You lost your betcha to ${N(opp)}. Pay up ${owed}. ${N(opp)} confirms it, or tap “I paid” to give them a heads-up.` });
     } else if (me === r.winner && !b.gotAt) {
       out.push({ id: (b.paidAt ? 'sP' : 'sW') + b.id, at: b.paidAt || settleAt(b), from: opp, kind: 'settle', personal: true, pending: true, bet: b.id,
         text: b.paidAt ? `${N(opp)} says they paid you ${owed}. Tap “Got paid” to confirm${amt ? ' and add it to your purse' : ''}.` : `You won your betcha vs ${N(opp)}! They owe you ${owed}. Tap “Got paid” once they pay up.` });
     } else if (me === r.loser && b.paidAt && !b.gotAt) {
       out.push({ id: 'sw' + b.id, at: b.paidAt, from: opp, kind: 'settle', personal: true,
         text: `Waiting on ${N(opp)} to confirm they got your ${owed}.` });
-    } else if (me === r.winner && b.gotAt && !b.paidAt) {
-      out.push({ id: 'sl' + b.id, at: b.gotAt, from: opp, kind: 'settle', personal: true,
-        text: `Waiting on ${N(opp)} to tap “I paid.”${amt ? ' Then it goes on the purse.' : ''}` });
     }
   }
   // Comments on your post / betcha / call-out (Nick, Oct 28 2026); likes don't ping anyone
@@ -243,7 +240,7 @@ function talkPage() {
   const mySettle = me ? (g.bets || []).filter(b => { const r = settleRoles(b); return r && (r.winner === me || r.loser === me) && settleState(b) !== 'settled'; }).slice().reverse() : [];
   return `
   <div><h1 class="page-title">Betchas &amp; Shit Talk</h1><p class="page-intro">Bet somebody, call them out, or just talk. Higher series wins every bet.</p></div>
-  ${mySettle.length ? `<section class="panel betcha-panel settle-panel" id="settle"><div class="panel-head"><h2>Settle up</h2><span class="small muted">Loser taps “I paid,” winner taps “Got paid.” Dollars go on the purse once you both do.</span></div><div class="co-list">${mySettle.map(b => betRow(b, { side: me })).join('')}</div></section>` : ''}
+  ${mySettle.length ? `<section class="panel betcha-panel settle-panel" id="settle"><div class="panel-head"><h2>Settle up</h2><span class="small muted">Winner taps “Got paid” and it’s settled. Loser can tap “I paid” as a heads-up. No dollar amount? Tap “+ add $” to put one on (optional).</span></div><div class="co-list">${mySettle.map(b => betRow(b, { side: me })).join('')}</div></section>` : ''}
   <div class="talk-grid">
     <div class="grid" style="align-content:start">
       <section class="panel talk-panel"><div class="panel-head"><h2>Shit talk</h2></div>

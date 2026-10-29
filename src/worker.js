@@ -365,6 +365,22 @@ export class Accounts extends DurableObject {
         }
         return json(this.games(L, me));
       }
+      // Add a dollar amount after the fact (Nick, Oct 28 2026): optional, for betchas with text-only stakes.
+      // Either bowler in the bet can set it until the winner confirms; Nick any time. 0 clears it.
+      if (method === 'POST' && /^\/bet\/\d+\/amount$/.test(path)) {
+        const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +path.split('/')[2]).toArray()[0];
+        if (!b || b.status !== 'accepted') return fail(404, 'No bet to put money on.');
+        const L = await this.league(url.origin);
+        const boss = me.player_id === L.league?.commissioner;
+        const from = (this.all().find(a => a.ukey === b.from_ukey) || {}).player_id;
+        if (!boss && me.player_id !== from && me.player_id !== b.to_pid) return fail(403, 'Only the two bowlers in this betcha can do that.');
+        if (!boss && b.got_at) return fail(400, 'This one’s already settled.');
+        const { amount } = await request.json();
+        const amt = amount == null || amount === '' ? 0 : Number(amount);
+        if (!Number.isInteger(amt) || amt < 0 || amt > 100) return fail(400, 'Use a whole dollar amount from $0 to $100.');
+        this.sql.exec('UPDATE bets SET amount = ? WHERE id = ?', amt, b.id);
+        return json(this.games(L, me));
+      }
       if (method === 'DELETE' && path.startsWith('/bet/')) {
         const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +path.slice(5)).toArray()[0];
         if (!b || b.from_ukey !== me.ukey) return fail(404, 'Not your betcha.');

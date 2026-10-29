@@ -105,9 +105,17 @@ export function liveCalc(date) {
   const { S, E } = C;
   if (!date) return null;
   const scores = {}, ok = {};
-  for (const x of liveList()) if (x.date === date) { (scores[x.pid] ??= [null, null, null])[x.game - 1] = x.score; (ok[x.pid] ??= [true, true, true])[x.game - 1] = x.ok; }
+  const fr = {};
+  for (const x of liveList()) if (x.date === date) {
+    (scores[x.pid] ??= [null, null, null])[x.game - 1] = x.score; (ok[x.pid] ??= [true, true, true])[x.game - 1] = x.ok;
+    (fr[x.pid] ??= [null, null, null])[x.game - 1] = x.frames || null;
+  }
   if (!Object.keys(scores).length) return null;
-  const data = { ...S.data, events: [...S.data.events.filter(e => e.date !== date), { date, status: 'completed', scores }] };
+  // Frames Claude read off the photos (liveAdd[].frames) ride along when they still add up to the live score,
+  // so frame badges (turkeys, splits, clean games…) and accolades count live (Nick, Oct 28 2026).
+  const frames = {};
+  for (const [pid, arr] of Object.entries(fr)) if (arr.some(Boolean)) frames[pid] = arr.map((f, k) => f && E.parseFrames(f).score === scores[pid][k] ? f : null);
+  const data = { ...S.data, events: [...S.data.events.filter(e => e.date !== date), { date, status: 'completed', scores, frames }] };
   const nights = E.buildNights(data);
   const night = nights.find(n => n.date === date);
   if (!night) return null;

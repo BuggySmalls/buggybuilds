@@ -794,13 +794,17 @@ export function validate(data) {
  * Only once it's settled (Nick, Oct 25 2026): the loser taps "I paid" and the winner taps "Got paid"
  * (paidAt + gotAt from the server), or Nick marks it settled with data.betcha.settled = [betId].
  * Until then it's listed under `pendingBets` and doesn't count toward anyone's winnings.
- * The amount is read from the stakes text ("$5", "5 bucks", "ten dollars", "a fiver").
+ * The amount is read from the stakes text ("$5", "5 bucks", "ten dollars", "a fiver", "$2.50", "75 cents").
+ * Cents are fine on the bet (Nick, Oct 28 2026); the purse rounds each betcha UP to whole dollars (betPurse).
  * ------------------------------------------------------------------ */
 const NUMW = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100, a: 1 };
 export function stakesDollars(text) {
   const t = String(text || '').toLowerCase().replace(/[‐-―]/g, '-');
-  let m = t.match(/\$\s?(\d{1,3})(?:\.\d\d)?(?![\d,])/) || t.match(/\b(\d{1,3})\s?(?:\$|bucks?\b|dollars?\b|usd\b|clams\b|smackers\b)/);
-  if (m) return Math.min(+m[1], 100);
+  const c2 = x => Math.min(Math.round(x * 100) / 100, 100);
+  let m = t.match(/\$\s?(\d{1,3}(?:\.\d{1,2})?)(?![\d,.])/) || t.match(/(?:^|[^\d.])(\d{1,3}(?:\.\d{1,2})?)\s?(?:\$|bucks?\b|dollars?\b|usd\b|clams\b|smackers\b)/);
+  if (m) return c2(+m[1]);
+  m = t.match(/(?:^|[^\d.$])(\d{1,2})\s?(?:¢|cents?\b)/);
+  if (m) return c2(+m[1] / 100);
   if (/\bfiver\b/.test(t)) return 5;
   if (/\btenner\b/.test(t)) return 10;
   if (/\b(?:a\s+)?(?:buck|dollar)\b/.test(t) && !/\b\d|\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\b/.test(t)) return 1;
@@ -811,7 +815,11 @@ export function stakesDollars(text) {
   for (const w of parts) v = w === 'hundred' ? (v || 1) * 100 : v + NUMW[w];
   return Math.min(v, 100);
 }
-export function betAmount(b) { return b.amount > 0 ? Math.min(b.amount, 100) : stakesDollars(b.stakes); }
+export function betAmount(b) { return b.amount > 0 ? Math.min(Math.round(b.amount * 100) / 100, 100) : stakesDollars(b.stakes); }
+// What a betcha puts on the purse: rounded UP to whole dollars, no cents (Nick, Oct 28 2026)
+export function betPurse(b) { const a = betAmount(b); return a ? Math.ceil(a - 1e-9) : 0; }
+// $5 or $2.50
+export function dollars(x) { return '$' + (x % 1 ? x.toFixed(2) : String(x)); }
 // Only the winner has to confirm (Nick, Oct 28 2026); the loser's "I paid" is optional.
 export function betSettled(b, data) { return !!b.gotAt || (data?.betcha?.settled || []).map(Number).includes(Number(b.id)); }
 export function purse(data, nights, bets = []) {
@@ -849,7 +857,7 @@ export function purse(data, nights, bets = []) {
       payouts.push({ key: 'manual', label: a.note || 'Adjustment', winners: [a.pid], each: a.amount });
     }
     for (const b of bets.filter(b => b.date === n.date && b.status === 'accepted')) {
-      const amt = betAmount(b); if (!amt) continue;
+      const amt = betPurse(b); if (!amt) continue;
       const ra = n.rows.find(r => r.pid === b.from), rb = n.rows.find(r => r.pid === b.to);
       if (!ra || !rb || ra.series === rb.series || !totals[b.from] || !totals[b.to]) continue;
       const [w, l] = ra.series > rb.series ? [b.from, b.to] : [b.to, b.from];

@@ -36,10 +36,10 @@ export function feedItems() {
   for (const b of g.bets || []) {
     const r = me && settleRoles(b); if (!r || (me !== r.winner && me !== r.loser)) continue;
     const st = settleState(b), amt = C.E.betAmount(b), opp = me === r.winner ? r.loser : r.winner;
-    const owed = amt ? `$${amt}` : `“${b.stakes}”`;
+    const owed = amt ? C.E.dollars(amt) : `“${b.stakes}”`, pamt = C.E.betPurse(b);
     if (st === 'settled') {
       out.push({ id: 'z' + b.id, at: Math.max(b.paidAt || 0, b.gotAt || 0, settleAt(b)), from: opp, kind: 'settle', personal: true,
-        text: me === r.winner ? `${N(opp)} paid up. ${amt ? `$${amt} added to your purse winnings.` : 'Betcha settled.'}` : `${N(opp)} confirmed they got paid. Betcha settled.` });
+        text: me === r.winner ? `${N(opp)} paid up. ${amt ? `$${pamt} added to your purse winnings.` : 'Betcha settled.'}` : `${N(opp)} confirmed they got paid. Betcha settled.` });
     } else if (me === r.loser && !b.paidAt) {
       out.push({ id: 'sL' + b.id, at: settleAt(b), from: opp, kind: 'settle', personal: true, bet: b.id,
         text: `You lost your betcha to ${N(opp)}. Pay up ${owed}. ${N(opp)} confirms it, or tap “I paid” to give them a heads-up.` });

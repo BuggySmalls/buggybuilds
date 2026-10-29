@@ -137,11 +137,11 @@ export function betRow(b, { side = null } = {}) {
   else if (res === 'NC') tag = '<span class="co-tag">No contest</span>';
   else if (res === 'T') tag = '<span class="co-tag">Push</span>';
   else {
-    const winner = res === 'W' ? b.from : b.to, loser = winner === b.from ? b.to : b.from, amt = C.E.betAmount(b);
+    const winner = res === 'W' ? b.from : b.to, loser = winner === b.from ? b.to : b.from, amt = C.E.betAmount(b), pamt = C.E.betPurse(b);
     const st = settleState(b), wn = C.pl(winner), ln = C.pl(loser);
-    const status = st === 'settled' ? (amt ? `Paid · $${amt} added to the purse` : 'Paid up')
+    const status = st === 'settled' ? (amt ? `Paid · $${pamt} added to the purse` : 'Paid up')
       : st === 'paid' ? `${ln} says they paid · waiting on ${wn} to confirm`
-      : `${ln} owes ${amt ? '$' + amt : 'up'}`;
+      : `${ln} owes ${amt ? C.E.dollars(amt) : 'up'}`;
     tag = `<span class="co-tag ${side ? (winner === side ? 'win' : 'loss') : 'win'}">${wn} wins</span><span class="co-tag${st === 'settled' ? '' : ' live'}">${status}</span>`;
   }
   const r = settleRoles(b);
@@ -155,7 +155,7 @@ export function betRow(b, { side = null } = {}) {
   const amtLbl = b.amount ? 'change $' : C.E.betAmount(b) ? '' : '+ add $';
   const amtBtn = canAmt && amtLbl ? `<button type="button" class="linkish small" data-betamt="${b.id}|${b.amount || ''}">${amtLbl}</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
-    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">$${C.E.betAmount(b)} to the purse</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}${amtBtn}</div>${reactBar('bet', b.id)}</div>`;
+    <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">${C.E.dollars(C.E.betAmount(b))}${C.E.betAmount(b) % 1 ? ` · $${C.E.betPurse(b)} to the purse` : ' to the purse'}</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}${amtBtn}</div>${reactBar('bet', b.id)}</div>`;
 }
 export function homeBets() {
   const g = C.S.games; if (!g?.bets) return '';
@@ -173,7 +173,7 @@ export function nightBets(date) {
 }
 export function betTicker() {
   const nx = C.S.next?.date;
-  return (C.S.games?.bets || []).filter(b => b.date === nx && b.status !== 'declined').map(b => `BETCHA: ${C.P(b.from).name.toUpperCase()} VS ${C.P(b.to).name.toUpperCase()} · ${C.E.betAmount(b) ? '$' + C.E.betAmount(b) + ' · ' : ''}${b.stakes.toUpperCase()}`);
+  return (C.S.games?.bets || []).filter(b => b.date === nx && b.status !== 'declined').map(b => `BETCHA: ${C.P(b.from).name.toUpperCase()} VS ${C.P(b.to).name.toUpperCase()} · ${C.E.betAmount(b) ? C.E.dollars(C.E.betAmount(b)) + ' · ' : ''}${b.stakes.toUpperCase()}`);
 }
 export function profileBets(pid) {
   const { S, esc, P } = C;
@@ -187,7 +187,7 @@ export function profileBets(pid) {
   if (me && me !== pid && date && !already) form = `<form class="co-form" data-bet="${esc(pid)}">
       <input class="txt" name="stakes" maxlength="80" required placeholder="What’s on the line? (loser pays $5, loser buys a round)">
       <button class="btn primary" type="submit">Betcha ${esc(P(pid).name)} for ${esc(C.fmtDate(date, { weekday: 'short' }))}</button>
-      <p class="small faint">${C.pl(pid)} has to take the bet before first ball. Higher series that night wins. Put a dollar amount in it and the winner gets that added to their purse winnings.</p></form>`;
+      <p class="small faint">${C.pl(pid)} has to take the bet before first ball. Higher series that night wins. Put a dollar amount in it (cents are fine) and the winner gets that added to their purse winnings, rounded up to the dollar.</p></form>`;
   else if (!me && me !== pid && date && !S.apiDown) form = `<p class="small muted"><a href="#/login">Sign in</a> to bet ${esc(P(pid).name)}.</p>`;
   else if (me && me !== pid && !date) form = `<p class="small muted">Betchas open the week of the next league night.</p>`;
   if (!list.length && !form) return '';
@@ -316,10 +316,10 @@ export function installGames(ctx) {
     const am = e.target.closest('[data-betamt]');
     if (am && !am.disabled) {
       const [id, cur] = am.dataset.betamt.split('|');
-      const v = prompt('Put a dollar amount on this betcha (optional, whole dollars up to $100). Leave blank or 0 for none.', cur || '');
+      const v = prompt('Put a dollar amount on this betcha (optional, up to $100, cents OK like 2.50). Leave blank or 0 for none.', cur || '');
       if (v === null) return;
       const n = v.replace(/[$\s]/g, '');
-      if (n && !/^\d+$/.test(n)) return alert('Whole dollars only, like 5.');
+      if (n && !/^\d{0,3}(\.\d{1,2})?$/.test(n)) return alert('Use dollars and cents, like 5 or 2.50.');
       am.disabled = true;
       try { C.S.games = await api(`/bet/${id}/amount`, { method: 'POST', body: { amount: n ? Number(n) : 0 } }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { am.disabled = false; alert(err.message); }
       return;

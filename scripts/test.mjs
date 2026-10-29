@@ -130,8 +130,10 @@ eq([ph.totals.ben.betWon, ph.pendingBets.length, ph.pendingBets[0]?.loser], [0, 
 eq(E.purse({ ...d, betcha: { settled: [1] } }, n, half).totals.ben.betWon, 10, 'Nick can mark a betcha settled');
 d.events[0].scores.cal = [210, 100, 100];
 eq(E.purse(d, E.buildNights(d), bets).totals.amy.betWon, 0, 'tied series pays nothing');
-for (const [txt, v] of [['loser pays $5', 5], ['5 bucks', 5], ['ten dollars', 10], ['twenty-five bucks', 25], ['a fiver', 5], ['a tenner says I win', 10], ['loser owes a dollar', 1], ['10$', 10], ['loser buys a round', 0], ['wear the cereal box hat', 0], ['$500', 100], ['200 game or bust', 0]])
+for (const [txt, v] of [['loser pays $5', 5], ['5 bucks', 5], ['ten dollars', 10], ['twenty-five bucks', 25], ['a fiver', 5], ['a tenner says I win', 10], ['loser owes a dollar', 1], ['10$', 10], ['loser buys a round', 0], ['wear the cereal box hat', 0], ['$500', 100], ['200 game or bust', 0], ['$2.50 says I win', 2.5], ['loser pays 3.75 bucks', 3.75], ['75 cents', 0.75], ['$1.5', 1.5]])
   eq(E.stakesDollars(txt), v, `stakes "${txt}" reads as $${v}`);
+// cents on the bet, purse rounds up (Nick, Oct 28 2026)
+eq([E.betPurse({ stakes: '$2.50' }), E.betPurse({ stakes: '$5' }), E.betPurse({ amount: 0.25, stakes: 'x' }), E.betPurse({ stakes: 'a round' })], [3, 5, 1, 0], 'purse rounds betcha cents up to whole dollars');
 
 // --- matches to watch picks three distinct pairings with reasons
 d = base();

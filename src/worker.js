@@ -126,7 +126,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
-    // Betcha dollar amount (Nick, Oct 24 2026): whole dollars, 0 = nothing for the purse
+    // Betcha dollar amount (Nick, Oct 24 2026): dollars, cents OK since Oct 28 2026 (stored as REAL in this column), 0 = nothing
     if (!this.sql.exec('PRAGMA table_info(bets)').toArray().some(c => c.name === 'amount')) this.sql.exec('ALTER TABLE bets ADD COLUMN amount INTEGER NOT NULL DEFAULT 0');
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'test')) this.sql.exec('ALTER TABLE sheets ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
     // Live scoreboard (Nick, Oct 28 2026): the uploader types each tagged bowler's score for that game.
@@ -332,7 +332,7 @@ export class Accounts extends DurableObject {
         const s = clean(stakes, 80);
         if (s.length < 2) return fail(400, 'Say what’s on the line.');
         const amt = amount == null || amount === '' ? 0 : Number(amount);
-        if (!Number.isInteger(amt) || amt < 0 || amt > 100) return fail(400, 'Bet a whole dollar amount from $0 to $100.');
+        if (!Number.isFinite(amt) || amt < 0 || amt > 100 || Math.round(amt * 100) !== Math.round(amt * 1e6) / 1e4) return fail(400, 'Use a dollar amount from $0 to $100 (cents OK, like 2.50).');
         if (this.sql.exec("SELECT 1 FROM bets WHERE date = ? AND from_ukey = ? AND to_pid = ? AND status != 'declined'", date, me.ukey, to).toArray().length) return fail(409, 'You already have a betcha with them that night.');
         if (this.sql.exec("SELECT COUNT(*) AS n FROM bets WHERE date = ? AND from_ukey = ? AND status != 'declined'", date, me.ukey).one().n >= 3) return fail(429, 'Three betchas a night. Don’t go broke.');
         this.sql.exec('INSERT INTO bets (date, from_ukey, to_pid, stakes, amount, created_at) VALUES (?,?,?,?,?,?)', date, me.ukey, to, s, amt, now());
@@ -377,7 +377,7 @@ export class Accounts extends DurableObject {
         if (!boss && b.got_at) return fail(400, 'This one’s already settled.');
         const { amount } = await request.json();
         const amt = amount == null || amount === '' ? 0 : Number(amount);
-        if (!Number.isInteger(amt) || amt < 0 || amt > 100) return fail(400, 'Use a whole dollar amount from $0 to $100.');
+        if (!Number.isFinite(amt) || amt < 0 || amt > 100 || Math.round(amt * 100) !== Math.round(amt * 1e6) / 1e4) return fail(400, 'Use a dollar amount from $0 to $100 (cents OK, like 2.50).');
         this.sql.exec('UPDATE bets SET amount = ? WHERE id = ?', amt, b.id);
         return json(this.games(L, me));
       }

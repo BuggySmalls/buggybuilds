@@ -1,6 +1,37 @@
 {
-  "fetchedAt": "2026-10-29T00:31:42Z",
-  "live": [],
+  "fetchedAt": "2026-10-29T00:38:12Z",
+  "live": [
+    {
+      "date": "2026-10-28",
+      "pid": "natehasboobs",
+      "game": 2,
+      "lane": 24,
+      "score": 112,
+      "ok": true,
+      "at": 1793232903618,
+      "sheet": 6
+    },
+    {
+      "date": "2026-10-28",
+      "pid": "poopbird",
+      "game": 2,
+      "lane": 24,
+      "score": 165,
+      "ok": true,
+      "at": 1793232903618,
+      "sheet": 6
+    },
+    {
+      "date": "2026-10-28",
+      "pid": "vcosta99",
+      "game": 2,
+      "lane": 24,
+      "score": 115,
+      "ok": true,
+      "at": 1793232903618,
+      "sheet": 6
+    }
+  ],
   "teams": {
     "2026-10-28": {
       "teams": [
@@ -89,7 +120,11 @@
         "poopbird",
         "vcosta99"
       ],
-      "scores": {},
+      "scores": {
+        "natehasboobs": 112,
+        "poopbird": 165,
+        "vcosta99": 115
+      },
       "status": "approved"
     }
   ]

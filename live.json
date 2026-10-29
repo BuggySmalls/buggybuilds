@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-29T00:11:00Z",
+  "fetchedAt": "2026-10-29T00:29:03Z",
   "live": [],
   "teams": {
     "2026-10-28": {
@@ -76,6 +76,19 @@
       "lane": 24,
       "game": 1,
       "pids": [],
+      "scores": {},
+      "status": "approved"
+    },
+    {
+      "id": 6,
+      "date": "2026-10-28",
+      "lane": 24,
+      "game": 2,
+      "pids": [
+        "natehasboobs",
+        "poopbird",
+        "vcosta99"
+      ],
       "scores": {},
       "status": "approved"
     }

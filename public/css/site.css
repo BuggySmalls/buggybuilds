@@ -1321,3 +1321,7 @@ span.nh-arrow{display:none}
 .lb-loading{display:inline-flex;align-items:center;gap:8px}
 .lb-spin{width:14px;height:14px;border-radius:50%;border:3px solid rgba(255,200,87,.3);border-top-color:var(--gold,#FFC857);animation:lbspin .8s linear infinite}
 @keyframes lbspin{to{transform:rotate(360deg)}}
+
+/* Power-ranking style moves on standings + home top five (Nick, Oct 29 2026) */
+.rk{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:30px}
+.rmv{font:700 11px/1 var(--body);white-space:nowrap}

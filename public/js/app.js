@@ -331,7 +331,7 @@ pages.home = () => {
 
       <section class="panel">
         <div class="panel-head"><h2>Top five</h2><a href="#/standings">Full standings</a></div>
-        ${table.length ? `<div class="list">${table.slice(0, 5).map((r, i) => `<div class="list-row">${medal(i + 1)}<div class="grow">${who(r.id, { size: 32 })}</div><span class="muted small">${r.avg} avg</span><span class="val">${r.points}</span></div>`).join('')}</div>` : empty('No standings yet')}
+        ${table.length ? `<div class="list">${table.slice(0, 5).map((r, i) => `<div class="list-row"><div class="rk">${medal(i + 1)}${S.seasonNights.length > 1 ? rankMove(rankBefore(S.seasonNights.length - 1)[r.id], i + 1) : ''}</div><div class="grow">${who(r.id, { size: 32 })}</div><span class="muted small">${r.avg} avg</span><span class="val">${r.points}</span></div>`).join('')}</div>` : empty('No standings yet')}
       </section>
 
       ${race ? `<section class="panel">
@@ -426,6 +426,7 @@ const COLS = [
   ['points', 'Pts'], ['avg', 'Avg'], ['hdcp', 'Hdcp'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Total score'], ['pinsDown', 'Pins down'],
   ['strikePct', 'Strike %'], ['sparePct', 'Spare %'], ['streak', 'Streak'], ['monthPts', 'Month pts'],
 ];
+const rankMove = (was, now) => { const mv = was ? was - now : 0; return `<small class="rmv ${mv > 0 ? 'up' : mv < 0 ? 'down' : 'faint'}">${was ? (mv ? `${mv > 0 ? '▲' : '▼'} ${Math.abs(mv)}` : '—') : 'new'}</small>`; };
 const move = (was, now) => !was ? '<span class="mv new">new</span>' : was === now ? '' : `<span class="mv ${was > now ? 'up' : 'down'}">${was > now ? '▲' : '▼'}${Math.abs(was - now)}</span>`;
 pages.standings = () => {
   const { sort = 'points', live: liveQ, cum } = q();
@@ -437,9 +438,12 @@ pages.standings = () => {
   const { nights, label } = wkNight
     ? (cum ? { nights: S.seasonNights.filter(n => n.idx <= wkNight.idx), label: `Running total through week ${wkN}, ${fmtDate(wkNight.date)}` } : { nights: [wkNight], label: `Week ${wkN}, ${fmtDate(wkNight.date)}` })
     : standingsFor(view, L);
-  const prevWkNights = wkNight && cum ? S.seasonNights.filter(n => n.idx < wkNight.idx) : null;
-  const placeBefore = L || prevWkNights?.length ? Object.fromEntries(E.standings(S.data, prevWkNights || standingsFor(view).nights, 'points').filter(r => r.games).map((r, i) => [r.id, i + 1])) : {};
-  const showMove = (L || prevWkNights?.length) && sort === 'points';
+  // Power-ranking style ▲/▼ (Nick, Oct 29 2026): places moved since the week before (or since before tonight when live)
+  const prevNights = L ? standingsFor(view).nights
+    : wkNight ? (cum ? S.seasonNights.filter(n => n.idx < wkNight.idx) : null)
+    : view === 'week' ? null : nights.slice(0, -1);
+  const showMove = !!prevNights?.length && sort === 'points';
+  const placeBefore = showMove ? Object.fromEntries(E.standings(S.data, prevNights, 'points').filter(r => r.games).map((r, i) => [r.id, i + 1])) : {};
   const lastMonth = S.nights.at(-1)?.month;
   const monthPts = Object.fromEntries((S.champs.months.find(m => m.key === lastMonth)?.table || []).map(r => [r.id, r.points]));
   let rows = E.standings(L ? L.data : S.data, nights, sort === 'monthPts' || sort === 'streak' ? 'points' : sort).filter(r => r.games || view === 'season');
@@ -461,7 +465,7 @@ pages.standings = () => {
     ${wkNight ? `<div class="seg" role="group" aria-label="Running total"><button data-q="cum=" aria-pressed="${!cum}">Just that week</button><button data-q="cum=1" aria-pressed="${!!cum}">Running total</button></div>` : ''}</div>
   <section class="panel">
     ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>
-    ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}${showMove && r.games ? move(placeBefore[r.id], i + 1) : ''}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
+    ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? `<div class="rk">${medal(i + 1)}${showMove ? rankMove(placeBefore[r.id], i + 1) : ''}</div>` : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div>` : empty('Nothing bowled in this period yet', 'Check back after the next league night.')}
   </section>
   ${!hasFrames && rows.some(r => r.games) ? '<p class="small muted">Strike and spare percentages appear once frame-by-frame scores are logged.</p>' : ''}

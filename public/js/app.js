@@ -895,6 +895,7 @@ pages.schedule = () => {
 `;
 };
 
+// Results page order (Nick, Oct 28 2026): teams (team nights) → Highlights stat leaderboard → Results standings → recap → awards. No scoresheet photos.
 pages.night = date => {
   const idx = S.nights.findIndex(n => n.date === date);
   const n = S.nights[idx]; if (!n) return empty('No results for that night', '<a href="#/standings?results">Back to results</a>');
@@ -914,20 +915,8 @@ pages.night = date => {
     </div>
     <div class="nh-actions">${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
-  <section class="panel"><p>${linkNames(recap(idx))}</p>${n.note ? `<p class="small muted">${linkNames(n.note)}</p>` : ''}</section>
-  ${sheetThumbs(n.date)}
-  <section class="panel"><div class="panel-head"><h2>Results</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap “Frames” to see every frame.</span></div>
-    ${resultCards(n, before)}
-    <div class="tbl res-table"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th>${n.handicap ? '<th>Hdcp</th><th>Hdcp series</th>' : ''}<th>W-L</th><th>Pts</th><th>vs avg</th></tr></thead><tbody>
-    ${[...n.rows].sort((a, b) => a.pointsPlace - b.pointsPlace || b.series - a.series).map(r => { const avg = before[r.pid]?.avgExact; const d = avg != null ? Math.round(r.series - avg * r.n) : null; const hasFr = r.games.some(g => g?.str); const pl = r.pointsPlace; return `
-      <tr class="${pl <= 3 ? `top3 p${pl}` : ''}"><td class="l">${medal(pl)}</td><td class="l">${who(r.pid, { size: 30 })}</td><td class="l">${frames(r.totals, r.series)}</td>${n.handicap ? `<td>${r.hdcp * r.n}</td><td class="big">${r.hdcpSeries}</td>` : ''}<td>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</td><td><b>${r.points}</b></td><td class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d == null ? '—' : (d > 0 ? '+' : '') + d}</td></tr>
-      ${hasFr ? `<tr><td></td><td colspan="${n.handicap ? 7 : 5}" class="l" style="white-space:normal;padding-top:0"><details><summary class="small muted" style="cursor:pointer">Frames for ${esc(P(r.pid).name)}</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${r.games.map((g, k) => g?.str ? `<div class="small muted">Game ${k + 1}</div>${frameSheet(g)}` : '').join('')}</div></details></td></tr>` : ''}`; }).join('')}
-    </tbody></table></div>
-    <p class="small faint">W-L counts each game against every other bowler that night, scratch. ${n.handicap ? 'Hdcp is the handicap for all games bowled. ' : ''}"vs avg" is pins above or below the bowler's average going into the night. <a href="#/faq">How scoring works</a></p>
-  </section>
   ${nightTeams(n)}
-  <div class="grid g2">
-    <section class="panel"><div class="panel-head"><h2>Highlights</h2></div><div class="list">
+  <section class="panel"><div class="panel-head"><h2>Stat leaders</h2></div><div class="list">
       ${hiG[0] ? `<div class="list-row"><div class="grow small muted">High game</div>${who(hiG[0].pid, { size: 26 })}<span class="val">${hiG[0].t}</span></div>` : ''}
       <div class="list-row"><div class="grow small muted">High series</div>${who(n.rows[0].pid, { size: 26 })}<span class="val">${n.rows[0].series}</span></div>
       ${strikeLead ? `<div class="list-row"><div class="grow small muted">Most strikes</div>${who(strikeLead.pid, { size: 26 })}<span class="val">${strikeLead.s}</span></div>` : ''}
@@ -936,8 +925,17 @@ pages.night = date => {
     </div>
     ${broken.length ? `<h3 style="margin-top:6px">Records broken</h3><div class="rec-list">${broken.map(r => `<div class="rec stack"><div class="t">${esc(r.title)}</div>${who(r.holder, { size: 24 })}<div class="v">${esc(r.value)}</div></div>`).join('')}</div>` : ''}
     </section>
-    <section class="panel"><div class="panel-head"><h2>Weekly awards</h2></div><div class="awards">${aw.map(awardHTML).join('')}</div></section>
-  </div>
+  <section class="panel"><div class="panel-head"><h2>Standings</h2><span class="small muted">${n.handicap ? 'Ranked on handicap series, which decides the points. ' : 'Ranked on scratch series. '}Tap “Frames” to see every frame.</span></div>
+    ${resultCards(n, before)}
+    <div class="tbl res-table"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th class="l">Games and series</th>${n.handicap ? '<th>Hdcp</th><th>Hdcp series</th>' : ''}<th>W-L</th><th>Pts</th><th>vs avg</th></tr></thead><tbody>
+    ${[...n.rows].sort((a, b) => a.pointsPlace - b.pointsPlace || b.series - a.series).map(r => { const avg = before[r.pid]?.avgExact; const d = avg != null ? Math.round(r.series - avg * r.n) : null; const hasFr = r.games.some(g => g?.str); const pl = r.pointsPlace; return `
+      <tr class="${pl <= 3 ? `top3 p${pl}` : ''}"><td class="l">${medal(pl)}</td><td class="l">${who(r.pid, { size: 30 })}</td><td class="l">${frames(r.totals, r.series)}</td>${n.handicap ? `<td>${r.hdcp * r.n}</td><td class="big">${r.hdcpSeries}</td>` : ''}<td>${r.w}-${r.l}${r.t ? '-' + r.t : ''}</td><td><b>${r.points}</b></td><td class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d == null ? '—' : (d > 0 ? '+' : '') + d}</td></tr>
+      ${hasFr ? `<tr><td></td><td colspan="${n.handicap ? 7 : 5}" class="l" style="white-space:normal;padding-top:0"><details><summary class="small muted" style="cursor:pointer">Frames for ${esc(P(r.pid).name)}</summary><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${r.games.map((g, k) => g?.str ? `<div class="small muted">Game ${k + 1}</div>${frameSheet(g)}` : '').join('')}</div></details></td></tr>` : ''}`; }).join('')}
+    </tbody></table></div>
+    <p class="small faint">W-L counts each game against every other bowler that night, scratch. ${n.handicap ? 'Hdcp is the handicap for all games bowled. ' : ''}"vs avg" is pins above or below the bowler's average going into the night. <a href="#/faq">How scoring works</a></p>
+  </section>
+  <section class="panel"><p>${linkNames(recap(idx))}</p>${n.note ? `<p class="small muted">${linkNames(n.note)}</p>` : ''}</section>
+  <section class="panel"><div class="panel-head"><h2>Weekly awards</h2></div><div class="awards">${aw.map(awardHTML).join('')}</div></section>
   ${nightBets(n.date)}
   ${nightCallouts(n.date)}`;
 };

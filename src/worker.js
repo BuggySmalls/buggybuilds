@@ -4,10 +4,13 @@
 // a username plus a 4-digit code or a swipe pattern.
 
 import { DurableObject } from 'cloudflare:workers';
+import { handleMcp } from './mcp.js';
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Read-only league stats for Claude (MCP), keyed: /mcp/<key> (Nick, Oct 29 2026)
+    if (url.pathname === '/mcp' || url.pathname.startsWith('/mcp/')) return handleMcp(request, env);
     if (url.pathname.startsWith('/api/')) {
       const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName('league'));
       return stub.fetch(request);

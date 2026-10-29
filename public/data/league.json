@@ -527,5 +527,11 @@
     "remove": [
       1
     ]
+  },
+  "mcp": {
+    "note": "Read-only stats MCP at /mcp/<key>. Only sha256 hashes of keys here; delete an entry to cut that key off.",
+    "keys": {
+      "nate": "f4563241cd50069fddad49ccdbb7821e9b547b6b066f3b7bc9b412a4f292d244"
+    }
   }
 }

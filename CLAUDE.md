@@ -122,3 +122,9 @@ Nick cleared the old roster: bowlers now make their own profiles on the site. Lo
 node scripts/validate.mjs && node scripts/test.mjs
 ```
 Commit with a plain message ("Week 1 scores", "Add Rob"), push to `main`, then tell Nick it'll be live in about a minute. You can't load cerealbowlers.org from the sandbox (Cloudflare blocks bots), so ask Nick to confirm visually when it matters.
+
+## Stats MCP for Claude (Nick, Oct 29 2026)
+- Read-only MCP server at `https://cerealbowlers.org/mcp/<key>` (`src/mcp.js`, routed in the top of `worker.js`), so bowlers can ask their own Claude about league stats. N8 (natemathews15120) asked for it; Nick OK'd it as long as it can't touch the site. It can't: no write tools, it only reads league.json + the public `/api/games` feed (what anyone sees without logging in).
+- Tools: league_overview, standings, night_results, bowler_stats, head_to_head, records_and_leaders, betchas_and_callouts — all computed with engine.js, so numbers match the site. Add new tools to `TOOLS` in mcp.js.
+- Keys: `league.json` → `mcp.keys = { name: sha256(key) }`. Only hashes go in the repo (it's public). New key: `python3 -c "import secrets;print(secrets.token_urlsafe(18))"`, hash it with `printf %s KEY | sha256sum`, add the hash, give the URL to Nick. Delete an entry to cut that key off. Keys: `nate` (Oct 29 2026).
+- Setup in Claude: Settings → Connectors → Add custom connector → paste the URL → "No sign in". Never add bowlers as GitHub collaborators (that's push access to the live site).

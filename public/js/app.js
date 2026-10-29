@@ -428,11 +428,18 @@ const COLS = [
 ];
 const move = (was, now) => !was ? '<span class="mv new">new</span>' : was === now ? '' : `<span class="mv ${was > now ? 'up' : 'down'}">${was > now ? '▲' : '▼'}${Math.abs(was - now)}</span>`;
 pages.standings = () => {
-  const { view = 'season', sort = 'points', live: liveQ } = q();
+  const { sort = 'points', live: liveQ, cum } = q();
+  // Week filter + running-total toggle (N8's ask, Oct 29 2026): ?wk=N shows that one night; &cum=1 shows the season through that week
+  const wkN = +q().wk, wkNight = wkN ? S.nights[wkN - 1] : null;
+  const view = wkNight ? 'pick' : (q().view || 'season');
   // Live standings (Nick, Oct 28 2026): tonight's typed-in scores count as if the night ended now
-  const ld = liveDate(), L = ld && liveQ !== '0' ? liveCalc(ld) : null;
-  const { nights, label } = standingsFor(view, L);
-  const placeBefore = L ? Object.fromEntries(E.standings(S.data, standingsFor(view).nights, 'points').filter(r => r.games).map((r, i) => [r.id, i + 1])) : {};
+  const ld = liveDate(), L = !wkNight && ld && liveQ !== '0' ? liveCalc(ld) : null;
+  const { nights, label } = wkNight
+    ? (cum ? { nights: S.seasonNights.filter(n => n.idx <= wkNight.idx), label: `Running total through week ${wkN}, ${fmtDate(wkNight.date)}` } : { nights: [wkNight], label: `Week ${wkN}, ${fmtDate(wkNight.date)}` })
+    : standingsFor(view, L);
+  const prevWkNights = wkNight && cum ? S.seasonNights.filter(n => n.idx < wkNight.idx) : null;
+  const placeBefore = L || prevWkNights?.length ? Object.fromEntries(E.standings(S.data, prevWkNights || standingsFor(view).nights, 'points').filter(r => r.games).map((r, i) => [r.id, i + 1])) : {};
+  const showMove = (L || prevWkNights?.length) && sort === 'points';
   const lastMonth = S.nights.at(-1)?.month;
   const monthPts = Object.fromEntries((S.champs.months.find(m => m.key === lastMonth)?.table || []).map(r => [r.id, r.points]));
   let rows = E.standings(L ? L.data : S.data, nights, sort === 'monthPts' || sort === 'streak' ? 'points' : sort).filter(r => r.games || view === 'season');
@@ -448,11 +455,13 @@ pages.standings = () => {
   return `
   <div><div class="title-row"><h1 class="page-title">Standings</h1><a class="btn small upload-btn" href="#/scores">📷 Upload scores</a></div><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
   ${liveNow()}
-  ${ld ? `<div class="live-note">${L ? `<b>● Live</b> These standings include tonight’s unofficial scores, as if the night ended now. <a href="#/standings?view=${view}&live=0">Show before tonight</a>` : `Showing standings before tonight. <a href="#/standings?view=${view}">Show live</a>`}</div>` : ''}
-  <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}" aria-pressed="${view === k}">${t}</button>`).join('')}</div></div>
+  ${ld && !wkNight ? `<div class="live-note">${L ? `<b>● Live</b> These standings include tonight’s unofficial scores, as if the night ended now. <a href="#/standings?view=${view}&live=0">Show before tonight</a>` : `Showing standings before tonight. <a href="#/standings?view=${view}">Show live</a>`}</div>` : ''}
+  <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}&wk=&cum=" aria-pressed="${view === k}">${t}</button>`).join('')}</div>
+    ${S.nights.length ? `<label class="field">Week<select data-qsel="wk"><option value="">Pick a week</option>${S.nights.map((x, i) => `<option value="${i + 1}" ${wkNight === x ? 'selected' : ''}>Week ${i + 1} · ${fmtDate(x.date)}</option>`).join('')}</select></label>` : ''}
+    ${wkNight ? `<div class="seg" role="group" aria-label="Running total"><button data-q="cum=" aria-pressed="${!cum}">Just that week</button><button data-q="cum=1" aria-pressed="${!!cum}">Running total</button></div>` : ''}</div>
   <section class="panel">
     ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>
-    ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}${L && sort === 'points' && r.games ? move(placeBefore[r.id], i + 1) : ''}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
+    ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? medal(i + 1) : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}${showMove && r.games ? move(placeBefore[r.id], i + 1) : ''}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div>` : empty('Nothing bowled in this period yet', 'Check back after the next league night.')}
   </section>
   ${!hasFrames && rows.some(r => r.games) ? '<p class="small muted">Strike and spare percentages appear once frame-by-frame scores are logged.</p>' : ''}
@@ -1168,7 +1177,7 @@ window.addEventListener('hashchange', () => {
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-q],[data-toggle-player],[data-share],[data-recap]'); if (!b) return;
   if (b.dataset.recap) { copyRecap(b, +b.dataset.recap); return; }
-  if (b.dataset.q) { const [k, v] = b.dataset.q.split('='); setQ({ [k]: v }); }
+  if (b.dataset.q) setQ(Object.fromEntries(new URLSearchParams(b.dataset.q)));
   if (b.dataset.togglePlayer) {
     const id = b.dataset.togglePlayer; const cur = (q().players || seasonTable().slice(0, 3).map(r => r.id).join(',')).split(',').filter(Boolean);
     const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id].slice(-8);

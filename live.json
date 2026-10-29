@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-29T01:00:37Z",
+  "fetchedAt": "2026-10-29T01:08:11Z",
   "live": [
     {
       "date": "2026-10-28",
@@ -125,6 +125,15 @@
         "poopbird": 165,
         "vcosta99": 115
       },
+      "status": "approved"
+    },
+    {
+      "id": 7,
+      "date": "2026-10-28",
+      "lane": 24,
+      "game": 3,
+      "pids": [],
+      "scores": {},
       "status": "approved"
     }
   ]

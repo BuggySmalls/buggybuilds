@@ -10,10 +10,10 @@ import { PRESETS, builderHTML, bindBuilder, toonJpeg } from './toons.js';
 
 let C; // context from app.js: { S, pages, esc, avatar, empty, reload, colorOf }
 
-export async function api(path, { method = 'GET', body, raw } = {}) {
+export async function api(path, { method = 'GET', body, raw, type } = {}) {
   const init = { method, credentials: 'same-origin', headers: {} };
   if (body !== undefined) {
-    if (raw) { init.body = body; init.headers['content-type'] = 'image/jpeg'; }
+    if (raw) { init.body = body; init.headers['content-type'] = type || 'image/jpeg'; }
     else { init.body = JSON.stringify(body); init.headers['content-type'] = 'application/json'; }
   }
   const r = await fetch('api' + path, init);

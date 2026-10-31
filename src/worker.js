@@ -28,6 +28,39 @@ const LOCK_MAX_MINUTES = 60;
 const SIGNUPS_PER_IP_HOUR = 8;
 const PHOTO_MAX = 200 * 1024;
 const SHEET_MAX = 1500 * 1024; // scoresheet photos are resized in the browser first
+// Chit Chat pictures + GIFs (Nick, Oct 31 2026). Photos are shrunk to JPEG in the browser; GIFs go up as-is.
+// A Durable Object SQLite value tops out at 2 MB, so that's the ceiling.
+const MEDIA_MAX = 1900 * 1024;
+const mediaType = b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? 'image/jpeg'
+  : b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38 ? 'image/gif'
+  : b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 ? 'image/png'
+  : b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 ? 'image/webp' : null;
+// GIF links: only straight-to-the-image links from GIF sites. A Giphy page link is turned into its GIF.
+const GIF_HOSTS = /^(media\d?\.giphy\.com|i\.giphy\.com|media\d?\.tenor\.com|c\.tenor\.com|i\.imgur\.com)$/i;
+function gifUrl(raw) {
+  let u; try { u = new URL(String(raw || '').trim()); } catch { return null; }
+  if (u.protocol !== 'https:') return null;
+  if (/^(www\.)?giphy\.com$/i.test(u.hostname)) {
+    const id = u.pathname.match(/^\/(?:gifs|stickers)\/(?:[\w-]*-)?([A-Za-z0-9]+)\/?$/)?.[1];
+    return id ? `https://i.giphy.com/${id}.gif` : null;
+  }
+  if (!GIF_HOSTS.test(u.hostname) || !/\.(gif|webp|mp4|png|jpe?g)$/i.test(u.pathname)) return null;
+  if (/\.mp4$/i.test(u.pathname)) u.pathname = u.pathname.replace(/\.mp4$/i, '.gif');
+  return u.href.slice(0, 400);
+}
+const GIF_IN_TEXT = /https:\/\/[^\s]+/g;
+// Tenor share links (what phones copy) are pages, not GIFs: read the page's preview image to get the GIF.
+async function resolveGif(raw) {
+  const direct = gifUrl(raw); if (direct) return direct;
+  let u; try { u = new URL(String(raw || '').trim()); } catch { return null; }
+  if (u.protocol !== 'https:' || !/^(www\.)?tenor\.com$/i.test(u.hostname) || !/^\/(?:[a-z-]+\/)?view\//.test(u.pathname)) return null;
+  try {
+    const r = await fetch(u.href, { headers: { 'user-agent': 'Mozilla/5.0 (cerealbowlers.org link preview)' }, cf: { cacheTtl: 86400 } });
+    const html = (await r.text()).slice(0, 300000);
+    const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1] || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1];
+    return og ? gifUrl(og.replace(/&amp;/g, '&')) : null;
+  } catch { return null; }
+}
 const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D', '#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7'];
 const HANDS = ['Right', 'Left', 'Two-handed'];
 // Stored lane draw: {rev, lanes} (older rows are a bare array)
@@ -128,6 +161,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS dislikes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
       CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS ideas (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT, name TEXT NOT NULL DEFAULT '', ip TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS media (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT NOT NULL, mime TEXT NOT NULL, data BLOB NOT NULL, created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
     `);
     // Betcha dollar amount (Nick, Oct 24 2026): dollars, cents OK since Oct 28 2026 (stored as REAL in this column), 0 = nothing
@@ -135,6 +169,8 @@ export class Accounts extends DurableObject {
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'test')) this.sql.exec('ALTER TABLE sheets ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
     // Live scoreboard (Nick, Oct 28 2026): the uploader types each tagged bowler's score for that game.
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'scores')) this.sql.exec("ALTER TABLE sheets ADD COLUMN scores TEXT NOT NULL DEFAULT '{}'");
+    // Chit Chat pictures (Nick, Oct 31 2026): a post can carry one picture or GIF — 'm<id>' (uploaded, media table) or an https GIF link
+    if (!this.sql.exec('PRAGMA table_info(posts)').toArray().some(c => c.name === 'media')) this.sql.exec('ALTER TABLE posts ADD COLUMN media TEXT');
     // Test run over (Nick, Oct 27 2026): wipe any test uploads left behind.
     this.sql.exec('DELETE FROM sheets WHERE test = 1');
     // Settling up (Nick, Oct 25 2026): the loser confirms they paid, the winner confirms they got it.
@@ -243,6 +279,14 @@ export class Accounts extends DurableObject {
         return json(this.all().filter(a => !hidden.has(a.ukey)).map(a => ({ username: a.username, playerId: a.player_id, name: JSON.parse(a.profile).name || a.username, joined: nyDate(a.created_at) })));
       }
       if (method === 'GET' && path.startsWith('/photo/')) return this.photo(decodeURIComponent(path.slice(7)));
+      // Chit Chat pictures: public unless the post was hidden (talk.hidden) or deleted
+      if (method === 'GET' && /^\/media\/\d+$/.test(path)) {
+        const id = +path.slice(7);
+        const r = this.sql.exec('SELECT m.mime, m.data, p.id AS post FROM media m JOIN posts p ON p.media = ? WHERE m.id = ?', 'm' + id, id).toArray()[0];
+        const L = r && await this.league(url.origin);
+        if (!r || (L.talk?.hidden || []).map(Number).includes(r.post)) return new Response('Not found', { status: 404 });
+        return new Response(r.data, { headers: { 'content-type': r.mime, 'cache-control': 'public, max-age=31536000, immutable' } });
+      }
       // Scoresheet photos: approved ones (and test uploads, so the fetch workflow can read them) are public;
       // pending/duplicate/rejected only for the uploader and the commissioner.
       if (method === 'GET' && /^\/sheet\/\d+\.jpg$/.test(path)) {
@@ -435,10 +479,23 @@ export class Accounts extends DurableObject {
         }
         return json(this.games(L, me));
       }
-      if (method === 'POST' && path === '/post') {
-        const { msg, to } = await request.json();
-        const m = clean(msg, 200);
-        if (!m) return fail(400, 'Say something.');
+      if (method === 'POST' && (path === '/post' || path === '/post-media')) {
+        const raw = path === '/post-media';
+        const body = raw ? { msg: url.searchParams.get('msg') || '', to: url.searchParams.get('to') || '' } : await request.json();
+        const { to } = body;
+        let m = clean(body.msg, 200), media = null, buf = null, mime = null;
+        if (raw) {
+          buf = new Uint8Array(await request.arrayBuffer());
+          if (!buf.length) return fail(400, 'Pick a picture first.');
+          if (buf.length > MEDIA_MAX) return fail(413, 'That one’s too big. Pictures and GIFs can be up to about 2 MB.');
+          mime = mediaType(buf); if (!mime) return fail(415, 'That has to be a picture or a GIF.');
+        } else if (body.gif) {
+          media = await resolveGif(body.gif); if (!media) return fail(400, 'That GIF link didn’t work. Use a Giphy, Tenor or Imgur GIF link.');
+        } else {
+          // a GIF link pasted into the message itself becomes the post's GIF
+          for (const link of m.match(GIF_IN_TEXT) || []) { const g = await resolveGif(link); if (g) { media = g; m = clean(m.replace(link, ''), 200); break; } }
+        }
+        if (!m && !media && !buf) return fail(400, 'Say something.');
         const L = await this.league(url.origin);
         let target = null;
         if (to) {
@@ -448,7 +505,8 @@ export class Accounts extends DurableObject {
         }
         const last = this.sql.exec('SELECT created_at FROM posts WHERE ukey = ? ORDER BY created_at DESC LIMIT 1', me.ukey).toArray()[0];
         if (last && now() - last.created_at < 10e3) return fail(429, 'Easy. Wait a few seconds between posts.');
-        this.sql.exec('INSERT INTO posts (ukey, to_pid, msg, created_at) VALUES (?,?,?,?)', me.ukey, target, m, now());
+        if (buf) { this.sql.exec('INSERT INTO media (ukey, mime, data, created_at) VALUES (?,?,?,?)', me.ukey, mime, buf, now()); media = 'm' + this.sql.exec('SELECT last_insert_rowid() AS id').one().id; }
+        this.sql.exec('INSERT INTO posts (ukey, to_pid, msg, created_at, media) VALUES (?,?,?,?,?)', me.ukey, target, m, now(), media);
         return json(this.games(L, me), 201);
       }
       // Likes + comments on shit talk, betchas and call-outs (Nick, Oct 28 2026)
@@ -485,6 +543,7 @@ export class Accounts extends DurableObject {
         const pst = this.sql.exec('SELECT * FROM posts WHERE id = ?', +path.slice(6)).toArray()[0];
         if (!pst || pst.ukey !== me.ukey) return fail(404, 'Not your post.');
         this.sql.exec('DELETE FROM posts WHERE id = ?', pst.id);
+        if (/^m\d+$/.test(pst.media || '')) this.sql.exec('DELETE FROM media WHERE id = ?', +pst.media.slice(1));
         return json(this.games(await this.league(url.origin), me));
       }
       // Scoresheet photos (Nick, Oct 27 2026): a bowler snaps the lane screen, tags night + lane (typed) + game
@@ -831,8 +890,9 @@ export class Accounts extends DurableObject {
     const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, amount, status, created_at, answered_at, paid_at, got_at FROM bets ORDER BY created_at').toArray()
       .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, amount: b.amount || 0, status: b.status, at: b.created_at, answeredAt: b.answered_at || null, paidAt: b.paid_at || null, gotAt: b.got_at || null }));
     const hiddenPosts = new Set((L.talk?.hidden || []).map(Number));
-    const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
-      .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at }));
+    const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at, media FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
+      .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at,
+        ...(x.media && { img: x.media.startsWith('m') ? `/api/media/${x.media.slice(1)}` : x.media, gif: !x.media.startsWith('m') || undefined }) }));
     const seenAt = me ? (this.sql.exec('SELECT at FROM seen WHERE ukey = ?', me.ukey).toArray()[0]?.at || 0) : 0;
     const attendance = {};
     for (const r of this.sql.exec('SELECT date, ukey, going, at FROM attendance ORDER BY at').toArray()) {

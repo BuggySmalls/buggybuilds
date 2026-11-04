@@ -5,6 +5,7 @@
 
 import { DurableObject } from 'cloudflare:workers';
 import { handleMcp } from './mcp.js';
+import { parseFrames } from '../public/js/engine.js';
 
 export default {
   async fetch(request, env) {
@@ -160,6 +161,7 @@ export class Accounts extends DurableObject {
       CREATE TABLE IF NOT EXISTS likes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
       CREATE TABLE IF NOT EXISTS dislikes (kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (kind, item, ukey));
       CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, item INTEGER NOT NULL, ukey TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS arcade (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, score INTEGER NOT NULL, frames TEXT NOT NULL, ukey TEXT, ip TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS ideas (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT, name TEXT NOT NULL DEFAULT '', ip TEXT NOT NULL, msg TEXT NOT NULL, at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS media (id INTEGER PRIMARY KEY AUTOINCREMENT, ukey TEXT NOT NULL, mime TEXT NOT NULL, data BLOB NOT NULL, created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, from_ukey TEXT NOT NULL, to_pid TEXT NOT NULL, stakes TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, answered_at INTEGER);
@@ -233,6 +235,11 @@ export class Accounts extends DurableObject {
     const token = randHex(32);
     this.sql.exec('INSERT INTO sessions (token_hash, ukey, created_at) VALUES (?, ?, ?)', await sha256(token), ukey, now());
     return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure ? '; Secure' : ''}`;
+  }
+  arcadeTop(L) {
+    const hidden = (L.arcade?.hidden || []).map(Number);
+    const rows = this.sql.exec('SELECT id, name, score, at FROM arcade ORDER BY score DESC, at ASC LIMIT 50').toArray();
+    return rows.find(r => !hidden.includes(r.id)) || null;
   }
   publicMe(a) {
     if (!a) return { user: null };
@@ -328,6 +335,27 @@ export class Accounts extends DurableObject {
         const me = await this.me(request), L = await this.league(url.origin);
         if (!me || me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can see these.');
         return json(this.sql.exec('SELECT id, name, msg, at FROM ideas ORDER BY at DESC LIMIT 200').toArray());
+      }
+      // Arcade high score (Nick, Nov 4 2026): one all-time top score + name for the bowling minigame (#/arcade).
+      // Anyone can post (no account needed). The frames have to add up to the score. Hide a bad one with
+      // league.json arcade.hidden: [id] (the id is in GET /api/arcade).
+      if (method === 'GET' && path === '/arcade') return json({ top: this.arcadeTop(await this.league(url.origin)) });
+      if (method === 'POST' && path === '/arcade') {
+        const { name, score, frames } = await request.json();
+        const nm = clean(name, 20); if (!nm) return fail(400, 'Type your name first.');
+        const sc = Number(score), fr = clean(frames, 80);
+        if (!Number.isInteger(sc) || sc < 0 || sc > 300) return fail(400, 'That score doesn’t look right.');
+        const p = parseFrames(fr);
+        if (p.error || p.score !== sc || p.frames?.length !== 10) return fail(400, 'That score doesn’t look right.');
+        const ip = request.headers.get('cf-connecting-ip') || 'local', t = now();
+        const recent = this.sql.exec('SELECT COUNT(*) AS n, MAX(at) AS last FROM arcade WHERE ip = ? AND at > ?', ip, t - 3600e3).one();
+        if (recent.n >= 20) return fail(429, 'Easy, champ. Try again in a bit.');
+        if (recent.last && t - recent.last < 20e3) return fail(429, 'Bowl a full game first.');
+        const L = await this.league(url.origin), was = this.arcadeTop(L), me = await this.me(request);
+        this.sql.exec('INSERT INTO arcade (name, score, frames, ukey, ip, at) VALUES (?,?,?,?,?,?)', nm, sc, fr, me?.ukey || null, ip, t);
+        const top = this.arcadeTop(L);
+        if (top && (!was || top.score > was.score)) this.ctx.waitUntil(this.push(L, `New arcade high score: ${top.score}`, `${top.name} took the top spot${was ? ` from ${was.name} (${was.score})` : ''}.`, 'trophy'));
+        return json({ top }, 201);
       }
       if (method === 'GET' && path === '/me') return json(this.publicMe(await this.me(request)));
       if (method === 'GET' && path === '/method') {

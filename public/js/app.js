@@ -9,6 +9,7 @@ import { installAttend, renderAttendBar, homeAttend, nightTeams, homeTeamBoard, 
 import { installPoll, homePoll } from './poll.js';
 import { installIdeas, renderIdeas } from './ideas.js';
 import { installReact } from './react.js';
+import { installArcade, arcadeButton } from './arcade.js';
 import { installSheets, homeSheets, sheetThumbs, liveNow, liveDate, liveCalc } from './sheets.js';
 
 /* ================================================================== *
@@ -368,7 +369,7 @@ pages.home = () => {
         ${next && next.date === S.todayISO ? `<div class="rumble" role="note"><span class="rumble-tag">★ Game day ★</span><b>LET’S GET READY TO <span class="rumble-word">RUMBOOOWWWWWWWLLLLL!</span></b></div>` : ''}
         <div class="hero-art" aria-hidden="true">${pinsArt()}<span class="burst">STRIKE!</span></div>
       </div>
-      <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>
+      <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a>${arcadeButton()}</div>
     </div>
   </section>
   ${homeTeamBoard('below')}
@@ -1259,7 +1260,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'talk'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Chit Chat', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Chit Chat', arcade: 'Arcade', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   try { renderBell(); renderAttendBar(); renderIdeas(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   fitRumble();
@@ -1305,6 +1306,7 @@ installTalk({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, r
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 installPoll({ S, pages, esc, empty, linkNames, route });
 installIdeas({ S, esc });
+installArcade({ S, esc, pages, P });
 installSheets({ S, E, pages, esc, empty, who, pl, avatar, fmtDate, P, route });
 installReact({ S, esc, pl, P, linkNames, route });
 document.addEventListener('click', e => { if (!e.target.closest('[data-fact]')) return; S.fact = randomFact(S.fact); const f = $('#fact'); if (f) f.textContent = S.fact; });

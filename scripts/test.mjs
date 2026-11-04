@@ -226,3 +226,14 @@ ok(E.validate({ players: d.players, events: [{ date: '2026-10-28', teams: [{ nam
 }
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
+
+// Arcade minigame (Nick, Nov 4 2026): scoring matches the site's frame reader, and the lane plays fair
+{
+  const A = await import('../public/js/arcade.js');
+  eq(A.totalScore(Array(12).fill(10)), 300, 'arcade: perfect game is 300');
+  eq(A.framesString(Array(12).fill(10)), 'X X X X X X X X X XXX', 'arcade: perfect game frames');
+  eq(A.totalScore(Array(21).fill(5)), 150, 'arcade: all 5/ spares is 150');
+  eq(E.parseFrames(A.framesString([9, 0, 7, 3, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 2, 8, 10])).score, A.totalScore([9, 0, 7, 3, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 2, 8, 10]), 'arcade: frames string reads back to the same score');
+  eq(A.simulate(A.rackPins(), { x: 163, angle: 0, speed: 600, spin: 0 }).knocked, 10, 'arcade: pocket shot strikes');
+  eq(A.simulate(A.rackPins(), { x: 70, angle: 0, speed: 600, spin: -1 }).knocked, 0, 'arcade: hooking from the edge finds the gutter');
+}

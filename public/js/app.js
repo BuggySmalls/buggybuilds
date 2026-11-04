@@ -158,7 +158,7 @@ function wpBlock(date, a, b) {
   const name = id => P(id).name;
   const where = s => `game ${s.g + 1}, frame ${s.f + 1}`;
   const tips = w.steps.map((s, i) => i === 0 ? `Before first ball · ${name(a)} ${wpPct(w.p[0])}, ${name(b)} ${wpPct(100 - w.p[0])}`
-    : `G${s.g + 1} F${s.f + 1} · ${name(s.who)}${tok(s.who, s.g, s.f) ? ' ' + tok(s.who, s.g, s.f) : ''} → ${name(a)} ${wpPct(w.p[i])}, ${name(b)} ${wpPct(100 - w.p[i])}`);
+    : `G${s.g + 1} F${s.f + 1} · ${name(s.who)}${tok(s.who, s.g, s.f) ? ' ' + tok(s.who, s.g, s.f) : ''} → ${name(a)} ${wpPct(w.p[i])}, ${name(b)} ${wpPct(100 - w.p[i])} · Series score: ${name(a)} ${s.score[a]}, ${name(b)} ${s.score[b]}`);
   const cur = w.p.at(-1);
   // Key moments: the comeback (eventual winner's lowest point) and the biggest single-frame swing
   const notes = [];
@@ -176,7 +176,7 @@ function wpBlock(date, a, b) {
     ${row(b, 100 - cur, PALETTE[1])}
     <div class="wp-end"><div><b>${w.final ? 'End of night' : w.live ? '● Live' : 'Final'}</b><span class="small muted">${w.final ? fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' }) : `Through game ${w.nGames}`}</span></div><div class="wp-score"><span>${w.aSeries}<small>${esc(name(a))}</small></span><span>${w.bSeries}<small>${esc(name(b))}</small></span></div></div>
     ${notes.length ? `<p class="small muted wp-notes">${notes.join('<br>')}</p>` : ''}
-    <p class="small faint wp-how">Chance to win the 3-game series (scratch) after every frame. The rest of the night is simulated from each bowler’s own frames. Tap the line for any frame.</p>
+    <p class="small faint wp-how">Chance to win the 3-game series (scratch) after every frame. The rest of the night is simulated from each bowler’s own frames. Tap the line for any frame to see the win % and the series score at that moment.</p>
   </div>`;
 }
 // Match of the week, chart showing right on the page; chips swap to the other matches to watch in place

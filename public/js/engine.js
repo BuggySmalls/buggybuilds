@@ -1109,6 +1109,22 @@ export function winProbability(data, date, a, b, { live = false, sims = 2500 } =
     const na = Math.ceil(i / 2), nb = Math.floor(i / 2);
     return Math.round(prob(get(a, na), get(b, nb)) * 1000) / 10;
   });
+  // Pins on the board at each step (Nick, Nov 4 2026): finished games + the current game through the frames rolled so far
+  // (strike/spare bonuses only count balls already thrown). Total-only games count once they're done.
+  const pinsAt = (pid, n) => {
+    let tot = 0;
+    for (let k = 0; k < nGames; k++) {
+      const g = T[pid][k], done = Math.max(0, Math.min(10, n - k * 10));
+      if (!done || g.score == null) continue;
+      if (done === 10) { tot += g.score; continue; }
+      if (!tonR[pid][k]) continue;
+      const rr = new Int8Array(24); let m = 0;
+      for (let f = 0; f < done; f++) for (const v of tonR[pid][k][f]) rr[m++] = v;
+      tot += scoreRolls(rr);
+    }
+    return tot;
+  };
+  steps.forEach((s, i) => { s.score = { [a]: pinsAt(a, Math.ceil(i / 2)), [b]: pinsAt(b, Math.floor(i / 2)) }; });
   const series = pid => E_sum(T[pid].slice(0, nGames).map(g => g.score || 0));
   const final = !live && nGames === 3;
   return { date, a, b, steps, p, nGames, final, aSeries: series(a), bSeries: series(b), live };

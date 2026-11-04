@@ -145,11 +145,11 @@ export function framesString(rolls) { return scoreRolls(rolls).map(fr => marks(f
  * Page
  * ------------------------------------------------------------------ */
 let C; // { S, esc, pages }
-let top = null, topErr = false, game = null, raf = 0;
+let top = null, board = [], myId = null, topErr = false, game = null, raf = 0;
 const LS_NAME = 'cb-arcade-name', LS_BEST = 'cb-arcade-best';
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } } };
 
-export async function fetchArcadeTop() { try { top = (await api('/arcade')).top; topErr = false; } catch { topErr = true; } return top; }
+export async function fetchArcadeTop() { try { const r = await api('/arcade'); top = r.top; board = r.board || (r.top ? [r.top] : []); topErr = false; } catch { topErr = true; } return top; }
 export function arcadeTop() { return top; }
 // Small link for the home page hero
 export function arcadeButton() {
@@ -285,29 +285,45 @@ function hint(t) {
 }
 function renderSheet() { const el = document.getElementById('arcSheet'); if (el) el.innerHTML = sheetHTML(); }
 
+// Top 10 (Nick, Nov 4 2026): only shown on the end-of-game card. The home button still shows just #1.
+function boardHTML() {
+  const { esc } = C;
+  if (!board.length) return '';
+  const rows = board.map((r, i) => {
+    const me = myId != null && r.id === myId;
+    return `<li class="${me ? 'me' : ''}"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name)}</span><b>${r.score}</b></li>`;
+  }).join('');
+  return `<div class="arc-board"><span class="arc-k">Top 10</span><ol>${rows}</ol></div>`;
+}
+
 function showOver() {
   const el = document.getElementById('arcOver'); if (!el) return;
   const { S, esc } = C;
   const score = totalScore(game.rolls);
   const best = +ls.get(LS_BEST) || 0; if (score > best) ls.set(LS_BEST, String(score));
   const beat = !top || score > top.score;
+  const cut = board.length < 10 ? 0 : board[9].score;
+  const makesBoard = score > 0 && (board.length < 10 || score > cut);
   const meName = S.me ? (C.P(S.me.playerId)?.name || S.me.username) : '';
   const name = ls.get(LS_NAME) || meName;
-  el.innerHTML = `<div class="arc-card"><span class="arc-k">Final score</span><b class="arc-final">${score}</b>
-    ${beat && score > 0 && !game.saved ? `<p class="arc-new">${top ? `New high score! You beat ${esc(top.name)}’s ${top.score}.` : 'First high score on the board!'}</p>
-      <form class="arc-form" id="arcForm"><input name="name" maxlength="20" placeholder="Your name" value="${esc(name)}" required autocomplete="nickname"><button class="btn primary" type="submit">Put me up there</button></form><p class="arc-err" role="alert"></p>`
-    : game.saved ? '<p class="arc-new">You’re on top. For now.</p>'
-    : `<p class="arc-sub">High score is ${top.score} by ${esc(top.name)}. ${top.score - score} to go.</p>`}
+  const rank = myId != null ? board.findIndex(r => r.id === myId) + 1 : 0;
+  let msg;
+  if (game.saved) msg = rank === 1 ? '<p class="arc-new">You’re on top. For now.</p>' : rank ? `<p class="arc-new">You’re #${rank} on the board.</p>` : '<p class="arc-sub">Saved. Your best under that name is already higher.</p>';
+  else if (makesBoard) msg = `<p class="arc-new">${beat ? (top ? `New high score! You beat ${esc(top.name)}’s ${top.score}.` : 'First high score on the board!') : 'You made the top 10!'}</p>
+      <form class="arc-form" id="arcForm"><input name="name" maxlength="20" placeholder="Your name" value="${esc(name)}" required autocomplete="nickname"><button class="btn primary" type="submit">Put me up there</button></form><p class="arc-err" role="alert"></p>`;
+  else msg = `<p class="arc-sub">${cut - score + 1} more to make the top 10.</p>`;
+  el.innerHTML = `<div class="arc-card"><span class="arc-k">Final score</span><b class="arc-final">${score}</b>${msg}
+    ${boardHTML()}
     <button class="btn" type="button" id="arcAgain">Bowl again</button></div>`;
   el.hidden = false;
-  el.querySelector('#arcAgain').onclick = () => { game = newGame(); el.hidden = true; renderSheet(); hint(); };
+  el.querySelector('#arcAgain').onclick = () => { game = newGame(); myId = null; el.hidden = true; renderSheet(); hint(); };
   const f = el.querySelector('#arcForm');
   if (f) f.onsubmit = async e => {
     e.preventDefault(); const btn = f.querySelector('button'); btn.disabled = true;
     const nm = f.elements.namedItem('name').value.trim();
     try {
       const r = await api('/arcade', { method: 'POST', body: { name: nm, score, frames: framesString(game.rolls) } });
-      ls.set(LS_NAME, nm); top = r.top; game.saved = true;
+      ls.set(LS_NAME, nm); top = r.top; board = r.board || board; myId = r.id ?? null; game.saved = true;
       const t = document.getElementById('arcTop'); if (t) t.innerHTML = topHTML();
       showOver();
     } catch (err) { btn.disabled = false; el.querySelector('.arc-err').textContent = err.message; }

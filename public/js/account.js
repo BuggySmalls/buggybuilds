@@ -22,8 +22,16 @@ export async function api(path, { method = 'GET', body, raw, type } = {}) {
   return data;
 }
 
+// Signed-in check (Nick, Nov 4 2026): a phone network blip or a server restart used to make the whole visit look
+// signed out ("Sign in to confirm your attendance" while signed in). Now it retries, and if it still can't reach the
+// server, meUnknown stays true so the 45s refresh tries again instead of treating you as signed out.
+export let meUnknown = false;
 export async function fetchMe() {
-  try { return (await api('/me')).user; } catch { return null; }
+  for (const wait of [0, 800, 2500]) {
+    if (wait) await new Promise(r => setTimeout(r, wait));
+    try { const u = (await api('/me')).user; meUnknown = false; return u; } catch { /* try again */ }
+  }
+  meUnknown = true; return null;
 }
 
 /* ------------------------------------------------------------------ *

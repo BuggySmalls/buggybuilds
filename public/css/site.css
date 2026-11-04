@@ -1431,7 +1431,7 @@ span.nh-arrow{display:none}
 .arc-hint{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);font:400 12px var(--display);text-transform:uppercase;color:#111;background:var(--maple);border:3px solid #111;border-radius:99px;padding:4px 12px;white-space:nowrap;pointer-events:none}
 .arc-hint:empty{display:none}
 @media (prefers-reduced-motion: no-preference){.arc-hint{animation:arcbob 1.6s ease-in-out infinite}@keyframes arcbob{50%{transform:translateX(-50%) translateY(-5px)}}}
-.arc-over{position:absolute;inset:0;display:grid;place-items:center;background:rgba(11,7,22,.72);padding:16px}
+.arc-over{position:absolute;inset:0;display:grid;place-items:center;background:rgba(11,7,22,.72);padding:12px;overflow-y:auto}
 .arc-over[hidden]{display:none}
 .arc-card{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:300px;padding:18px;background:var(--panel);border:3px solid #111;border-radius:18px;box-shadow:var(--pop-lg);text-align:center}
 .arc-final{font:400 64px/1 var(--display);color:var(--maple);text-shadow:4px 4px 0 #111}
@@ -1442,3 +1442,29 @@ span.nh-arrow{display:none}
 .arc-err{margin:0;color:#FF8FB8;font-size:13px}
 .arc-err:empty{display:none}
 .arc-help{font-size:14px;color:#fff;background:rgba(17,17,17,.6);border-radius:12px;padding:10px 12px;margin-top:12px}
+.arc-board{width:100%;text-align:left}
+.arc-board .arc-k{display:block;text-align:center;margin-bottom:4px}
+.arc-board ol{list-style:none;margin:0;padding:0;border:3px solid #111;border-radius:12px;overflow:hidden;background:#fff;color:#111}
+.arc-board li{display:flex;align-items:center;gap:8px;padding:3px 10px;font:600 14px/1.3 var(--body);border-top:1px solid #ddd}
+.arc-board li:first-child{border-top:0;background:var(--maple)}
+.arc-board li.me{background:var(--cyan)}
+.arc-board .rk{font:400 12px var(--display);width:18px;text-align:right}
+.arc-board .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arc-board b{font:400 14px var(--display)}
+/* One betcha on its own (#/betcha/<id>) */
+.bet-solo{margin:12px 0}
+.bet-lead{font:400 16px/1.25 var(--display);color:var(--maple);margin:0 0 10px}
+.bet-solo .co-foot .btn{font-size:16px;padding:10px 16px}
+/* Idea updates (Nick, Nov 4 2026) */
+.id-upd{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.id-upd select,.id-upd textarea{font:500 15px var(--body);padding:6px 8px;border:2px solid #111;border-radius:8px;background:#fff;color:#111}
+.id-chk{display:flex;align-items:center;gap:6px;font:600 14px var(--body)}
+.id-note{font-size:13px;opacity:.8}
+.id-upd-show{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.id-st{align-self:flex-start;font:400 11px var(--display);text-transform:uppercase;letter-spacing:.04em;background:var(--cyan);color:#111;border:2px solid #111;border-radius:99px;padding:2px 8px}
+.id-st.wait{background:#ddd}
+.id-reply{margin:0;font-size:14px}
+.id-mine{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.id-mine .id-item{background:var(--panel);border:3px solid #111;border-radius:14px;box-shadow:var(--pop);padding:10px 12px}
+.id-mine .id-item p{margin:0 0 4px}
+.id-mine .id-item>span{font-size:12px;opacity:.75;color:inherit}

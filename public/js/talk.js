@@ -1,7 +1,7 @@
 // Chit Chat (was Betchas & Shit Talk; renamed by Nick, Oct 31 2026), the Talk tab, and notifications (bell + pop-ups).
 // Posts live on the account server; notifications are built in the browser from
 // /api/games (posts, betchas, call-outs) and compared with the last time you looked.
-import { api } from './account.js';
+import { api, fetchMe, meUnknown } from './account.js';
 import { reactBar } from './react.js';
 import { renderAttendBar } from './attend.js';
 import { sheetFeed, liveCalc, liveDate } from './sheets.js';
@@ -27,11 +27,17 @@ export function feedItems() {
       text: p.to ? `${N(p.from)} → ${p.to === me ? 'you' : N(p.to)}: ${msg}${pic}` : `${N(p.from)}: ${msg}${pic}` });
   }
   // Betchas only notify the two bowlers in them (Nick, Oct 25 2026); everyone else sees them on the Talk tab.
+  // Nick updated your site idea (Nick, Nov 4 2026): only the person who sent it sees this
+  for (const d of g.myIdeas || []) if (d.upd_at) {
+    const short = d.msg.length > 60 ? d.msg.slice(0, 57).trimEnd() + '…' : d.msg;
+    out.push({ id: `id${d.id}-${d.upd_at}`, at: d.upd_at, from: C.S.data.league?.commissioner, kind: 'idea', personal: true, link: '#/ideas',
+      text: `Nick updated your idea “${short}”${d.status ? `: ${d.status}` : ''}${d.reply ? `. “${d.reply}”` : ''}` });
+  }
   for (const b of g.bets || []) {
     if (!me || (b.from !== me && b.to !== me)) continue;
-    if (b.to === me) out.push({ id: 'b' + b.id, at: b.at, from: b.from, kind: 'bet', personal: true, pending: b.status === 'open' && openDate() === b.date,
+    if (b.to === me) out.push({ id: 'b' + b.id, at: b.at, from: b.from, kind: 'bet', personal: true, bet: b.id, pending: b.status === 'open' && openDate() === b.date,
       text: `${N(b.from)} wants to betcha: ${b.stakes}. Take it?` });
-    if (b.answeredAt && b.from === me) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: true,
+    if (b.answeredAt && b.from === me) out.push({ id: 'a' + b.id, at: b.answeredAt, from: b.to, kind: 'bet', personal: true, bet: b.id,
       text: `${N(b.to)} ${b.status === 'accepted' ? 'took' : 'chickened out of'} your betcha: ${b.stakes}` });
   }
   // Settling up: after the night, tell the loser to pay and the winner to confirm. Only the winner's
@@ -41,7 +47,7 @@ export function feedItems() {
     const st = settleState(b), amt = C.E.betAmount(b), opp = me === r.winner ? r.loser : r.winner;
     const owed = amt ? C.E.dollars(amt) : `“${b.stakes}”`, pamt = C.E.betPurse(b);
     if (st === 'settled') {
-      out.push({ id: 'z' + b.id, at: Math.max(b.paidAt || 0, b.gotAt || 0, settleAt(b)), from: opp, kind: 'settle', personal: true,
+      out.push({ id: 'z' + b.id, at: Math.max(b.paidAt || 0, b.gotAt || 0, settleAt(b)), from: opp, kind: 'settle', personal: true, bet: b.id,
         text: me === r.winner ? `${N(opp)} paid up. ${amt ? `$${pamt} added to your purse winnings.` : 'Betcha settled.'}` : `${N(opp)} confirmed they got paid. Betcha settled.` });
     } else if (me === r.loser && !b.paidAt) {
       out.push({ id: 'sL' + b.id, at: settleAt(b), from: opp, kind: 'settle', personal: true, bet: b.id,
@@ -50,7 +56,7 @@ export function feedItems() {
       out.push({ id: (b.paidAt ? 'sP' : 'sW') + b.id, at: b.paidAt || settleAt(b), from: opp, kind: 'settle', personal: true, pending: true, bet: b.id,
         text: b.paidAt ? `${N(opp)} says they paid you ${owed}. Tap “Got paid” to confirm${amt ? ' and add it to your purse' : ''}.` : `You won your betcha vs ${N(opp)}! They owe you ${owed}. Tap “Got paid” once they pay up.` });
     } else if (me === r.loser && b.paidAt && !b.gotAt) {
-      out.push({ id: 'sw' + b.id, at: b.paidAt, from: opp, kind: 'settle', personal: true,
+      out.push({ id: 'sw' + b.id, at: b.paidAt, from: opp, kind: 'settle', personal: true, bet: b.id,
         text: `Waiting on ${N(opp)} to confirm they got your ${owed}.` });
     }
   }
@@ -102,8 +108,8 @@ export function feedItems() {
 }
 const seenAt = () => Math.max(C.S.games?.seenAt || 0, +store.get(SEEN_KEY) || 0);
 const unread = () => { const since = seenAt(); return feedItems().filter(x => x.pending || x.at > since).sort((a, b) => (b.pending ? 1 : 0) - (a.pending ? 1 : 0) || b.at - a.at); };
-const label = { comment: 'Comment', post: 'Chit Chat', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll', sheet: 'Scoresheet' };
-const hrefOf = x => x.link || (x.kind === 'settle' ? '#/talk?settle' : '#/talk');
+const label = { idea: 'Your idea', comment: 'Comment', post: 'Chit Chat', bet: 'Betcha', callout: 'Call-out', settle: 'Pay up', attend: 'Attendance', teams: 'Team night', queue: 'Team queue', poll: 'Poll', sheet: 'Scoresheet' };
+const hrefOf = x => x.link || (x.bet ? `#/betcha/${x.bet}` : x.kind === 'settle' ? '#/talk?settle' : '#/talk');
 
 function ago(ms) {
   const s = Math.max(0, (Date.now() - ms) / 1000);
@@ -352,7 +358,10 @@ function talkPage() {
  * Live updates: check for new stuff every 45 seconds while the page is open
  * ------------------------------------------------------------------ */
 async function poll() {
-  if (document.hidden || C.S.apiDown || !C.S.games) return;
+  if (document.hidden) return;
+  // Couldn't check sign-in at page load: try again, and if you are signed in, redraw as you (Nick, Nov 4 2026)
+  if (!C.S.me && meUnknown) { const u = await fetchMe(); if (u) { C.S.me = u; C.S.games = await fetchGames() || C.S.games; C.route(); } }
+  if (C.S.apiDown || !C.S.games) return;
   const before = new Set(feedItems().map(x => x.id)), liveBefore = JSON.stringify([C.S.games.live || [], C.S.games.teams || {}, C.S.games.lanes || {}]);
   const g = await fetchGames(); if (!g) return;
   C.S.games = g;

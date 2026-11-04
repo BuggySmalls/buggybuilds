@@ -158,6 +158,24 @@ export function betRow(b, { side = null } = {}) {
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
     <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">${C.E.dollars(C.E.betAmount(b))}${C.E.betAmount(b) % 1 ? ` · $${C.E.betPurse(b)} to the purse` : ' to the purse'}</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}${amtBtn}</div>${reactBar('bet', b.id)}</div>`;
 }
+// One betcha on its own (Nick, Nov 4 2026): bell/pop-up links for your betchas open #/betcha/<id>,
+// so "Take the bet" / "Chicken out" (or I paid / Got paid) is right there instead of hunting in Chit Chat.
+function betchaPage(id) {
+  const g = C.S.games, me = C.S.me?.playerId;
+  const head = '<div><h1 class="page-title">Betcha</h1></div>';
+  if (!g) return head + C.empty('The league server is taking a nap', 'Try again in a minute.');
+  const b = (g.bets || []).find(x => String(x.id) === String(id));
+  if (!b) return head + C.empty('Can’t find that betcha', 'It may have been taken back.') + '<p><a class="btn" href="#/talk?betcha">See all betchas</a></p>';
+  const open = openDate() === b.date, r = settleRoles(b);
+  let lead = '';
+  if (b.status === 'open' && open && me === b.to) lead = `<p class="bet-lead">${C.pl(b.from)} wants to betcha. Take it or chicken out before first ball.</p>`;
+  else if (b.status === 'open' && open && me === b.from) lead = `<p class="bet-lead">Waiting on ${C.pl(b.to)} to answer.</p>`;
+  else if (b.status === 'open' && me === b.to && !open) lead = '<p class="bet-lead">Too late to answer this one. First ball already rolled.</p>';
+  else if (r && me === r.loser && !b.paidAt) lead = '<p class="bet-lead">You lost this one. Pay up, then tap “I paid”.</p>';
+  else if (r && me === r.winner && !b.gotAt) lead = '<p class="bet-lead">You won! Tap “Got paid” once they pay up.</p>';
+  else if (!me && b.status === 'open' && open) lead = '<p class="bet-lead"><a href="#/login">Sign in</a> to answer.</p>';
+  return `${head}<section class="bet-solo">${lead}${betRow(b)}</section><p><a class="btn" href="#/talk?betcha">See all betchas</a></p>`;
+}
 export function homeBets() {
   const g = C.S.games; if (!g?.bets) return '';
   const nx = C.S.next?.date;
@@ -288,6 +306,7 @@ function flash(id, text) { const m = document.getElementById(id); if (m) { m.tex
 export function installGames(ctx) {
   C = ctx;
   C.pages.pickem = pickemPage;
+  C.pages.betcha = betchaPage;
   document.addEventListener('click', async e => {
     const p = e.target.closest('[data-pick]');
     if (p && !p.disabled) {

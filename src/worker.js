@@ -64,6 +64,7 @@ async function resolveGif(raw) {
 }
 const COLORS = ['#B83A3A', '#3C6FB8', '#2E8A64', '#8A55B8', '#B87A2E', '#2E8A8A', '#B8476F', '#5B6BB8', '#6F8A2E', '#A0522D', '#FF3D9A', '#3BE8FF', '#FFC857', '#7B2FF7'];
 const HANDS = ['Right', 'Left', 'Two-handed'];
+const IDEA_STATUS = ['Got it', 'On the list', 'Working on it', 'Live on the site', 'Not right now'];
 // Stored lane draw: {rev, lanes} (older rows are a bare array)
 const laneRow = txt => { const v = JSON.parse(txt); return Array.isArray(v) ? { rev: 0, lanes: v } : v; };
 const TEAM_NAMES = ['Team Marshmallow', 'Team Soggy', 'Team Frosted', 'Team Crunch', 'Team Sugar Rush', 'Team Spoon'];
@@ -175,6 +176,12 @@ export class Accounts extends DurableObject {
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'read')) this.sql.exec('ALTER TABLE sheets ADD COLUMN read TEXT');
     // Chit Chat pictures (Nick, Oct 31 2026): a post can carry one picture or GIF — 'm<id>' (uploaded, media table) or an https GIF link
     if (!this.sql.exec('PRAGMA table_info(posts)').toArray().some(c => c.name === 'media')) this.sql.exec('ALTER TABLE posts ADD COLUMN media TEXT');
+    // Idea updates (Nick, Nov 4 2026): Nick sets a status + optional reply; upd_at is set only when he picks "notify them".
+    if (!this.sql.exec('PRAGMA table_info(ideas)').toArray().some(c => c.name === 'status')) {
+      this.sql.exec("ALTER TABLE ideas ADD COLUMN status TEXT NOT NULL DEFAULT ''");
+      this.sql.exec("ALTER TABLE ideas ADD COLUMN reply TEXT NOT NULL DEFAULT ''");
+      this.sql.exec('ALTER TABLE ideas ADD COLUMN upd_at INTEGER');
+    }
     // Test run over (Nick, Oct 27 2026): wipe any test uploads left behind.
     this.sql.exec('DELETE FROM sheets WHERE test = 1');
     // Settling up (Nick, Oct 25 2026): the loser confirms they paid, the winner confirms they got it.
@@ -236,11 +243,22 @@ export class Accounts extends DurableObject {
     this.sql.exec('INSERT INTO sessions (token_hash, ukey, created_at) VALUES (?, ?, ?)', await sha256(token), ukey, now());
     return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure ? '; Secure' : ''}`;
   }
-  arcadeTop(L) {
-    const hidden = (L.arcade?.hidden || []).map(Number);
-    const rows = this.sql.exec('SELECT id, name, score, at FROM arcade ORDER BY score DESC, at ASC LIMIT 50').toArray();
-    return rows.find(r => !hidden.includes(r.id)) || null;
+  ideaList() {
+    return this.sql.exec('SELECT id, name, msg, at, status, reply, upd_at, ukey FROM ideas ORDER BY at DESC LIMIT 200').toArray()
+      .map(({ ukey, ...r }) => ({ ...r, canNotify: !!ukey }));
   }
+  // Top 10 board (Nick, Nov 4 2026): each name's best score once (case-insensitive), hidden ids skipped.
+  arcadeBoard(L) {
+    const hidden = (L.arcade?.hidden || []).map(Number), seen = new Set(), out = [];
+    const rows = this.sql.exec('SELECT id, name, score, at FROM arcade ORDER BY score DESC, at ASC LIMIT 500').toArray();
+    for (const r of rows) {
+      const k = r.name.trim().toLowerCase();
+      if (hidden.includes(r.id) || seen.has(k)) continue;
+      seen.add(k); out.push(r); if (out.length === 10) break;
+    }
+    return out;
+  }
+  arcadeTop(L) { return this.arcadeBoard(L)[0] || null; }
   publicMe(a) {
     if (!a) return { user: null };
     return { user: { username: a.username, playerId: a.player_id, method: a.method, profile: JSON.parse(a.profile), photo: a.photo_v ? `/api/photo/${a.player_id}?v=${a.photo_v}` : null } };
@@ -334,12 +352,25 @@ export class Accounts extends DurableObject {
       if (method === 'GET' && path === '/ideas') {
         const me = await this.me(request), L = await this.league(url.origin);
         if (!me || me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can see these.');
-        return json(this.sql.exec('SELECT id, name, msg, at FROM ideas ORDER BY at DESC LIMIT 200').toArray());
+        return json(this.ideaList());
+      }
+      // Nick updates an idea: {status, reply, notify}. notify only works if it was sent signed in; it lights the
+      // sender's bell (their /api/games myIdeas) and nobody else's.
+      if (method === 'POST' && /^\/idea\/\d+$/.test(path)) {
+        const me = await this.me(request), L = await this.league(url.origin);
+        if (!me || me.player_id !== L.league?.commissioner) return fail(403, 'Only the commissioner can update ideas.');
+        const row = this.sql.exec('SELECT id, ukey FROM ideas WHERE id = ?', +path.split('/')[2]).toArray()[0];
+        if (!row) return fail(404, 'Can’t find that idea.');
+        const { status, reply, notify } = await request.json();
+        const st = IDEA_STATUS.includes(status) ? status : '', rp = clean(reply, 300);
+        this.sql.exec('UPDATE ideas SET status = ?, reply = ? WHERE id = ?', st, rp, row.id);
+        if (notify && row.ukey) this.sql.exec('UPDATE ideas SET upd_at = ? WHERE id = ?', now(), row.id);
+        return json(this.ideaList());
       }
       // Arcade high score (Nick, Nov 4 2026): one all-time top score + name for the bowling minigame (#/arcade).
       // Anyone can post (no account needed). The frames have to add up to the score. Hide a bad one with
       // league.json arcade.hidden: [id] (the id is in GET /api/arcade).
-      if (method === 'GET' && path === '/arcade') return json({ top: this.arcadeTop(await this.league(url.origin)) });
+      if (method === 'GET' && path === '/arcade') { const b = this.arcadeBoard(await this.league(url.origin)); return json({ top: b[0] || null, board: b }); }
       if (method === 'POST' && path === '/arcade') {
         const { name, score, frames } = await request.json();
         const nm = clean(name, 20); if (!nm) return fail(400, 'Type your name first.');
@@ -352,10 +383,10 @@ export class Accounts extends DurableObject {
         if (recent.n >= 20) return fail(429, 'Easy, champ. Try again in a bit.');
         if (recent.last && t - recent.last < 20e3) return fail(429, 'Bowl a full game first.');
         const L = await this.league(url.origin), was = this.arcadeTop(L), me = await this.me(request);
-        this.sql.exec('INSERT INTO arcade (name, score, frames, ukey, ip, at) VALUES (?,?,?,?,?,?)', nm, sc, fr, me?.ukey || null, ip, t);
-        const top = this.arcadeTop(L);
+        const id = this.sql.exec('INSERT INTO arcade (name, score, frames, ukey, ip, at) VALUES (?,?,?,?,?,?) RETURNING id', nm, sc, fr, me?.ukey || null, ip, t).one().id;
+        const board = this.arcadeBoard(L), top = board[0] || null;
         if (top && (!was || top.score > was.score)) this.ctx.waitUntil(this.push(L, `New arcade high score: ${top.score}`, `${top.name} took the top spot${was ? ` from ${was.name} (${was.score})` : ''}.`, 'trophy'));
-        return json({ top }, 201);
+        return json({ top, board, id }, 201);
       }
       if (method === 'GET' && path === '/me') return json(this.publicMe(await this.me(request)));
       if (method === 'GET' && path === '/method') {
@@ -1060,7 +1091,8 @@ export class Accounts extends DurableObject {
     const hiddenComments = new Set((L.talk?.hiddenComments || []).map(Number));
     for (const r of this.sql.exec('SELECT id, kind, item, ukey, msg, at FROM comments ORDER BY at').toArray())
       if (live(r.ukey) && !hiddenComments.has(r.id)) (comments[`${r.kind}:${r.item}`] ??= []).push({ id: r.id, from: pidOf[r.ukey], msg: r.msg, at: r.at });
-    return { now: now(), picks: nights, callouts, bets, posts, seenAt, attendance, teams, lanes, poll, sheets, live: liveScores, likes, dislikes, comments };
+    const myIdeas = me ? this.sql.exec('SELECT id, msg, at, status, reply, upd_at FROM ideas WHERE ukey = ? ORDER BY at DESC LIMIT 50', me.ukey).toArray() : [];
+    return { now: now(), myIdeas, picks: nights, callouts, bets, posts, seenAt, attendance, teams, lanes, poll, sheets, live: liveScores, likes, dislikes, comments };
   }
 
   async verify(a, secret) { return timingSafeEqual(await hashSecret(secret, a.salt), a.hash); }

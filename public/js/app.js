@@ -1260,7 +1260,7 @@ function route() {
   const more = document.querySelector('.tabbar [data-more]');
   if (more) more.toggleAttribute('data-active', !['home', 'standings', 'players', 'talk'].includes(navKey));
   document.body.classList.remove('sheet-open');
-  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Chit Chat', arcade: 'Arcade', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
+  const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Chit Chat', betcha: 'Betcha', ideas: 'Your ideas', arcade: 'Arcade', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
   try { renderBell(); renderAttendBar(); renderIdeas(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   fitRumble();
@@ -1305,7 +1305,7 @@ installGames({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, fmt
 installTalk({ S, E, pages, esc, avatar, who, pl, linkNames, empty, fmtDate, P, route });
 installAttend({ S, E, esc, avatar, who, pl, linkNames, fmtDate, fmtTime, P, route });
 installPoll({ S, pages, esc, empty, linkNames, route });
-installIdeas({ S, esc });
+installIdeas({ S, esc, pages, empty });
 installArcade({ S, esc, pages, P });
 installSheets({ S, E, pages, esc, empty, who, pl, avatar, fmtDate, P, route });
 installReact({ S, esc, pl, P, linkNames, route });

@@ -1377,3 +1377,27 @@ span.nh-arrow{display:none}
 .feed-badges .bf-list{margin:6px 0 2px}
 .fb-more summary{cursor:pointer;font:400 12px var(--display);text-transform:uppercase;color:var(--gold,#FFC857);padding:4px 0}
 .feed-bet{border:3px dashed var(--red);border-radius:14px;padding:8px 12px;font:600 14px/1.4 var(--body)}
+
+/* Win probability, ESPN style (Nick, Nov 4 2026) */
+.wp{display:flex;flex-direction:column;gap:6px}
+.wp-row{display:flex;align-items:center;gap:10px;min-width:0}
+.wp-sw{width:14px;height:4px;border-radius:2px;flex:none}
+.wp-name{font:800 18px/1.1 var(--display);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-pct{margin-left:auto;font:800 26px/1 var(--display);color:var(--faint)}
+.wp-pct.lead{color:var(--text)}
+.wp-chart{width:100%;height:auto;display:block}
+.wp-end{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--panel-2);border-radius:10px;padding:12px 14px;margin-top:6px}
+.wp-end>div:first-child{display:flex;flex-direction:column;gap:2px}
+.wp-end b{font:800 17px var(--display)}
+.wp-score{display:flex;gap:18px}
+.wp-score span{display:flex;flex-direction:column;align-items:center;font:800 24px/1 var(--display)}
+.wp-score small{font:600 12px var(--body);color:var(--muted);margin-top:4px}
+.wp-notes{margin:4px 0 0;line-height:1.5}
+.wp-how{margin:0}
+.wp-chips{display:flex;gap:8px;flex-wrap:wrap}
+.wp-chip{font:600 13px var(--body);color:var(--muted);background:var(--panel-2);border:1px solid var(--line-soft);border-radius:999px;padding:6px 12px;cursor:pointer}
+.wp-chip[aria-pressed="true"]{color:var(--text);border-color:var(--red);background:rgba(229,56,59,.18)}
+.motw-wp{border-color:var(--red)}
+.wp{max-width:760px;width:100%;margin-inline:auto}
+.wp-chart text{font-size:12px}
+.wp{max-width:680px}

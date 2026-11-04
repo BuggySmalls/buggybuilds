@@ -1000,3 +1000,116 @@ export function teamResults(night, teams) {
   rows.forEach((r, i) => { r.place = i && rows[i - 1].points === r.points && rows[i - 1].series === r.series ? rows[i - 1].place : i + 1; });
   return rows;
 }
+
+/* ------------------------------------------------------------------ *
+ * Win probability, ESPN style (Nick, Nov 4 2026)
+ * For two bowlers on one night: after every frame (bowler a, then b, frame by frame, game by game),
+ * the chance a wins the 3-game scratch series. Monte Carlo: the rest of each bowler's night is
+ * simulated by drawing frames from their own frames on earlier nights plus tonight's frames so far
+ * (topped up with the league's frames when they have few). Seeded, so the line is the same every load.
+ * A game logged with a total only (no frames) is revealed all at once at its 10th frame.
+ * opts.live: unlogged night — games with no score yet stay unknown, and the line stops at the last game in.
+ * Returns null if either bowler didn't bowl. p[] = a's win % (0-100) at each step; step 0 = before first ball.
+ * ------------------------------------------------------------------ */
+function tokRolls(t) {
+  t = String(t).toUpperCase().replace(/^S/, '');
+  const out = []; let prev = 0, full = true;
+  for (const ch of t) {
+    const v = ch === '/' ? 10 - prev : PIN(ch);
+    out.push(v); if (full && v !== 10) { prev = v; full = false; } else { prev = 0; full = true; }
+  }
+  return out;
+}
+function scoreRolls(r) {
+  let s = 0, i = 0;
+  for (let f = 0; f < 10; f++) {
+    if (r[i] === 10) { s += 10 + (r[i + 1] || 0) + (r[i + 2] || 0); i++; }
+    else if (r[i] + r[i + 1] === 10) { s += 10 + (r[i + 2] || 0); i += 2; }
+    else { s += (r[i] || 0) + (r[i + 1] || 0); i += 2; }
+  }
+  return s;
+}
+function rng(seedStr) {
+  let h = 1779033703 ^ seedStr.length;
+  for (let i = 0; i < seedStr.length; i++) { h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  let a = h >>> 0;
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+export function winProbability(data, date, a, b, { live = false, sims = 2500 } = {}) {
+  const ev = (data.events || []).find(e => e.date === date);
+  if (!ev || !ev.scores?.[a] || !ev.scores?.[b]) return null;
+  const earlier = (data.events || []).filter(e => e.date < date && e.status !== 'cancelled');
+  const toks = (e, pid) => (e.frames?.[pid] || []).flatMap(f => typeof f === 'string' ? f.trim().split(/\s+/).slice(0, 9) : []);
+  const leaguePool = earlier.flatMap(e => Object.keys(e.frames || {}).flatMap(pid => toks(e, pid)));
+  const fallback = leaguePool.length ? leaguePool : Object.keys(ev.frames || {}).flatMap(pid => toks(ev, pid));
+  const tonight = pid => [0, 1, 2].map(g => {
+    const score = ev.scores[pid][g] ?? null, f = ev.frames?.[pid]?.[g];
+    const t = typeof f === 'string' ? f.trim().split(/\s+/) : null;
+    return { score, toks: t && t.length === 10 ? t : null };
+  });
+  const T = { [a]: tonight(a), [b]: tonight(b) };
+  const nGames = live ? Math.max(...[a, b].map(p => T[p].reduce((m, g, k) => g.score != null ? k + 1 : m, 0))) : 3;
+  if (!nGames) return null;
+  const R = rng(`${date}|${a}|${b}`);
+  // totals[pid][n] = sorted simulated series after n of this bowler's frames are known
+  const fallbackR = (fallback.length ? fallback : ['8-', '7/', 'X', '9-', '6-', '5/', '72', '81', '-9', '53']).map(tokRolls);
+  const base = {}, tonR = {};
+  for (const pid of [a, b]) {
+    base[pid] = earlier.flatMap(e => toks(e, pid)).map(tokRolls);
+    tonR[pid] = T[pid].map(g => g.toks ? g.toks.map(tokRolls) : null);
+  }
+  const r = new Int8Array(24);
+  // sorted simulated series totals once n of this bowler's frames tonight are known
+  const simFor = (pid, n) => {
+    const known = [];
+    tonR[pid].forEach((g, k) => { if (g) for (let f = 0; f < 9; f++) if (k * 10 + f < n) known.push(g[f]); });
+    let P = base[pid].concat(known);
+    if (base[pid].length < 18) P = P.concat(fallbackR);   // under 2 games of history: lean on the league's frames (decided once, so the line doesn't jump)
+    const pk = () => P[Math.floor(R() * P.length)];
+    const out = new Float64Array(sims);
+    for (let s = 0; s < sims; s++) {
+      let tot = 0;
+      for (let k = 0; k < 3; k++) {
+        const g = T[pid][k], done = Math.max(0, Math.min(10, n - k * 10));
+        if (!live && g.score == null) continue;            // missed game: no pins
+        if (done === 10 && g.score != null) { tot += g.score; continue; }
+        const have = tonR[pid][k] ? done : 0;
+        let m = 0;
+        for (let f = 0; f < 10; f++) {
+          let t = f < have ? tonR[pid][k][f] : pk();
+          if (f === 9 && f >= have) {
+            if (t[0] === 10) { const u = pk(); t = u[0] === 10 ? [10, 10, pk()[0]] : [10, u[0], u[1]]; }
+            else if (t[0] + t[1] === 10) t = [t[0], t[1], pk()[0]];
+          }
+          for (let j = 0; j < t.length; j++) r[m++] = t[j];
+        }
+        for (let j = m; j < 24; j++) r[j] = 0;
+        tot += scoreRolls(r);
+      }
+      out[s] = tot;
+    }
+    return out.sort();
+  };
+  const cache = { [a]: {}, [b]: {} };
+  const get = (pid, n) => cache[pid][n] ??= simFor(pid, n);
+  const prob = (A, B) => {
+    let lt = 0, le = 0, sum = 0;
+    for (let i = 0; i < A.length; i++) {
+      while (lt < B.length && B[lt] < A[i]) lt++;
+      if (le < lt) le = lt;
+      while (le < B.length && B[le] <= A[i]) le++;
+      sum += lt + (le - lt) / 2;
+    }
+    return sum / (A.length * B.length);
+  };
+  const steps = [{ g: 0, f: -1, who: null }];
+  for (let g = 0; g < nGames; g++) for (let f = 0; f < 10; f++) { steps.push({ g, f, who: a }); steps.push({ g, f, who: b }); }
+  const p = steps.map((s, i) => {
+    const na = Math.ceil(i / 2), nb = Math.floor(i / 2);
+    return Math.round(prob(get(a, na), get(b, nb)) * 1000) / 10;
+  });
+  const series = pid => E_sum(T[pid].slice(0, nGames).map(g => g.score || 0));
+  const final = !live && nGames === 3;
+  return { date, a, b, steps, p, nGames, final, aSeries: series(a), bSeries: series(b), live };
+}
+const E_sum = xs => xs.reduce((s, x) => s + x, 0);

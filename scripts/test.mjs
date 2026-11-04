@@ -204,5 +204,23 @@ eq(E.teamsFor({ events: [{ date: 'x', teams: T }] }, 'x', null), T, 'logged team
 eq(E.teamsFor({ events: [] }, 'x', { teams: { x: { teams: T } } }), T, 'live draw used before logging');
 ok(E.validate({ players: d.players, events: [{ date: '2026-10-28', teams: [{ name: 'A', pids: ['amy'] }, { name: 'B', pids: ['amy'] }] }] }).length, 'bowler on two teams is rejected');
 
+
+// Win probability (Nick, Nov 4 2026)
+{
+  const wd = { events: [
+    { date: '2026-01-01', status: 'completed', scores: { a: [150, 100, 120], b: [130, 110, 90] }, frames: { a: ['X 9- 8/ 7- X 9- 8- 72 9- 9/8', null, null] } },
+    { date: '2026-01-08', status: 'completed', scores: { a: [120, 150, null], b: [130, 110, 100] }, frames: { a: ['9- 8- 7/ X 9- 8- 72 9- 9/ 8-', null, null], b: [null, null, null] } },
+  ] };
+  const w = E.winProbability(wd, '2026-01-08', 'a', 'b');
+  eq(w.p.length, 61, 'win prob: 60 frame turns + start');
+  eq([w.aSeries, w.bSeries], [270, 340], 'win prob: series, missed game counts nothing');
+  eq(w.p.at(-1), 0, 'win prob ends at 0 for the loser');
+  ok(w.p.every(v => v >= 0 && v <= 100), 'win prob stays 0-100');
+  eq(E.winProbability(wd, '2026-01-08', 'a', 'b').p, w.p, 'win prob is the same every load');
+  eq(E.winProbability(wd, '2026-01-08', 'a', 'zed'), null, 'no chart if one bowler did not bowl');
+  const lv = structuredClone(wd); lv.events[1].scores = { a: [120, null, null], b: [130, null, null] };
+  const wl = E.winProbability(lv, '2026-01-08', 'a', 'b', { live: true });
+  eq([wl.nGames, wl.p.length], [1, 21], 'live: line stops after the last game in');
+}
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -1,5 +1,5 @@
 import * as E from './engine.js';
-import { lineChart, barChart, PALETTE } from './charts.js';
+import { lineChart, barChart, PALETTE, winProbChart } from './charts.js';
 import { installAccount, fetchMe } from './account.js';
 import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from './share-image.js';
 import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable, homeBets, nightBets, profileBets, betRecord, betTicker } from './games.js';
@@ -132,6 +132,73 @@ function matchCards(list, { compact = false } = {}) {
       <p>${esc((compact ? m.reasons.slice(0, 1) : m.reasons.slice(0, 3)).join(' '))}</p>
     </a>`; }).join('')}</div>`;
 }
+/* ---------------- Win probability, ESPN style (Nick, Nov 4 2026) ---------------- */
+// Matches to watch as they stood going into a past night (same picks the home page showed that week)
+function matchesFor(date) {
+  return memo('mtw:' + date, () => {
+    const before = S.nights.filter(n => n.date < date), sBefore = S.seasonNights.filter(n => n.date < date);
+    return E.matchesToWatch(S.data, before, sBefore, date, date);
+  });
+}
+function liveFor(date) { return liveDate() === date ? liveCalc(date) : null; }
+function wpData(date, a, b) {
+  return memo(`wp:${date}:${a}:${b}`, () => {
+    const L = liveFor(date);
+    return L ? E.winProbability(L.data, date, a, b, { live: true }) : E.winProbability(S.data, date, a, b);
+  });
+}
+const wpPct = v => v > 0 && v < 1 ? v.toFixed(1) + '%' : v > 99 && v < 100 ? v.toFixed(1) + '%' : Math.round(v) + '%';
+function wpBlock(date, a, b) {
+  const w = wpData(date, a, b);
+  if (!w) return empty('No win probability for this one', 'Both bowlers have to bowl that night.');
+  const L = w.live ? liveFor(date) : null;
+  const ev = (L ? L.data : S.data).events.find(e => e.date === date);
+  const tok = (pid, g, f) => { const fr = ev.frames?.[pid]?.[g]; const t = typeof fr === 'string' ? fr.trim().split(/\s+/)[f] : null; return t ? t.replace(/^S/, 'split ').replace(/-/g, '–') : null; };
+  const name = id => P(id).name;
+  const where = s => `game ${s.g + 1}, frame ${s.f + 1}`;
+  const tips = w.steps.map((s, i) => i === 0 ? `Before first ball · ${name(a)} ${wpPct(w.p[0])}, ${name(b)} ${wpPct(100 - w.p[0])}`
+    : `G${s.g + 1} F${s.f + 1} · ${name(s.who)}${tok(s.who, s.g, s.f) ? ' ' + tok(s.who, s.g, s.f) : ''} → ${name(a)} ${wpPct(w.p[i])}, ${name(b)} ${wpPct(100 - w.p[i])}`);
+  const cur = w.p.at(-1);
+  // Key moments: the comeback (eventual winner's lowest point) and the biggest single-frame swing
+  const notes = [];
+  if (w.final && w.aSeries !== w.bSeries) {
+    const win = w.aSeries > w.bSeries ? a : b, pw = i => win === a ? w.p[i] : 100 - w.p[i];
+    let lo = 0; for (let i = 1; i < w.p.length - 1; i++) if (pw(i) < pw(lo)) lo = i;
+    if (pw(lo) < 30) notes.push(`<b>Comeback:</b> ${pl(win)} was down to ${wpPct(pw(lo))} ${lo ? `after ${where(w.steps[lo])}` : 'before first ball'} and still won it.`);
+  }
+  let sw = 1; for (let i = 2; i < w.p.length; i++) if (Math.abs(w.p[i] - w.p[i - 1]) > Math.abs(w.p[sw] - w.p[sw - 1])) sw = i;
+  if (w.p.length > 1) { const d = w.p[sw] - w.p[sw - 1], s = w.steps[sw], t = tok(s.who, s.g, s.f); notes.push(`<b>Biggest swing:</b> ${pl(s.who)}${t ? `’s ${esc(t)}` : ''} in ${where(s)}, ${Math.round(Math.abs(d))} points toward ${pl(d > 0 ? a : b)}.`); }
+  const row = (id, v, col) => `<div class="wp-row"><span class="wp-sw" style="background:${col}"></span>${avatar(P(id), 30)}<b class="wp-name">${pl(id)}</b><span class="wp-pct${v >= 50 ? ' lead' : ''}">${wpPct(v)}</span></div>`;
+  return `<div class="wp">
+    ${row(a, cur, PALETTE[0])}
+    ${winProbChart({ p: w.p, total: 61, games: 3, colorA: PALETTE[0], colorB: PALETTE[1], tips })}
+    ${row(b, 100 - cur, PALETTE[1])}
+    <div class="wp-end"><div><b>${w.final ? 'End of night' : w.live ? '● Live' : 'Final'}</b><span class="small muted">${w.final ? fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' }) : `Through game ${w.nGames}`}</span></div><div class="wp-score"><span>${w.aSeries}<small>${esc(name(a))}</small></span><span>${w.bSeries}<small>${esc(name(b))}</small></span></div></div>
+    ${notes.length ? `<p class="small muted wp-notes">${notes.join('<br>')}</p>` : ''}
+    <p class="small faint wp-how">Chance to win the 3-game series (scratch) after every frame. The rest of the night is simulated from each bowler’s own frames. Tap the line for any frame.</p>
+  </div>`;
+}
+// Match of the week, chart showing right on the page; chips swap to the other matches to watch in place
+function motwBox(date, { title } = {}) {
+  const live = !!liveFor(date);
+  const ev = (live ? liveFor(date).data : S.data).events.find(e => e.date === date);
+  const list = matchesFor(date).filter(m => ev?.scores?.[m.a] && ev?.scores?.[m.b]);
+  if (!list.length) return '';
+  const m0 = list[0], n = S.nights.find(x => x.date === date);
+  const chip = (m, i) => `<button type="button" class="wp-chip" data-wpsel="${esc(date)}|${esc(m.a)}|${esc(m.b)}" aria-pressed="${i === 0}">${m.motw ? '★ ' : ''}${esc(P(m.a).name)} vs ${esc(P(m.b).name)}</button>`;
+  return `<section class="panel wp-box motw-wp"><div class="panel-head"><h2>${title || `${live ? 'Tonight' : n ? `Week ${weekNo(n)}` : fmtDate(date)} · ${m0.motw ? 'Match of the week' : 'Match to watch'}`}</h2><a class="wp-h2h" href="#/rivalries?a=${esc(m0.a)}&b=${esc(m0.b)}&night=${esc(date)}">Head to head</a></div>
+    ${list.length > 1 ? `<div class="wp-chips">${list.map(chip).join('')}</div>` : ''}
+    <div class="wp-pane">${wpBlock(date, m0.a, m0.b)}</div></section>`;
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest?.('[data-wpsel]'); if (!c) return;
+  const box = c.closest('.wp-box'), [date, a, b] = c.dataset.wpsel.split('|');
+  box.querySelectorAll('[data-wpsel]').forEach(x => x.setAttribute('aria-pressed', x === c));
+  const m = matchesFor(date).find(x => x.a === a && x.b === b);
+  const h2 = box.querySelector('.panel-head h2'); if (h2 && m) h2.textContent = h2.textContent.replace(/(Match of the week|Match to watch)$/, m.motw ? 'Match of the week' : 'Match to watch');
+  const link = box.querySelector('.wp-h2h'); if (link) link.href = `#/rivalries?a=${a}&b=${b}&night=${date}`;
+  box.querySelector('.wp-pane').innerHTML = wpBlock(date, a, b);
+});
 function recapText(idx) {
   const n = S.nights[idx], L = S.data.league; if (!n) return '';
   const lines = [];
@@ -320,6 +387,7 @@ pages.home = () => {
   </section>
 
   <section class="panel"><div class="panel-head"><h2>Matches to watch${next ? ` · ${fmtDate(next.date, { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}</h2><a href="#/rivalries">All rivalries</a></div>${matchCards(matches())}</section>
+  ${(() => { const ld = liveDate(); const L = ld && liveFor(ld); const tonight = L && motwBox(ld); return tonight || (last ? motwBox(last.date) : ''); })()}
 
   <div class="grid g-side">
     <div class="grid" style="align-content:start">
@@ -424,14 +492,16 @@ function raceChart(m, top = 5) {
 }
 
 /* ---------------- Standings ---------------- */
+// Trimmed by Nick (Nov 4 2026): no Hdcp, Streak or Month pts columns
 const COLS = [
-  ['points', 'Pts'], ['avg', 'Avg'], ['hdcp', 'Hdcp'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Total score'], ['pinsDown', 'Pins down'],
-  ['strikePct', 'Strike %'], ['sparePct', 'Spare %'], ['streak', 'Streak'], ['monthPts', 'Month pts'],
+  ['points', 'Pts'], ['avg', 'Avg'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Total score'], ['pinsDown', 'Pins down'],
+  ['strikePct', 'Strike %'], ['sparePct', 'Spare %'],
 ];
 const rankMove = (was, now) => { const mv = was ? was - now : 0; return `<small class="rmv ${mv > 0 ? 'up' : mv < 0 ? 'down' : 'faint'}">${was ? (mv ? `${mv > 0 ? '▲' : '▼'} ${Math.abs(mv)}` : '—') : 'new'}</small>`; };
 const move = (was, now) => !was ? '<span class="mv new">new</span>' : was === now ? '' : `<span class="mv ${was > now ? 'up' : 'down'}">${was > now ? '▲' : '▼'}${Math.abs(was - now)}</span>`;
 pages.standings = () => {
-  const { sort = 'points', live: liveQ, cum, fr } = q();
+  let { sort = 'points', live: liveQ, cum, fr } = q();
+  if (!COLS.some(([k]) => k === sort)) sort = 'points';
   // Week filter + running-total toggle (N8's ask, Oct 29 2026): only under "This week" (Nick); ?wk=N shows that one night; &cum=1 shows the season through that week
   const wkN = +q().wk, wkNight = wkN ? S.nights[wkN - 1] : null;
   const view = wkNight ? 'pick' : (q().view || 'season');
@@ -935,6 +1005,7 @@ pages.night = date => {
     <div class="nh-actions">${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
   ${nightTeams(n)}
+  ${motwBox(n.date)}
   <section class="panel"><div class="panel-head"><h2>Stat leaders</h2></div><div class="list">
       ${hiG[0] ? `<div class="list-row"><div class="grow small muted">High game</div>${who(hiG[0].pid, { size: 26 })}<span class="val">${hiG[0].t}</span></div>` : ''}
       <div class="list-row"><div class="grow small muted">High series</div>${who(n.rows[0].pid, { size: 26 })}<span class="val">${n.rows[0].series}</span></div>
@@ -1094,6 +1165,14 @@ pages.rivalries = () => {
   <div><h1 class="page-title">Rivalries</h1><p class="page-intro">Pick any two bowlers. Every game they've bowled on the same night counts as a matchup: game 1 against game 1, and so on.</p></div>
   <div class="controls"><label class="field">Bowler<select data-qsel="a">${opts(a)}</select></label><label class="field">Opponent<select data-qsel="b">${opts(b)}</select></label></div>
   <section class="versus">${card(a)}<div class="vs-mid"><span class="vs">VS</span><span class="vs-record">${h.w}–${h.l}${h.t ? '–' + h.t : ''}</span><span class="small muted">${h.games} games</span></div>${card(b)}</section>
+  ${(() => { // Win probability for any night they both bowled (Nick, Nov 4 2026)
+    const ld = liveDate(), Lv = ld && liveFor(ld), liveOk = Lv && Lv.data.events.find(e => e.date === ld)?.scores?.[a] && Lv.data.events.find(e => e.date === ld)?.scores?.[b];
+    const dates = [...new Set([...h.matchups.map(m => m.date), ...(liveOk ? [ld] : [])])].sort();
+    if (!dates.length) return '';
+    const pick = dates.includes(q().night) ? q().night : dates.at(-1);
+    return `<section class="panel wp-box"><div class="panel-head"><h2>Win probability</h2><span class="small muted">${fmtDate(pick, { weekday: 'short', month: 'short', day: 'numeric' })}</span></div>
+      ${dates.length > 1 ? `<div class="wp-chips">${dates.slice().reverse().map(d => `<button type="button" class="wp-chip" data-q="night=${d}" aria-pressed="${d === pick}">${d === ld && liveOk ? '● Tonight' : fmtDate(d)}</button>`).join('')}</div>` : ''}
+      <div class="wp-pane">${wpBlock(pick, a, b)}</div></section>`; })()}
   ${h.games ? `
   <section class="panel"><table class="compare"><tbody>
     ${cmp('Game wins', h.w, h.l)}

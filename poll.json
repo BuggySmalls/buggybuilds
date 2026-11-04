@@ -1,79 +1,6 @@
 {
-  "fetchedAt": "2026-10-29T10:37:19Z",
-  "poll": {
-    "id": "league-2026-10",
-    "voters": 4,
-    "counts": {
-      "amount": {
-        "3": 2,
-        "5": 2
-      },
-      "booby": {
-        "no": 4
-      },
-      "buyin": {
-        "optional": 4
-      },
-      "jackpot": {
-        "no": 3,
-        "yes": 1
-      },
-      "season": {
-        "yes": 4
-      },
-      "shortteam": {
-        "avg": 4
-      },
-      "sidepots": {
-        "brackets": 4,
-        "none": 1,
-        "gutter": 1
-      },
-      "split": {
-        "weekly": 4
-      },
-      "teamfixed": {
-        "random": 4
-      },
-      "teamfreq": {
-        "biweekly": 4
-      },
-      "teamscore": {
-        "points": 4
-      },
-      "teamtitle": {
-        "no": 3,
-        "yes": 1
-      },
-      "travel": {
-        "no": 3,
-        "yes": 1
-      },
-      "trigger": {
-        "200": 1,
-        "turkey10": 3
-      }
-    },
-    "texts": {
-      "badges": [
-        {
-          "msg": "Crash man. Award to Jason immediately",
-          "at": 1793148713903
-        },
-        {
-          "msg": "Gay bitch. Award to Jason immediately",
-          "at": 1793109279398
-        }
-      ],
-      "ideas": [
-        {
-          "msg": "DJ chew paid commentator for all events",
-          "at": 1793109279398
-        }
-      ]
-    },
-    "mine": null
-  },
+  "fetchedAt": "2026-11-04T23:49:37Z",
+  "poll": null,
   "attendance": {
     "2026-10-28": {
       "lockAt": 1793228700000,
@@ -138,9 +65,34 @@
         {
           "pid": "poopbird",
           "at": 1793238089846
+        },
+        {
+          "pid": "n8",
+          "at": 1793276557192
+        },
+        {
+          "pid": "natehasboobs",
+          "at": 1793279063476
+        },
+        {
+          "pid": "tony",
+          "at": 1793816390394
+        },
+        {
+          "pid": "kayleigh",
+          "at": 1793817392875
+        },
+        {
+          "pid": "liam",
+          "at": 1793835733915
         }
       ],
-      "no": [],
+      "no": [
+        {
+          "pid": "roy",
+          "at": 1793829833494
+        }
+      ],
       "mine": null
     }
   }

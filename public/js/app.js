@@ -359,17 +359,34 @@ pages.home = () => {
     <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
     <span class="confetti" aria-hidden="true">🎉</span>
   </section>`).join('')}
-  <section class="hero">
-    <div class="hero-inner">
-      <div class="hero-copy">
-        <span class="hero-season">★ ${esc(S.season?.name || '')} ★ ${S.active.length} bowlers ★</span>
-        <h1 class="shade">${esc(L.name)}</h1>
-        <p class="where">${esc(L.weekday)} nights at ${esc(L.venue)}, ${esc(L.town)}</p>
-        ${next && next.date === S.todayISO ? `<div class="rumble" role="note"><span class="rumble-tag">★ Game day ★</span><b>LET’S GET READY TO <span class="rumble-word">RUMBOOOWWWWWWWLLLLL!</span></b></div>` : ''}
-        <div class="hero-art" aria-hidden="true">${pinsArt()}<span class="burst">STRIKE!</span></div>
+  <section class="hero hero-cereal">
+    <div class="cb-scene">
+      <div class="cb-box-wrap">
+        <div class="cb-box">
+          <span class="cb-flap" aria-hidden="true"></span>
+          <div class="cb-front">
+            <span class="hero-season">★ ${esc(S.season?.name || '')} ★ ${S.active.length} bowlers ★</span>
+            <h1 class="shade">${esc(L.name)}</h1>
+            <span class="cb-league">League</span>
+            <p class="where">${esc(L.weekday)} nights at ${esc(L.venue)}, ${esc(L.town)}</p>
+            <div class="cb-serve" aria-hidden="true">${pinsArt()}<small>Serving suggestion</small></div>
+            <div class="cb-foot" aria-hidden="true"><span>Part of a complete league night</span><span>Net wt 3 games</span></div>
+          </div>
+          <span class="burst" aria-hidden="true">NOW WITH MORE STRIKES!</span>
+        </div>
       </div>
-      <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a></div>
+      <div class="cb-pour" aria-hidden="true">${pourArt()}</div>
+      <div class="cb-bowl-wrap">
+        <div class="cb-pile" aria-hidden="true">${pileArt()}</div>
+        <div class="cb-bowl" id="countdown">${countdownHTML(next)}</div>
+        <span class="cb-foot-ring" aria-hidden="true"></span>
+      </div>
+      <div class="cb-side">
+        ${next ? `<div class="board-when">${countdownWhen(next)}</div>` : ''}
+        <a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a>
+      </div>
     </div>
+    ${next && next.date === S.todayISO ? `<div class="rumble" role="note"><span class="rumble-tag">★ Game day ★</span><b>LET’S GET READY TO <span class="rumble-word">RUMBOOOWWWWWWWLLLLL!</span></b></div>` : ''}
   </section>
   ${homeTeamBoard('below')}
   ${homePoll()}
@@ -448,6 +465,19 @@ pages.home = () => {
   `;
 };
 
+// Cereal box spill (Nick, Nov 4 2026): balls + pins pour from the box into the countdown bowl
+const ART_PIN = '<path d="M15 2c5 0 6.5 4.5 5.5 10-1 4.5-3 6.5-2.5 10.5.5 5 6.5 10.5 6.5 20.5 0 9-4 15-9.5 15S5.5 52 5.5 43c0-10 6-15.5 6.5-20.5.5-4-1.5-6-2.5-10.5C8.5 6.5 10 2 15 2z" fill="#fff" stroke="#111" stroke-width="3"/><path d="M9.5 20h11M9 24h12" stroke="#FF2E93" stroke-width="3"/>';
+const artBall = (c) => `<circle cx="20" cy="20" r="17" fill="${c}" stroke="#111" stroke-width="3"/><circle cx="14" cy="13" r="2.6" fill="#111"/><circle cx="21" cy="11" r="2.6" fill="#111"/><circle cx="18" cy="19" r="2.6" fill="#111"/><path d="M9 24a12 12 0 0 0 9 8" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".5"/>`;
+function pourArt() {
+  // [kind, color, delay s, drift %, spin deg]
+  const bits = [['b', '#7B2FF7', 0, 18, 220], ['p', '', .35, 34, -260], ['b', '#FF2E93', .75, 52, 300], ['p', '', 1.1, 26, 240], ['b', '#00C2C7', 1.45, 44, -200], ['p', '', 1.8, 60, 280], ['b', '#FF7A1A', 2.15, 30, 260], ['p', '', 2.5, 48, -240]];
+  return bits.map(([k, c, d, x, r]) => `<span class="cb-drop" style="--d:${d}s;--x:${x}%;--r:${r}deg"><i>${k === 'b' ? `<svg viewBox="0 0 40 40" class="cb-ball">${artBall(c)}</svg>` : `<svg viewBox="0 0 30 60" class="cb-pin">${ART_PIN}</svg>`}</i></span>`).join('');
+}
+function pileArt() {
+  const pin = (x, y, r) => `<g transform="translate(${x} ${y}) rotate(${r} 15 30)">${ART_PIN}</g>`;
+  const ball = (x, y, c, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r} 20 20)">${artBall(c)}</g>`;
+  return `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax meet">${pin(52, 26, -28)}${pin(250, 22, 32)}${pin(150, 6, -8)}${ball(78, 46, '#FF7A1A', 40)}${pin(108, 18, 18)}${ball(176, 40, '#7B2FF7')}${pin(206, 20, -20)}${ball(124, 50, '#00C2C7', -30)}${ball(222, 50, '#FF2E93', 80)}</svg>`;
+}
 function pinsArt() {
   const pin = (x, r = 0) => `<g transform="translate(${x} 0) rotate(${r} 30 150)"><path d="M30 8c10 0 13 9 11 20-2 9-6 13-5 21 1 10 13 21 13 41 0 18-8 30-19 30S11 108 11 90c0-20 12-31 13-41 1-8-3-12-5-21-2-11 1-20 11-20z" fill="#fff" stroke="#111" stroke-width="5"/><path d="M19 44h22M18 52h24" stroke="#FF2E93" stroke-width="5"/></g>`;
   return `<svg viewBox="0 0 330 150" class="pins">${pin(20, -14)}${pin(80, -4)}${pin(140, 10)}${pin(200, 24)}<g><circle cx="282" cy="98" r="42" fill="#7B2FF7" stroke="#111" stroke-width="5"/><circle cx="270" cy="80" r="6" fill="#111"/><circle cx="288" cy="76" r="6" fill="#111"/><circle cx="282" cy="94" r="6" fill="#111"/><path d="M256 68c6-8 14-12 22-12" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".6"/></g><path d="M240 120c-20 4-40 2-60-6M246 136c-30 6-60 4-90-6" stroke="#00E5E8" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`;
@@ -473,14 +503,17 @@ function tickerHTML() {
 }
 function countdownHTML(next) {
   const L = S.data.league;
-  if (!next) return `<div class="board-label">Season schedule</div><div class="live" style="color:var(--muted)">Season complete</div>`;
+  if (!next) return `<div class="board-label">Season schedule</div><div class="live">Season complete</div>`;
   const ms = next.start - Date.now();
-  const when = `<div class="board-when"><span><b>${esc(dayName(next.date))}</b></span><span>Drinks <b>${fmtTime(L.socialTime)}</b></span><span>First ball <b>${fmtTime(L.startTime)}</b></span><span>${esc(L.venue)}</span></div>`;
-  if (next.live) return `<div class="board-label">Tonight</div><div class="live">Bowling now</div>${when}`;
+  if (next.live) return `<div class="board-label">Tonight</div><div class="live">Bowling now</div>`;
   const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
   const isFirst = !S.nights.some(n => n.date >= (S.data.league.seasons.at(-1)?.start || ''));
   return `<div class="board-label">${isFirst ? '&gt; OPENING NIGHT' : '&gt; NEXT LEAGUE NIGHT'}<span class="blink">_</span></div>
-    <div class="count" aria-live="off"><div><b>${d}</b><span>days</span></div><div><b>${String(h).padStart(2, '0')}</b><span>hours</span></div><div><b>${String(m).padStart(2, '0')}</b><span>min</span></div><div><b>${String(s).padStart(2, '0')}</b><span>sec</span></div></div>${when}`;
+    <div class="count" aria-live="off"><div><b>${d}</b><span>days</span></div><div><b>${String(h).padStart(2, '0')}</b><span>hours</span></div><div><b>${String(m).padStart(2, '0')}</b><span>min</span></div><div><b>${String(s).padStart(2, '0')}</b><span>sec</span></div></div>`;
+}
+function countdownWhen(next) {
+  const L = S.data.league;
+  return `<span><b>${esc(dayName(next.date))}</b></span><span>Drinks <b>${fmtTime(L.socialTime)}</b></span><span>First ball <b>${fmtTime(L.startTime)}</b></span><span>${esc(L.venue)}</span>`;
 }
 
 function awardHTML(a) { return `<div class="award ${a.tone}"><span class="t">${esc(a.name)}${a.winner.manual ? ' · picked' : ''}</span><span class="n">${pl(a.winner.pid)}</span><span class="why">${linkNames(a.winner.why)}</span></div>`; }

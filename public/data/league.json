@@ -533,5 +533,13 @@
     "keys": {
       "nate": "f4563241cd50069fddad49ccdbb7821e9b547b6b066f3b7bc9b412a4f292d244"
     }
+  },
+  "challenges": {
+    "2026-11-04": {
+      "goal": 3150,
+      "expect": 8,
+      "title": "Group challenge: 3,150 pins",
+      "note": "Tonight we're all on one team. Every pin anyone knocks down goes in one pot, and the goal is 3,150. That's about 8 pins a game over everyone's usual average, so we'll all need to bring it."
+    }
   }
 }

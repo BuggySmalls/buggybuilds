@@ -1472,3 +1472,24 @@ span.nh-arrow{display:none}
 .id-mine .id-item{background:var(--panel);border:3px solid #111;border-radius:14px;box-shadow:var(--pop);padding:10px 12px}
 .id-mine .id-item p{margin:0 0 4px}
 .id-mine .id-item>span{font-size:12px;opacity:.75;color:inherit}
+
+/* Group challenge (Nick, Nov 4 2026) */
+.challenge{border-color:var(--yellow,#FFE347)}
+.challenge.made{box-shadow:0 0 0 2px #7CFF4F inset}
+.ch-intro{margin:0 0 8px;color:var(--muted)}
+.ch-nums{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ch-nums span{display:flex;align-items:baseline;gap:6px;color:var(--muted);font:600 13px var(--body)}
+.ch-nums b{font:800 30px/1 var(--display);color:var(--text)}
+.ch-nums .ch-of{font:600 14px var(--body)}
+.ch-bar{height:16px;border-radius:999px;background:var(--panel-2);overflow:hidden;margin:8px 0 6px;border:1px solid var(--line-soft)}
+.ch-bar i{display:block;height:100%;background:linear-gradient(90deg,#FF2E93,#FFE347,#7CFF4F);border-radius:999px;transition:width .6s}
+.ch-status{margin:0 0 10px;font:700 15px var(--body)}
+.ch-pie{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.pie-chart{width:190px;max-width:55vw;height:auto;flex:0 0 auto}
+.pie-big{font:800 34px var(--display);fill:var(--text)}
+.pie-sub{font:600 13px var(--body);fill:var(--muted)}
+.ch-legend{flex:1 1 200px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ch-leg{display:flex;align-items:center;gap:8px;min-width:0}
+.ch-sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+.ch-leg .ch-pins{margin-left:auto;font:800 16px var(--display)}
+.ch-leg .ch-pct{width:40px;text-align:right;color:var(--muted);font:600 13px var(--body)}

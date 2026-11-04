@@ -1,5 +1,5 @@
 import * as E from './engine.js';
-import { lineChart, barChart, PALETTE, winProbChart } from './charts.js';
+import { lineChart, barChart, PALETTE, winProbChart, pieChart } from './charts.js';
 import { installAccount, fetchMe } from './account.js';
 import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from './share-image.js';
 import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable, homeBets, nightBets, profileBets, betRecord, betTicker } from './games.js';
@@ -187,6 +187,36 @@ function wpBlock(date, a, b) {
     <p class="small faint wp-how">Chance to win the 3-game series (scratch) after every frame. The rest of the night is simulated from each bowler’s own frames. Tap or drag anywhere on the chart to see the win % and series score after any frame.</p>
   </div>`;
 }
+// Group challenge (Nick, Nov 4 2026): everyone's scratch pins added up against one goal for the night, with a pie of who chipped in what.
+// league.json → challenges["<date>"] = { goal, title?, note? }. Every bowler who bowls that night counts (first 3 games, scratch).
+function challengeDate() {
+  const ch = S.data.challenges || {}, d = new Date(), today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const add = (x, n) => { const t = new Date(x + 'T12:00:00'); t.setDate(t.getDate() + n); return t.toISOString().slice(0, 10); };
+  return Object.keys(ch).sort().reverse().find(k => today >= add(k, -6) && today <= add(k, 5));
+}
+function challengeBox(date, { where = 'home' } = {}) {
+  const cfg = S.data.challenges?.[date]; if (!cfg || !cfg.goal) return '';
+  const ev = S.data.events.find(e => e.date === date && e.status === 'completed');
+  const L = ev ? null : liveCalc(date);
+  const scores = ev ? ev.scores : L ? (L.data.events.find(e => e.date === date)?.scores || {}) : {};
+  const rows = Object.entries(scores).map(([pid, g]) => ({ pid, pins: (g || []).slice(0, 3).reduce((a, x) => a + (x || 0), 0), n: (g || []).slice(0, 3).filter(x => x != null).length })).filter(r => r.n).sort((a, b) => b.pins - a.pins);
+  const total = rows.reduce((a, r) => a + r.pins, 0), games = rows.reduce((a, r) => a + r.n, 0);
+  const pct = Math.min(100, total / cfg.goal * 100), made = total >= cfg.goal, togo = Math.max(0, cfg.goal - total);
+  const expGames = (cfg.expect || 0) * 3, pace = !ev && games && expGames > games ? Math.round(total / games * Math.max(expGames, games)) : null;
+  const color = i => PALETTE[i % PALETTE.length];
+  const slices = rows.map((r, i) => ({ label: P(r.pid).name, value: r.pins, color: color(i) }));
+  const status = made ? `🎉 Goal smashed by ${total - cfg.goal} pins!` : ev ? `Missed by ${togo} pins` : total ? `${togo.toLocaleString()} pins to go${pace ? ` · on pace for ${pace.toLocaleString()}` : ''}` : 'Starts at first ball. Every pin counts.';
+  const legend = rows.map((r, i) => `<div class="ch-leg"><span class="ch-sw" style="background:${color(i)}"></span>${who(r.pid, { size: 26 })}<span class="ch-pins">${r.pins}</span><span class="ch-pct">${total ? Math.round(r.pins / total * 100) : 0}%</span></div>`).join('');
+  return `<section class="panel challenge${made ? ' made' : ''}" id="challenge">
+    <div class="panel-head"><h2>${esc(cfg.title || 'Group challenge')}</h2><span class="tb-live">${ev ? 'FINAL' : L ? '● LIVE' : esc(fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' }))}</span></div>
+    <p class="ch-intro">${esc(cfg.note || 'Everybody’s pins go in one pot tonight. Hit the goal together.')}</p>
+    <div class="ch-nums"><span><b>${total.toLocaleString()}</b>pins</span><span class="ch-of">of</span><span><b>${Number(cfg.goal).toLocaleString()}</b>goal</span></div>
+    <div class="ch-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${cfg.goal}" aria-valuenow="${total}"><i style="width:${pct.toFixed(1)}%"></i></div>
+    <p class="ch-status">${status}</p>
+    ${rows.length ? `<div class="ch-pie">${pieChart({ slices, center: Math.round(pct) + '%', sub: 'of the goal' })}<div class="ch-legend">${legend}</div></div>` : ''}
+    <p class="small faint">Scratch pins, first 3 games, everyone who bowls. ${ev ? 'Final, from the official scoresheets.' : 'Updates live as scores come in.'}</p>
+  </section>`;
+}
 // Match of the week, chart showing right on the page; chips swap to the other matches to watch in place
 function motwBox(date, { title } = {}) {
   const live = !!liveFor(date);
@@ -362,6 +392,7 @@ pages.home = () => {
   return `
   ${homeTeamBoard()}
   ${homeLaneBoard()}
+  ${(() => { const cd = challengeDate(); return cd ? challengeBox(cd) : ''; })()}
   ${banners.map(a => `<section class="celebrate" role="note">
     <span class="confetti" aria-hidden="true">🎉</span>
     ${(a.pids || []).length ? `<div class="celebrate-faces">${a.pids.map(id => avatar(P(id), 48)).join('')}</div>` : ''}
@@ -1014,6 +1045,7 @@ pages.night = date => {
     <div class="nh-actions">${recapButton(idx)}<button class="btn primary" data-share="${idx}">Share results image</button></div>
   </div>
   ${nightTeams(n)}
+  ${challengeBox(n.date, { where: 'night' })}
   ${motwBox(n.date)}
   <section class="panel"><div class="panel-head"><h2>Stat leaders</h2></div><div class="list">
       ${hiG[0] ? `<div class="list-row"><div class="grow small muted">High game</div>${who(hiG[0].pid, { size: 26 })}<span class="val">${hiG[0].t}</span></div>` : ''}

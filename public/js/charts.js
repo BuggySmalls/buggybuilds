@@ -105,3 +105,27 @@ export function winProbChart({ p, total = 61, games = 3, colorA = PALETTE[0], co
   const geo = pts ? ` data-wpgeo="${[W, L, R, T, B, H, total].join(',')}" data-wpcol="${esc(colorA + '|' + colorB)}" data-wppts="${esc(JSON.stringify(pts))}"` : '';
   return `<svg class="chart wp-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Win probability over the night"${geo}>${g}</svg>`;
 }
+
+/**
+ * Donut pie chart (Nick, Nov 4 2026 — group challenge contributions).
+ * pieChart({ slices: [{ label, value, color }], center: 'big text', sub: 'small text' })
+ */
+export function pieChart({ slices, center = '', sub = '' }) {
+  const S = 220, c = S / 2, r = 96, w = 34, tot = slices.reduce((a, x) => a + x.value, 0);
+  let g = `<circle cx="${c}" cy="${c}" r="${r - w / 2}" fill="none" stroke="var(--panel-2)" stroke-width="${w}"/>`;
+  if (tot > 0) {
+    let a0 = -Math.PI / 2;
+    const pt = (a, rr) => `${(c + rr * Math.cos(a)).toFixed(2)},${(c + rr * Math.sin(a)).toFixed(2)}`;
+    for (const x of slices) {
+      if (!x.value) continue;
+      const frac = x.value / tot, a1 = a0 + frac * Math.PI * 2, ro = r, ri = r - w, big = frac > .5 ? 1 : 0;
+      const tip = esc(`${x.label}: ${x.value} pins (${Math.round(frac * 100)}%)`);
+      if (frac >= .9999) g += `<circle cx="${c}" cy="${c}" r="${r - w / 2}" fill="none" stroke="${x.color}" stroke-width="${w}" data-tip="${tip}"/>`;
+      else g += `<path d="M${pt(a0, ro)}A${ro},${ro} 0 ${big} 1 ${pt(a1, ro)}L${pt(a1, ri)}A${ri},${ri} 0 ${big} 0 ${pt(a0, ri)}Z" fill="${x.color}" stroke="var(--panel)" stroke-width="2" data-tip="${tip}"/>`;
+      a0 = a1;
+    }
+  }
+  if (center) g += `<text x="${c}" y="${c + (sub ? 6 : 12)}" text-anchor="middle" class="pie-big" style="font-size:38px;font-weight:800">${esc(center)}</text>`;
+  if (sub) g += `<text x="${c}" y="${c + 30}" text-anchor="middle" class="pie-sub" style="font-size:14px">${esc(sub)}</text>`;
+  return `<svg class="chart pie-chart" viewBox="0 0 ${S} ${S}" role="img" aria-label="Share of the group total">${g}</svg>`;
+}

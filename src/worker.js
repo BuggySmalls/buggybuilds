@@ -435,7 +435,7 @@ export class Accounts extends DurableObject {
         }
         return json(this.games(L, me));
       }
-      // Add a dollar amount after the fact (Nick, Oct 28 2026): optional, for betchas with text-only stakes.
+      // Add or adjust a betcha's dollar amount after the fact (Nick, Oct 28 2026; any betcha, Nov 4 2026).
       // Either bowler in the bet can set it until the winner confirms; Nick any time. 0 clears it.
       if (method === 'POST' && /^\/bet\/\d+\/amount$/.test(path)) {
         const b = this.sql.exec('SELECT * FROM bets WHERE id = ?', +path.split('/')[2]).toArray()[0];
@@ -445,10 +445,11 @@ export class Accounts extends DurableObject {
         const from = (this.all().find(a => a.ukey === b.from_ukey) || {}).player_id;
         if (!boss && me.player_id !== from && me.player_id !== b.to_pid) return fail(403, 'Only the two bowlers in this betcha can do that.');
         if (!boss && b.got_at) return fail(400, 'This one’s already settled.');
-        const { amount } = await request.json();
+        const { amount, explicit } = await request.json();
         const amt = amount == null || amount === '' ? 0 : Number(amount);
         if (!Number.isFinite(amt) || amt < 0 || amt > 100 || Math.round(amt * 100) !== Math.round(amt * 1e6) / 1e4) return fail(400, 'Use a dollar amount from $0 to $100 (cents OK, like 2.50).');
-        this.sql.exec('UPDATE bets SET amount = ? WHERE id = ?', amt, b.id);
+        // $0 set on purpose is stored as -1 so it also overrides a dollar amount typed in the stakes (E.betAmount)
+        this.sql.exec('UPDATE bets SET amount = ? WHERE id = ?', amt === 0 && explicit ? -1 : amt, b.id);
         return json(this.games(L, me));
       }
       if (method === 'DELETE' && path.startsWith('/bet/')) {

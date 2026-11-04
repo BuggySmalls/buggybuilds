@@ -149,11 +149,12 @@ export function betRow(b, { side = null } = {}) {
     : b.status === 'open' && open && me === b.from ? `<button type="button" class="linkish small" data-unbet="${b.id}">take it back</button>`
     : r && me === r.loser && !b.paidAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|paid">I paid</button>`
     : r && me === r.winner && !b.gotAt ? `<button type="button" class="btn primary small" data-betsettle="${b.id}|got">Got paid</button>` : '';
-  // Optional dollar amount after the fact (Nick, Oct 28 2026): either bowler before it's settled, Nick any time
+  // Dollar amount after the fact (Nick, Oct 28 2026), adjustable on every betcha incl. amounts read from the stakes (Nick, Nov 4 2026): either bowler before it's settled, Nick any time
   const boss = me && me === C.S.data.league?.commissioner;
   const canAmt = b.status === 'accepted' && me && (boss || ((me === b.from || me === b.to) && !b.gotAt));
-  const amtLbl = b.amount ? 'change $' : C.E.betAmount(b) ? '' : '+ add $';
-  const amtBtn = canAmt && amtLbl ? `<button type="button" class="linkish small" data-betamt="${b.id}|${b.amount || ''}">${amtLbl}</button>` : '';
+  const amtNow = C.E.betAmount(b);
+  const amtLbl = amtNow || b.amount < 0 ? 'adjust $' : '+ add $';
+  const amtBtn = canAmt ? `<button type="button" class="linkish small" data-betamt="${b.id}|${amtNow || ''}">${amtLbl}</button>` : '';
   return `<div class="co-row bet-row"><div class="co-vs">${who(b.from, { size: 28 })}${score(b.from)}<span class="co-x">betcha</span>${who(b.to, { size: 28 })}${score(b.to)}</div>
     <p class="co-msg bet-stakes"><span>On the line:</span> ${C.linkNames(b.stakes)}${C.E.betAmount(b) ? ` <b class="bet-amt">${C.E.dollars(C.E.betAmount(b))}${C.E.betAmount(b) % 1 ? ` · $${C.E.betPurse(b)} to the purse` : ' to the purse'}</b>` : ''}</p><div class="co-foot">${tag}<span class="small faint">${esc(C.fmtDate(b.date, { month: 'short', day: 'numeric' }))}</span>${acts}${amtBtn}</div>${reactBar('bet', b.id)}</div>`;
 }
@@ -316,12 +317,12 @@ export function installGames(ctx) {
     const am = e.target.closest('[data-betamt]');
     if (am && !am.disabled) {
       const [id, cur] = am.dataset.betamt.split('|');
-      const v = prompt('Put a dollar amount on this betcha (optional, up to $100, cents OK like 2.50). Leave blank or 0 for none.', cur || '');
+      const v = prompt('Dollar amount for this betcha (up to $100, cents OK like 2.50). This replaces any amount in the stakes. Enter 0 for no money.', cur || '');
       if (v === null) return;
       const n = v.replace(/[$\s]/g, '');
       if (n && !/^\d{0,3}(\.\d{1,2})?$/.test(n)) return alert('Use dollars and cents, like 5 or 2.50.');
       am.disabled = true;
-      try { C.S.games = await api(`/bet/${id}/amount`, { method: 'POST', body: { amount: n ? Number(n) : 0 } }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { am.disabled = false; alert(err.message); }
+      try { C.S.games = await api(`/bet/${id}/amount`, { method: 'POST', body: { amount: n ? Number(n) : 0, explicit: true } }); const y = scrollY; C.route(); scrollTo(0, y); } catch (err) { am.disabled = false; alert(err.message); }
       return;
     }
     const ub = e.target.closest('[data-unbet]');

@@ -135,6 +135,8 @@ for (const [txt, v] of [['loser pays $5', 5], ['5 bucks', 5], ['ten dollars', 10
 // cents on the bet, purse rounds up (Nick, Oct 28 2026)
 eq([E.betPurse({ stakes: '$2.50' }), E.betPurse({ stakes: '$5' }), E.betPurse({ amount: 0.25, stakes: 'x' }), E.betPurse({ stakes: 'a round' })], [3, 5, 1, 0], 'purse rounds betcha cents up to whole dollars');
 
+// adjust any betcha (Nick, Nov 4 2026): set amount beats the stakes, -1 = set to $0 on purpose
+eq([E.betAmount({ amount: 8, stakes: '$5' }), E.betAmount({ amount: -1, stakes: '$5' }), E.betPurse({ amount: -1, stakes: '$5' }), E.betAmount({ amount: 0, stakes: '$5' })], [8, 0, 0, 5], 'adjusted betcha amounts override the stakes text');
 // --- matches to watch picks three distinct pairings with reasons
 d = base();
 d.players.push({ id: 'eve', name: 'eve' }, { id: 'fay', name: 'fay' });

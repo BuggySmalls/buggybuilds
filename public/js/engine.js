@@ -815,7 +815,8 @@ export function stakesDollars(text) {
   for (const w of parts) v = w === 'hundred' ? (v || 1) * 100 : v + NUMW[w];
   return Math.min(v, 100);
 }
-export function betAmount(b) { return b.amount > 0 ? Math.min(Math.round(b.amount * 100) / 100, 100) : stakesDollars(b.stakes); }
+// amount > 0 = set by hand (beats the stakes text); amount < 0 = set to $0 by hand (Nick, Nov 4 2026: any betcha can be adjusted); 0 = read the stakes text
+export function betAmount(b) { return b.amount > 0 ? Math.min(Math.round(b.amount * 100) / 100, 100) : b.amount < 0 ? 0 : stakesDollars(b.stakes); }
 // What a betcha puts on the purse: rounded UP to whole dollars, no cents (Nick, Oct 28 2026)
 export function betPurse(b) { const a = betAmount(b); return a ? Math.ceil(a - 1e-9) : 0; }
 // $5 or $2.50

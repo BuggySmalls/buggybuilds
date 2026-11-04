@@ -160,6 +160,13 @@ function wpBlock(date, a, b) {
   const tips = w.steps.map((s, i) => i === 0 ? `Before first ball · ${name(a)} ${wpPct(w.p[0])}, ${name(b)} ${wpPct(100 - w.p[0])}`
     : `G${s.g + 1} F${s.f + 1} · ${name(s.who)}${tok(s.who, s.g, s.f) ? ' ' + tok(s.who, s.g, s.f) : ''} → ${name(a)} ${wpPct(w.p[i])}, ${name(b)} ${wpPct(100 - w.p[i])} · Series score: ${name(a)} ${s.score[a]}, ${name(b)} ${s.score[b]}`);
   const cur = w.p.at(-1);
+  // One readout per point for tap/drag scrubbing (phones hide hover tips)
+  const pts = w.steps.map((s, i) => {
+    const t = i ? tok(s.who, s.g, s.f) : null;
+    return { h: i ? `Game ${s.g + 1}, frame ${s.f + 1} · ${name(s.who)}${t ? ' ' + t : ''}` : 'Before first ball',
+      a: wpPct(w.p[i]), b: wpPct(100 - w.p[i]), pa: w.p[i], sa: s.score[a], sb: s.score[b] };
+  });
+  const readout = i => { const q = pts[i]; return `<b class="wp-ro-h">${esc(q.h)}</b><span class="wp-ro-s">Series score: <b>${esc(name(a))} ${q.sa}</b> · <b>${esc(name(b))} ${q.sb}</b></span>`; };
   // Key moments: the comeback (eventual winner's lowest point) and the biggest single-frame swing
   const notes = [];
   if (w.final && w.aSeries !== w.bSeries) {
@@ -170,13 +177,14 @@ function wpBlock(date, a, b) {
   let sw = 1; for (let i = 2; i < w.p.length; i++) if (Math.abs(w.p[i] - w.p[i - 1]) > Math.abs(w.p[sw] - w.p[sw - 1])) sw = i;
   if (w.p.length > 1) { const d = w.p[sw] - w.p[sw - 1], s = w.steps[sw], t = tok(s.who, s.g, s.f); notes.push(`<b>Biggest swing:</b> ${pl(s.who)}${t ? `’s ${esc(t)}` : ''} in ${where(s)}, ${Math.round(Math.abs(d))} points toward ${pl(d > 0 ? a : b)}.`); }
   const row = (id, v, col) => `<div class="wp-row"><span class="wp-sw" style="background:${col}"></span>${avatar(P(id), 30)}<b class="wp-name">${pl(id)}</b><span class="wp-pct${v >= 50 ? ' lead' : ''}">${wpPct(v)}</span></div>`;
-  return `<div class="wp">
+  return `<div class="wp" data-na="${esc(name(a))}" data-nb="${esc(name(b))}">
     ${row(a, cur, PALETTE[0])}
-    ${winProbChart({ p: w.p, total: 61, games: 3, colorA: PALETTE[0], colorB: PALETTE[1], tips })}
+    ${winProbChart({ p: w.p, total: 61, games: 3, colorA: PALETTE[0], colorB: PALETTE[1], tips, pts })}
     ${row(b, 100 - cur, PALETTE[1])}
+    <div class="wp-ro" aria-live="polite">${readout(pts.length - 1)}</div>
     <div class="wp-end"><div><b>${w.final ? 'End of night' : w.live ? '● Live' : 'Final'}</b><span class="small muted">${w.final ? fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' }) : `Through game ${w.nGames}`}</span></div><div class="wp-score"><span>${w.aSeries}<small>${esc(name(a))}</small></span><span>${w.bSeries}<small>${esc(name(b))}</small></span></div></div>
     ${notes.length ? `<p class="small muted wp-notes">${notes.join('<br>')}</p>` : ''}
-    <p class="small faint wp-how">Chance to win the 3-game series (scratch) after every frame. The rest of the night is simulated from each bowler’s own frames. Tap the line for any frame to see the win % and the series score at that moment.</p>
+    <p class="small faint wp-how">Chance to win the 3-game series (scratch) after every frame. The rest of the night is simulated from each bowler’s own frames. Tap or drag anywhere on the chart to see the win % and series score after any frame.</p>
   </div>`;
 }
 // Match of the week, chart showing right on the page; chips swap to the other matches to watch in place
@@ -1292,6 +1300,27 @@ document.addEventListener('change', e => { const s = e.target.closest('[data-qse
 function openPlink(el) { location.hash = '#/player/' + encodeURIComponent(el.dataset.pid); }
 document.addEventListener('click', e => { const el = e.target.closest?.('.plink[data-pid]'); if (!el) return; e.preventDefault(); e.stopPropagation(); openPlink(el); }, true);
 document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const el = e.target.closest?.('.plink[data-pid]'); if (!el) return; e.preventDefault(); e.stopPropagation(); openPlink(el); }, true);
+// Win probability scrubbing: tap or drag anywhere on the chart (Nick, Nov 4 2026)
+function wpScrub(svg, clientX) {
+  const pts = JSON.parse(svg.dataset.wppts || '[]'); if (!pts.length) return;
+  const [W, L, R, T, B, H, total] = svg.dataset.wpgeo.split(',').map(Number), [cA, cB] = svg.dataset.wpcol.split('|');
+  const box = svg.getBoundingClientRect(), vx = (clientX - box.left) * W / box.width;
+  const i = Math.max(0, Math.min(pts.length - 1, Math.round((vx - L) / ((W - L - R) / (total - 1)))));
+  if (svg._wpI === i) return; svg._wpI = i;
+  const q = pts[i], x = L + i * (W - L - R) / (total - 1), y = T + (100 - q.pa) * (H - T - B) / 100;
+  const cur = svg.querySelector('.wp-cur'); cur.style.display = '';
+  cur.querySelector('line').setAttribute('x1', x); cur.querySelector('line').setAttribute('x2', x);
+  const c = cur.querySelector('circle'); c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('fill', q.pa >= 50 ? cA : cB);
+  const wp = svg.closest('.wp'), pc = wp.querySelectorAll('.wp-row .wp-pct');
+  if (pc.length === 2) { pc[0].textContent = q.a; pc[1].textContent = q.b; pc[0].classList.toggle('lead', q.pa >= 50); pc[1].classList.toggle('lead', q.pa < 50); }
+  const ro = wp.querySelector('.wp-ro');
+  if (ro) ro.innerHTML = `<b class="wp-ro-h">${esc(q.h)}</b><span class="wp-ro-s">Series score: <b>${esc(wp.dataset.na || '')} ${q.sa}</b> · <b>${esc(wp.dataset.nb || '')} ${q.sb}</b></span>`;
+}
+let wpDrag = null;
+document.addEventListener('pointerdown', e => { const svg = e.target.closest?.('svg.wp-chart[data-wppts]'); if (!svg) return; wpDrag = svg; wpScrub(svg, e.clientX); });
+document.addEventListener('pointermove', e => { const svg = wpDrag || (e.pointerType === 'mouse' && e.target.closest?.('svg.wp-chart[data-wppts]')); if (svg) wpScrub(svg, e.clientX); });
+document.addEventListener('pointerup', () => { wpDrag = null; });
+document.addEventListener('pointercancel', () => { wpDrag = null; });
 const tip = $('#tip');
 document.addEventListener('pointerover', e => { const t = e.target.closest?.('[data-tip]'); if (!t) { tip.hidden = true; return; } tip.textContent = t.dataset.tip; tip.hidden = false; });
 document.addEventListener('pointermove', e => { if (!tip.hidden) { tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY - 36) + 'px'; } });

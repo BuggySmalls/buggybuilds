@@ -73,7 +73,7 @@ export function barChart({ labels, values, fmt = v => v, height = 220, color = '
  * Above the middle line = bowler a is favored (filled in a's color), below = bowler b.
  */
 let wpId = 0;
-export function winProbChart({ p, total = 61, games = 3, colorA = PALETTE[0], colorB = PALETTE[1], tips = [] }) {
+export function winProbChart({ p, total = 61, games = 3, colorA = PALETTE[0], colorB = PALETTE[1], tips = [], pts = null }) {
   const W = 420, H = 230, L = 4, R = 30, T = 10, B = 24, id = `wp${++wpId}`;
   const x = i => L + i * (W - L - R) / (total - 1);
   const y = v => T + (100 - v) * (H - T - B) / 100;
@@ -93,8 +93,15 @@ export function winProbChart({ p, total = 61, games = 3, colorA = PALETTE[0], co
     g += `<line x1="${L}" x2="${W - R}" y1="${mid}" y2="${mid}" stroke="var(--muted)" stroke-width="1"/>`;
     const last = p.length - 1;
     g += `<circle cx="${x(last)}" cy="${y(p[last])}" r="4.5" fill="${p[last] >= 50 ? colorA : colorB}"/>`;
-    const step = (W - L - R) / (total - 1);
-    p.forEach((v, i) => { g += `<rect x="${(x(i) - step / 2).toFixed(1)}" y="${T}" width="${step.toFixed(1)}" height="${H - T - B}" fill="transparent" data-tip="${esc(tips[i] || `${v}%`)}"/>`; });
+    if (pts) {
+      // Tap or drag anywhere on the chart (Nick, Nov 4 2026): a cursor line + dot, and the readout under the chart updates (app.js)
+      g += `<g class="wp-cur" style="display:none"><line x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--text)" stroke-width="1.5" stroke-dasharray="3 3"/><circle r="5.5" cx="0" cy="0" stroke="var(--panel)" stroke-width="2"/></g>`;
+      g += `<rect class="wp-hit" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`;
+    } else {
+      const step = (W - L - R) / (total - 1);
+      p.forEach((v, i) => { g += `<rect x="${(x(i) - step / 2).toFixed(1)}" y="${T}" width="${step.toFixed(1)}" height="${H - T - B}" fill="transparent" data-tip="${esc(tips[i] || `${v}%`)}"/>`; });
+    }
   } else g += `<line x1="${L}" x2="${W - R}" y1="${mid}" y2="${mid}" stroke="var(--muted)" stroke-width="1"/>`;
-  return `<svg class="chart wp-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Win probability over the night">${g}</svg>`;
+  const geo = pts ? ` data-wpgeo="${[W, L, R, T, B, H, total].join(',')}" data-wpcol="${esc(colorA + '|' + colorB)}" data-wppts="${esc(JSON.stringify(pts))}"` : '';
+  return `<svg class="chart wp-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Win probability over the night"${geo}>${g}</svg>`;
 }

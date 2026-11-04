@@ -1385,7 +1385,11 @@ span.nh-arrow{display:none}
 .wp-name{font:800 18px/1.1 var(--display);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wp-pct{margin-left:auto;font:800 26px/1 var(--display);color:var(--faint)}
 .wp-pct.lead{color:var(--text)}
-.wp-chart{width:100%;height:auto;display:block}
+.wp-chart{width:100%;height:auto;display:block;touch-action:pan-y;cursor:crosshair;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.wp-ro{display:flex;flex-direction:column;gap:3px;background:var(--panel-2);border:1px solid var(--line-soft);border-radius:10px;padding:9px 12px;margin-top:6px;font:500 14px/1.35 var(--body)}
+.wp-ro-h{font:700 14px var(--body)}
+.wp-ro-s{color:var(--muted)}
+.wp-ro-s b{color:var(--text);font-weight:700}
 .wp-end{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--panel-2);border-radius:10px;padding:12px 14px;margin-top:6px}
 .wp-end>div:first-child{display:flex;flex-direction:column;gap:2px}
 .wp-end b{font:800 17px var(--display)}

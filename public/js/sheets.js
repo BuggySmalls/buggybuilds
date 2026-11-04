@@ -13,6 +13,7 @@ const boss = () => !!C.S.me && C.S.me.playerId === C.S.data.league.commissioner;
 const lanes = () => C.S.data.scoresheets?.lanes || 24;
 const day = d => C.fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' });
 const img = s => `api/sheet/${s.id}.jpg`;
+const laneTxt = s => s.lane ? `Lane ${s.lane}` : 'Lane ?';
 
 // League nights a photo can be for: tonight (if it's a league night) and the last two weeks
 function nightChoices(test = false) {
@@ -55,11 +56,12 @@ function card(s, { actions = '' } = {}) {
   const { esc, pl } = C;
   const tag = { pending: '<span class="sh-tag wait">Waiting on Nick</span>', approved: '<span class="sh-tag ok">Approved</span>', rejected: '<span class="sh-tag no">Rejected</span>', duplicate: '<span class="sh-tag no">Duplicate</span>' }[s.status];
   return `<div class="sh-card"><a href="${img(s)}" target="_blank" rel="noopener"><img src="${img(s)}" alt="Lane ${s.lane} game ${s.game}" loading="lazy"></a>
-    <div class="sh-info"><b>Lane ${s.lane} · Game ${s.game}</b> ${tag}
+    <div class="sh-info"><b>${laneTxt(s)} · Game ${s.game}</b> ${tag}
       <span class="small muted">${esc(day(s.date))}${s.from ? ` · sent by ${pl(s.from)}` : ''}</span>
       ${s.pids.length ? `<span class="small">On the lane: ${s.pids.map(id => `${pl(id)}${s.scores?.[id] != null ? ` <b>${s.scores[id]}</b>` : ''}`).join(', ')}</span>` : ''}
       ${boss() && s.guess ? guessRow(s) : ''}
-      ${boss() && (s.status === 'pending' || s.status === 'approved') ? lineupCheck(s) + fixScores(s) : ''}
+      ${boss() && s.status === 'pending' ? confirmBox(s) : ''}
+      ${boss() && s.status === 'approved' ? fixScores(s) : ''}
       ${actions}</div></div>`;
 }
 
@@ -84,6 +86,24 @@ function lineupCheck(s) {
   const lvl = !s.pids.length ? 'mid' : warn.length ? (warn.length > 1 ? 'low' : 'mid') : 'high';
   const label = { high: 'Lineup looks right', mid: 'Check this one', low: 'Something’s off' }[lvl];
   return `<div class="sh-check ${lvl}"><span class="sh-meter" aria-hidden="true"><i></i><i></i><i></i></span><b>${label}</b>${warn.length ? `<ul>${warn.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}</div>`;
+}
+// Confirm & post (Nick, Nov 4 2026): bowlers only snap the photo. Nick's card has the scores the AI read off the
+// screen already filled in (plus the guessed group from the lane draw). One tap approves and puts them live.
+function confirmBox(s) {
+  const { esc, P } = C, rd = s.read;
+  const fromRead = Object.fromEntries((rd?.rows || []).filter(r => r.pid).map(r => [r.pid, r.total]));
+  let ids = [...new Set([...Object.keys(fromRead), ...s.pids, ...(s.guess?.pids || [])])];
+  if (!ids.length) ids = (C.S.games?.attendance?.[s.date]?.yes || []).map(x => x.pid);
+  const val = id => s.scores?.[id] ?? fromRead[id] ?? '';
+  const unknown = (rd?.rows || []).filter(r => !r.pid);
+  const note = !rd ? '<span class="small muted">Reading the screen… (or just type them)</span>'
+    : rd.error || !rd.rows.length ? '<span class="small muted">Couldn’t read this one. Type the scores.</span>'
+    : `<span class="small muted">Filled in from the photo. Check them against it, then post.${rd.game ? ` Header color says game ${rd.game}.` : ''}</span>`;
+  return `<div class="sh-confirm">${note}
+    ${unknown.length ? `<span class="small">Also on the screen: ${unknown.map(r => `<b>${esc(r.name)}</b> ${r.total ?? '?'}`).join(', ')} <span class="muted">(name not matched — type it on the right bowler)</span></span>` : ''}
+    <span class="sh-move-row"><label class="small">Lane<input type="number" inputmode="numeric" min="1" max="${lanes()}" value="${s.lane || ''}" data-cf-lane="${s.id}" placeholder="#"></label><label class="small">Game${gameSel('cf-game-' + s.id, s.game)}</label></span>
+    <span class="sh-fix">${ids.map(id => `<label>${esc(P(id).name)}<input type="number" inputmode="numeric" min="0" max="300" value="${val(id)}" data-fixscore="${s.id}" data-pid="${esc(id)}"></label>`).join('')}</span>
+  </div>`;
 }
 function fixScores(s) {
   const { esc, P } = C;
@@ -164,7 +184,7 @@ function waitingStrip(date) {
   const w = waitingPhotos(date); if (!w.length) return '';
   const nick = boss();
   // "Loading scores" (Nick, Oct 28 2026): approved photos are read automatically every few minutes on league night.
-  return `<div class="lb-wait"><b class="lb-loading"><span class="lb-spin" aria-hidden="true"></span>Loading scores</b><ul>${w.map(s => `<li>Lane ${s.lane} · Game ${s.game}${s.status === 'pending' ? ' · waiting on Nick to approve' : ' · reading the photo…'}</li>`).join('')}</ul>
+  return `<div class="lb-wait"><b class="lb-loading"><span class="lb-spin" aria-hidden="true"></span>Loading scores</b><ul>${w.map(s => `<li>${laneTxt(s)} · Game ${s.game}${s.status === 'pending' ? ' · waiting on Nick to confirm' : ' · reading the photo…'}</li>`).join('')}</ul>
     <p class="small muted">Approved photos get read frame by frame and posted within a few minutes.${nick ? ' Want it now? Type them on the card in <a href="#/scores">Upload scores</a>.' : ''}</p></div>`;
 }
 export function liveBoard(date, { title } = {}) {
@@ -208,9 +228,9 @@ function review(list) {
   const move = s => `<details class="sh-move"><summary class="small">Not a duplicate? Fix lane/game</summary>
     <span class="sh-move-row"><input type="number" inputmode="numeric" min="1" max="${lanes()}" value="${s.lane}" data-move-lane="${s.id}" aria-label="Lane">${gameSel('move-game-' + s.id, s.game)}${btn(s, 'move', 'Save')}</span></details>`;
   const dupHTML = dupGroups.map(g => `<div class="sh-dup">
-      <div class="sh-dup-head"><b>${C.esc(day(g[0].date))} · Lane ${g[0].lane} · Game ${g[0].game}</b><span class="small muted">${g.length} photos for the same game. Check the scores match, then keep one.</span></div>
-      <div class="sh-dup-row">${g.sort((a, b) => a.at - b.at).map(s => card(s, { actions: `<span class="sh-btns">${s.status === 'approved' ? '' : btn(s, 'approve', 'Keep this one', 'btn primary small')}${btn(s, 'duplicate', 'Mark duplicate')}${btn(s, 'reject', 'Reject')}</span>${move(s)}` })).join('')}</div></div>`).join('');
-  const singleHTML = singles.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'approve', 'Approve', 'btn primary small')}${btn(s, 'reject', 'Reject')}</span>${move(s)}` })).join('');
+      <div class="sh-dup-head"><b>${C.esc(day(g[0].date))} · ${laneTxt(g[0])} · Game ${g[0].game}</b><span class="small muted">${g.length} photos for the same game. Check the scores match, then keep one.</span></div>
+      <div class="sh-dup-row">${g.sort((a, b) => a.at - b.at).map(s => card(s, { actions: `<span class="sh-btns">${s.status === 'approved' ? '' : btn(s, 'approve', 'Keep this one & post', 'btn primary small')}${btn(s, 'duplicate', 'Mark duplicate')}${btn(s, 'reject', 'Reject')}</span>${move(s)}` })).join('')}</div></div>`).join('');
+  const singleHTML = singles.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'approve', 'Confirm & post scores', 'btn primary small')}${btn(s, 'reject', 'Reject')}</span>` })).join('');
   const marked = list.filter(s => s.status === 'duplicate' || s.status === 'rejected');
   return { count: dupGroups.length + singles.length, html: `
     ${dupGroups.length ? `<h3 class="sh-sub">Possible duplicates</h3>${dupHTML}` : ''}
@@ -218,20 +238,13 @@ function review(list) {
     ${marked.length ? `<details class="sh-marked"><summary class="small muted">Duplicates and rejected (${marked.length})</summary><div class="sh-list">${marked.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'restore', 'Put back in the queue')}<button type="button" class="btn small danger" data-sheet="${s.id}|delete" data-confirm="Delete this photo for good? It can't come back.">Delete forever</button></span>` })).join('')}</div></details>` : ''}` };
 }
 
-function formHTML({ test, nights, date, roster }) {
-  const { esc } = C, id = test ? 'sheetTest' : 'sheetForm';
-  return `<form id="${id}" class="sh-form" data-sheetform="${test ? 'test' : 'real'}">
-    <div class="sh-row">
-      <label>Night<select name="date">${nights.map(d => `<option value="${d}"${d === date ? ' selected' : ''}>${esc(day(d))}</option>`).join('')}</select></label>
-      <label>Lane<input type="number" name="lane" inputmode="numeric" min="1" max="${lanes()}" placeholder="Lane #" required></label>
-      <label>Game<select name="game" required><option value="">Game #</option><option value="1">Game 1 (green)</option><option value="2">Game 2 (yellow)</option><option value="3">Game 3 (red)</option></select></label>
-    </div>
-    <fieldset class="sh-who"><legend>Who’s on this lane? <span class="faint">Tap names, then type their score for this game. It goes on the live scoreboard.</span></legend>
-      <div class="sh-chips">${roster.map(p => `<label class="sh-chip"><input type="checkbox" name="pids" value="${esc(p.id)}"><span>${esc(p.name)}</span></label>`).join('')}</div>
-      <div class="sh-scores" data-shscores></div></fieldset>
-    <label class="sh-file"><input type="file" name="photo" accept="image/*" required><span>📷 Take or choose a photo</span></label>
+// Photo only (Nick, Nov 4 2026): no night, lane, game or names to fill in. Pick the photo and it sends.
+function formHTML({ date }) {
+  return `<form id="sheetForm" class="sh-form sh-snap" data-sheetform="real">
+    <input type="hidden" name="date" value="${C.esc(date)}">
+    <label class="sh-file sh-big"><input type="file" name="photo" accept="image/*" capture="environment"><span>📷 Snap the scoreboard</span></label>
     <img class="sh-preview" alt="" hidden>
-    <div class="sh-actions"><button type="submit" class="btn primary">${test ? 'Upload test photo' : 'Upload'}</button><span class="small muted" data-sheetmsg></span></div>
+    <span class="small muted" data-sheetmsg></span>
   </form>`;
 }
 
@@ -245,22 +258,22 @@ function page() {
   const mine = sheets().filter(s => s.mine);
   const done = sheets().filter(s => s.date === date && s.status === 'approved');
 
-  const form = S.me ? `<section class="panel"><div class="panel-head"><h2>Upload a scoresheet</h2></div>
-    <p class="small muted">Snap the lane’s scoring screen once a game is done. Get every name and all 10 frames in the shot. Nick checks it before it counts.</p>
-    ${formHTML({ test: false, nights, date, roster })}
+  const form = S.me ? `<section class="panel"><div class="panel-head"><h2>Snap your scores</h2></div>
+    <p class="small muted">When your lane finishes a game, snap the screen. That’s it. Get every name and score in the shot; Nick confirms it and the scores go live.</p>
+    ${formHTML({ date: nights[0] })}
     ${done.length ? `<p class="small faint">Already approved for ${esc(day(date))}: ${[...done].sort((a, b) => a.lane - b.lane || a.game - b.game).map(s => `lane ${s.lane} game ${s.game}`).join(', ')}.</p>` : ''}
   </section>` : `<section class="panel"><p>You need an account to upload scores. <a href="#/login">Sign in</a> or <a href="#/join">join</a>.</p></section>`;
 
   let bossHTML = '', testHTML = '';
   if (boss()) {
     const r = review(sheets());
-    bossHTML = `${r.html.trim() ? `<section class="panel sh-queue"><div class="panel-head"><h2>Needs your approval</h2><span class="small muted">${r.count} waiting</span></div>${r.html}</section>` : ''}`;
+    bossHTML = `${r.html.trim() ? `<section class="panel sh-queue"><div class="panel-head"><h2>Confirm scores</h2><span class="small muted">${r.count} waiting</span></div>${r.html}</section>` : ''}`;
     // Approved photos stay undoable (Nick, Oct 28 2026): reject one later, or send it back to the queue
     const ok = sheets().filter(x => x.status === 'approved' && x.date === date).sort((a, b) => a.lane - b.lane || a.game - b.game);
     if (ok.length) bossHTML += `<section class="panel"><div class="panel-head"><h2>Approved · ${C.esc(day(date))}</h2><span class="small muted">${ok.length}</span></div>
       <div class="sh-list">${ok.map(x => card(x, { actions: `<span class="sh-btns"><button type="button" class="btn small" data-sheet="${x.id}|reject">Reject</button><button type="button" class="btn small" data-sheet="${x.id}|restore">Back to queue</button></span>` })).join('')}</div></section>`;
   }
-  return `<div><h1 class="page-title">Upload scores</h1><p class="page-intro">Send a photo of the lane screen. Once Nick approves it, it shows up on the site and the scores get logged.</p></div>
+  return `<div><h1 class="page-title">Upload scores</h1><p class="page-intro">Snap the lane screen after each game. Nick confirms it and the scores go live.</p></div>
     ${liveBoard(date)}
     ${bossHTML}
     ${form}
@@ -286,38 +299,26 @@ function shrink(file) {
 }
 
 async function send(form) {
-  const f = form.elements, msg = form.querySelector('[data-sheetmsg]'), btn = form.querySelector('button[type=submit]');
-  const test = form.dataset.sheetform === 'test', file = f.photo.files[0], lane = +f.lane.value;
-  if (!Number.isInteger(lane) || lane < 1 || lane > lanes()) { msg.textContent = `Type a lane number from 1 to ${lanes()}.`; return; }
-  if (!f.game.value) { msg.textContent = 'Pick the game.'; return; }
-  if (!file) { msg.textContent = 'Add a photo of the screen.'; return; }
-  const pids = [...form.querySelectorAll('input[name=pids]:checked')].map(i => i.value);
-  const scores = {};
-  for (const i of form.querySelectorAll('[data-scorefor]')) if (i.value !== '' && pids.includes(i.dataset.scorefor)) {
-    const v = +i.value; if (!Number.isInteger(v) || v < 0 || v > 300) { msg.textContent = 'Scores are whole numbers from 0 to 300.'; return; }
-    scores[i.dataset.scorefor] = v;
-  }
-  btn.disabled = true; msg.textContent = 'Uploading…';
+  const f = form.elements, msg = form.querySelector('[data-sheetmsg]'), file = f.photo.files[0];
+  if (!file) return;
+  const lbl = form.querySelector('.sh-file span');
+  f.photo.disabled = true; msg.textContent = 'Uploading…'; if (lbl) lbl.textContent = '⏳ Uploading…';
   try {
     const blob = await shrink(file);
-    const qs = new URLSearchParams({ date: f.date.value, lane: String(lane), game: f.game.value, pids: pids.join(','), scores: JSON.stringify(scores), ...(test ? { test: '1' } : {}) });
-    C.S.games = await api('/sheet?' + qs, { method: 'POST', body: blob, raw: true });
+    C.S.games = await api('/sheet?' + new URLSearchParams({ date: f.date.value }), { method: 'POST', body: blob, raw: true });
     const y = scrollY; C.route(); scrollTo(0, y);
-    const m = document.querySelector(`[data-sheetform="${test ? 'test' : 'real'}"] [data-sheetmsg]`);
-    if (test) { if (m) m.textContent = 'Test photo uploaded. It’s in your test list below.'; }
-    else {
-      const box = document.createElement('div');
-      box.className = 'sh-thanks'; box.setAttribute('role', 'status');
-      box.textContent = 'Thank you, your scores are being confirmed.';
-      document.querySelector('[data-sheetform="real"]')?.before(box);
-    }
-  } catch (e) { btn.disabled = false; msg.textContent = e.message; }
+    const box = document.createElement('div');
+    box.className = 'sh-thanks'; box.setAttribute('role', 'status');
+    box.textContent = 'Got it! Nick will confirm it and your scores go live.';
+    document.querySelector('[data-sheetform="real"]')?.before(box);
+  } catch (e) { f.photo.disabled = false; if (lbl) lbl.textContent = '📷 Try again'; msg.textContent = e.message; }
 }
 
 async function act(id, what) {
   document.querySelectorAll('[data-sheet]').forEach(b => { b.disabled = true; });
   try {
-    const body = what === 'scores' ? { scores: Object.fromEntries([...document.querySelectorAll(`[data-fixscore="${id}"]`)].map(i => [i.dataset.pid, i.value])) } : what === 'move' ? { lane: +document.querySelector(`[data-move-lane="${id}"]`).value, game: +document.querySelector(`[name="move-game-${id}"]`).value } : {};
+    const lv = document.querySelector(`[data-cf-lane="${id}"]`);
+    const body = what === 'approve' ? { scores: Object.fromEntries([...document.querySelectorAll(`[data-fixscore="${id}"]`)].map(i => [i.dataset.pid, i.value])), ...(lv ? { lane: +lv.value, game: +document.querySelector(`[name="cf-game-${id}"]`).value } : {}) } : what === 'scores' ? { scores: Object.fromEntries([...document.querySelectorAll(`[data-fixscore="${id}"]`)].map(i => [i.dataset.pid, i.value])) } : what === 'move' ? { lane: +document.querySelector(`[data-move-lane="${id}"]`).value, game: +document.querySelector(`[name="move-game-${id}"]`).value } : {};
     C.S.games = what === 'delete' ? await api(`/sheet/${id}`, { method: 'DELETE' }) : await api(`/sheet/${id}/${what}`, { method: 'POST', body });
     const y = scrollY; C.route(); scrollTo(0, y);
   } catch (e) { alert(e.message); C.route(); }
@@ -331,11 +332,11 @@ export function sheetFeed(day) {
     if (boss() && s.status === 'pending' && !s.mine) {
       const dup = sheets().some(o => o.id !== s.id && slot(o) === slot(s) && (o.status === 'pending' || o.status === 'approved'));
       out.push({ id: 'sh' + s.id, at: s.at, from: s.from || me, kind: 'sheet', personal: true, pending: true, link: '#/scores',
-        text: dup ? `Possible duplicate: ${C.P(s.from).name} sent another lane ${s.lane}, game ${s.game} for ${day(s.date)}. Compare them?` : `${C.P(s.from).name} sent lane ${s.lane}, game ${s.game} for ${day(s.date)}. Approve it?` });
+        text: dup ? `Possible duplicate: ${C.P(s.from).name} sent another ${laneTxt(s).toLowerCase()}, game ${s.game} photo. Compare them?` : `${C.P(s.from).name} sent a scoreboard photo (${laneTxt(s).toLowerCase()}, game ${s.game}). Confirm the scores?` });
     }
     if (s.mine && s.decidedAt && s.status !== 'pending' && !boss())
       out.push({ id: 'shd' + s.id + s.status, at: s.decidedAt, from: C.S.data.league.commissioner || me, kind: 'sheet', personal: true, link: '#/scores',
-        text: s.status === 'approved' ? `Your lane ${s.lane}, game ${s.game} photo was approved.` : `Your lane ${s.lane}, game ${s.game} photo was rejected. Try a clearer shot?` });
+        text: s.status === 'approved' ? `Your game ${s.game} photo was confirmed. Scores are live.` : `Your game ${s.game} photo was rejected. Try a clearer shot?` });
   }
   return out;
 }
@@ -357,7 +358,7 @@ export function installSheets(ctx) {
     if (e.target.name !== 'photo') return;
     const pv = form.querySelector('.sh-preview'), f = e.target.files[0];
     if (pv && f) { pv.src = URL.createObjectURL(f); pv.hidden = false; }
-    const lbl = e.target.nextElementSibling; if (lbl && f) lbl.textContent = '📷 Photo ready. Tap to change';
+    if (f) send(form);
   });
   document.addEventListener('click', async e => {
     if (e.target.closest('[data-sheet-clear]')) {

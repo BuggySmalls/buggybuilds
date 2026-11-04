@@ -9,6 +9,8 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page"
   },
+  // Workers AI reads scoreboard photos so Nick only has to confirm (Nick, Nov 4 2026)
+  "ai": { "binding": "AI" },
   "durable_objects": {
     "bindings": [{ "name": "ACCOUNTS", "class_name": "Accounts" }]
   },

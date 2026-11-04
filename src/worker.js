@@ -169,6 +169,8 @@ export class Accounts extends DurableObject {
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'test')) this.sql.exec('ALTER TABLE sheets ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
     // Live scoreboard (Nick, Oct 28 2026): the uploader types each tagged bowler's score for that game.
     if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'scores')) this.sql.exec("ALTER TABLE sheets ADD COLUMN scores TEXT NOT NULL DEFAULT '{}'");
+    // Photo-only uploads (Nick, Nov 4 2026): what the AI read off the screen, for Nick to confirm ({game, rows:[{name,total,pid}]})
+    if (!this.sql.exec('PRAGMA table_info(sheets)').toArray().some(c => c.name === 'read')) this.sql.exec('ALTER TABLE sheets ADD COLUMN read TEXT');
     // Chit Chat pictures (Nick, Oct 31 2026): a post can carry one picture or GIF — 'm<id>' (uploaded, media table) or an https GIF link
     if (!this.sql.exec('PRAGMA table_info(posts)').toArray().some(c => c.name === 'media')) this.sql.exec('ALTER TABLE posts ADD COLUMN media TEXT');
     // Test run over (Nick, Oct 27 2026): wipe any test uploads left behind.
@@ -554,10 +556,16 @@ export class Accounts extends DurableObject {
         const L = await this.league(url.origin);
         const lanes = L.scoresheets?.lanes || 24, q = url.searchParams;
         const boss = me.player_id === L.league?.commissioner, test = false; // test area retired Oct 27 2026
-        const date = q.get('date') || '', lane = +q.get('lane'), game = +q.get('game');
+        // Photo only (Nick, Nov 4 2026): bowlers just snap the screen. Night, lane and game fill in by themselves
+        // (lane = the uploader's drawn lane, game = next one for that lane, then the AI's read of the header color);
+        // Nick fixes anything wrong when he confirms. lane 0 = not known yet.
         const today = nyDate(now()), oldest = nyDate(now() - 14 * 864e5);
+        const date = q.get('date') || today;
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (!test && (date > today || date < oldest))) return fail(400, 'Pick tonight or a recent league night.');
-        if (!Number.isInteger(lane) || lane < 1 || lane > lanes) return fail(400, `Type a lane number from 1 to ${lanes}.`);
+        let lane = q.get('lane') ? +q.get('lane') : null, game = q.get('game') ? +q.get('game') : null;
+        if (lane == null) lane = this.myLane(L, date, me.player_id);
+        if (game == null) game = this.nextGame(date, lane, me.ukey);
+        if (!Number.isInteger(lane) || lane < 0 || lane > Math.max(lanes, 99)) return fail(400, `Type a lane number from 1 to ${lanes}.`);
         if (![1, 2, 3].includes(game)) return fail(400, 'Pick game 1, 2 or 3.');
         const roster = new Set(this.merged(L).map(p => p.id));
         const pids = [...new Set((q.get('pids') || '').split(',').filter(Boolean))].filter(id => roster.has(id)).slice(0, 8);
@@ -570,11 +578,17 @@ export class Accounts extends DurableObject {
         if (recent >= 30) return fail(429, 'Easy there. Try again in a bit.');
         this.sql.exec('INSERT INTO sheets (date, lane, game, pids, ukey, img, status, created_at, test, scores) VALUES (?,?,?,?,?,?,?,?,?,?)',
           date, lane, game, JSON.stringify(pids), me.ukey, buf, 'pending', now(), test ? 1 : 0, JSON.stringify(scores));
+        const newId = this.sql.exec('SELECT last_insert_rowid() AS id').one().id;
         const dup = this.sql.exec("SELECT COUNT(*) AS n FROM sheets WHERE date = ? AND lane = ? AND game = ? AND test = ? AND status IN ('pending','approved')", date, lane, game, test ? 1 : 0).one().n > 1;
         const name = this.merged(L).find(p => p.id === me.player_id)?.name || me.username;
         const gs = this.guessLane(L, date, lane, pids, me.player_id), P = Object.fromEntries(this.merged(L).map(p => [p.id, p.name]));
         const guessTxt = gs ? `\nGuessed group: ${gs.pids.map(id => P[id] || id).join(', ')}` : '';
-        if (!boss) this.ctx.waitUntil(this.push(L, `Scoresheet to ${dup ? 'check (possible duplicate)' : 'approve'}: lane ${lane}, game ${game}`, `${name} sent a photo. Open the site to ${dup ? 'compare them' : 'approve it'}.${guessTxt}`, 'camera'));
+        // Read it with Workers AI in the background, then tell Nick (so the push can carry the scores)
+        this.ctx.waitUntil((async () => {
+          const rd = await this.readSheet(newId, buf, L, date, gs).catch(e => (console.error('read failed', e), null));
+          const got = rd?.rows?.length ? `\nRead: ${rd.rows.map(r => `${r.pid ? P[r.pid] || r.pid : r.name + '?'} ${r.total ?? '?'}`).join(', ')}` : '';
+          if (!boss) await this.push(L, `Scoresheet to ${dup ? 'check (possible duplicate)' : 'confirm'}: ${lane ? `lane ${lane}, ` : ''}game ${rd?.game || game}`, `${name} sent a photo. Open the site to ${dup ? 'compare them' : 'confirm it'}.${got || guessTxt}`, 'camera');
+        })());
         return json(this.games(L, me), 201);
       }
       if (method === 'POST' && /^\/sheet\/\d+\/(approve|reject|duplicate|restore|move|scores)$/.test(path)) {
@@ -585,6 +599,18 @@ export class Accounts extends DurableObject {
         if (!sh) return fail(404, 'That photo is gone.');
         const set = st => this.sql.exec('UPDATE sheets SET status = ?, decided_at = ? WHERE id = ?', st, st === 'pending' ? null : now(), sh.id);
         if (act === 'approve') {
+          // Confirm & post (Nick, Nov 4 2026): approving can carry the scores, so they go live the moment he confirms
+          const body = await request.json().catch(() => ({}));
+          if (body.scores) {
+            const roster = new Set(this.merged(L).map(p => p.id));
+            const sc = Object.fromEntries(Object.entries(body.scores).filter(([pid, v]) => roster.has(pid) && v !== '' && v != null && Number.isInteger(+v) && +v >= 0 && +v <= 300).map(([pid, v]) => [pid, +v]));
+            const cur = JSON.parse(this.sql.exec('SELECT pids FROM sheets WHERE id = ?', sh.id).one().pids || '[]');
+            this.sql.exec('UPDATE sheets SET scores = ?, pids = ? WHERE id = ?', JSON.stringify(sc), JSON.stringify([...new Set([...cur, ...Object.keys(sc)])].slice(0, 8)), sh.id);
+          }
+          if (Number.isInteger(+body.lane) && +body.lane >= 1 && [1, 2, 3].includes(+body.game)) {
+            this.sql.exec('UPDATE sheets SET lane = ?, game = ? WHERE id = ?', +body.lane, +body.game, sh.id);
+            Object.assign(sh, { lane: +body.lane, game: +body.game });
+          }
           // the slot keeps one approved photo; any other approved one there becomes a duplicate (kept, not deleted)
           this.sql.exec("UPDATE sheets SET status = 'duplicate', decided_at = ? WHERE date = ? AND lane = ? AND game = ? AND test = ? AND id != ? AND status = 'approved'", now(), sh.date, sh.lane, sh.game, sh.test, sh.id);
           set('approved');
@@ -839,6 +865,59 @@ export class Accounts extends DurableObject {
     return pick.map((pids, i) => ({ name: names[i % names.length], pids }));
   }
 
+  // Photo-only uploads (Nick, Nov 4 2026): the uploader's drawn lane that night (0 = no draw / not on one)
+  myLane(L, date, pid) {
+    const row = this.sql.exec('SELECT lanes FROM lanedraws WHERE date = ?', date).toArray()[0]; if (!row) return 0;
+    const g = (laneRow(row.lanes).lanes || []).find(g => g.pids.includes(pid));
+    return g && Number.isInteger(+g.lane) ? +g.lane : 0;
+  }
+  // Game for a new photo: a photo of the same lane (or, with no lane, from the same person) in the last 6 minutes is
+  // probably the same game; otherwise the next game after the last one sent. The AI's header-color read can fix it.
+  nextGame(date, lane, ukey) {
+    const rows = lane
+      ? this.sql.exec("SELECT game, created_at FROM sheets WHERE date = ? AND lane = ? AND status IN ('pending','approved','duplicate') ORDER BY created_at DESC", date, lane).toArray()
+      : this.sql.exec("SELECT game, created_at FROM sheets WHERE date = ? AND ukey = ? AND status IN ('pending','approved','duplicate') ORDER BY created_at DESC", date, ukey).toArray();
+    if (!rows.length) return 1;
+    if (rows[0].created_at > now() - 6 * 6e4) return rows[0].game;
+    return Math.min(3, Math.max(...rows.map(r => r.game)) + 1);
+  }
+  // Workers AI reads the screen (Nick, Nov 4 2026): names, totals and the header color (green 1, yellow 2, red 3).
+  // Only a suggestion: it fills Nick's score boxes, and nothing goes live until he confirms.
+  async readSheet(id, buf, L, date, guess) {
+    if (!this.env.AI) return null;
+    const M = '@cf/meta/llama-3.2-11b-vision-instruct';
+    let bin = ''; for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+    const image = 'data:image/jpeg;base64,' + btoa(bin);
+    const messages = [
+      { role: 'system', content: 'You read bowling alley scoring screens. Reply with JSON only, no other text.' },
+      { role: 'user', content: 'This is a photo of a bowling scoring screen. Each row is one bowler: their name on the left, 10 frames, and their total score on the far right. The header bar is green, yellow or red. Reply exactly in this JSON shape: {"header":"green|yellow|red","bowlers":[{"name":"NAME AS SHOWN","total":123}]}' },
+    ];
+    const run = () => this.env.AI.run(M, { messages, image, max_tokens: 400, temperature: 0 });
+    let out;
+    try { out = await run(); }
+    catch (e) { if (!/agree|license/i.test(String(e?.message || e))) throw e; await this.env.AI.run(M, { prompt: 'agree' }).catch(() => {}); out = await run(); }
+    const txt = String(out?.response ?? out?.result ?? out ?? '');
+    let j; try { j = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1)); } catch { j = null; }
+    const norm = x => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const people = this.merged(L), first = new Set(guess?.pids || []);
+    const keys = p => [p.id, p.name, p.sheetName, p.username, p.nickname, ...(p.aliases || [])].map(norm).filter(k => k.length >= 2);
+    const ordered = [...people.filter(p => first.has(p.id)), ...people.filter(p => !first.has(p.id))];
+    const match = name => {
+      const n = norm(name); if (n.length < 2) return null;
+      return (ordered.find(p => keys(p).includes(n)) || ordered.find(p => keys(p).some(k => k.length >= 3 && n.length >= 3 && (k.startsWith(n) || n.startsWith(k)))))?.id || null;
+    };
+    const used = new Set();
+    const rows = (Array.isArray(j?.bowlers) ? j.bowlers : []).slice(0, 8).map(b => {
+      const total = Number.isInteger(+b.total) && +b.total >= 0 && +b.total <= 300 ? +b.total : null;
+      let pid = match(b.name); if (pid && used.has(pid)) pid = null; if (pid) used.add(pid);
+      return { name: String(b.name || '').slice(0, 24), total, pid };
+    });
+    const game = { green: 1, yellow: 2, red: 3 }[String(j?.header || '').toLowerCase().trim()] || null;
+    const rd = { game, rows, at: now(), ...(j ? {} : { error: 'unreadable' }) };
+    this.sql.exec('UPDATE sheets SET read = ? WHERE id = ?', JSON.stringify(rd), id);
+    if (game) this.sql.exec("UPDATE sheets SET game = ? WHERE id = ? AND status = 'pending'", game, id);
+    return rd;
+  }
   // Who's probably on this lane (Nick, Oct 28 2026), from the night's lane draw: the drawn group that has
   // most of the tagged bowlers; else the real lane number (laneDraw.numbers); else the uploader's group;
   // else the lane's rank among the lane numbers uploaded that night (lowest = first drawn lane).
@@ -933,10 +1012,10 @@ export class Accounts extends DurableObject {
       }
     }
     const liveScores = Object.values(liveBest);
-    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, scores, ukey, status, test, created_at, decided_at FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 400').toArray()
+    const sheets = this.sql.exec('SELECT id, date, lane, game, pids, scores, ukey, status, test, created_at, decided_at, read FROM sheets ORDER BY date DESC, lane, game, created_at DESC LIMIT 400').toArray()
       .filter(x => x.test ? boss : (x.status === 'approved' || (me && (boss || x.ukey === me.ukey))))
       .filter(x => boss || x.status !== 'rejected' || (x.decided_at > now() - 7 * 864e5))
-      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), scores: JSON.parse(x.scores || '{}'), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey, guess: boss && (x.status === 'pending' || x.status === 'approved') ? this.guessLane(L, x.date, x.lane, JSON.parse(x.pids), pidOf[x.ukey]) : null }));
+      .map(x => ({ id: x.id, date: x.date, lane: x.lane, game: x.game, pids: JSON.parse(x.pids), scores: JSON.parse(x.scores || '{}'), from: pidOf[x.ukey] || null, status: x.status, test: !!x.test, at: x.created_at, decidedAt: x.decided_at || null, mine: !!me && x.ukey === me.ukey, read: boss && x.read ? JSON.parse(x.read) : null, guess: boss && (x.status === 'pending' || x.status === 'approved') ? this.guessLane(L, x.date, x.lane, JSON.parse(x.pids), pidOf[x.ukey]) : null }));
     const likes = {}, comments = {};
     for (const r of this.sql.exec('SELECT kind, item, ukey FROM likes ORDER BY at').toArray()) {
       if (!live(r.ukey)) continue;

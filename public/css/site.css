@@ -1401,3 +1401,7 @@ span.nh-arrow{display:none}
 .wp{max-width:760px;width:100%;margin-inline:auto}
 .wp-chart text{font-size:12px}
 .wp{max-width:680px}
+/* Photo-only uploads (Nick, Nov 4 2026) */
+.sh-snap{align-items:stretch}
+.sh-big span{display:flex;align-items:center;justify-content:center;min-height:96px;font:800 22px var(--display);border-radius:14px}
+.sh-confirm{display:flex;flex-direction:column;gap:8px;margin-top:4px}

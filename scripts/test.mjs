@@ -224,9 +224,6 @@ ok(E.validate({ players: d.players, events: [{ date: '2026-10-28', teams: [{ nam
   const wl = E.winProbability(lv, '2026-01-08', 'a', 'b', { live: true });
   eq([wl.nGames, wl.p.length], [1, 21], 'live: line stops after the last game in');
 }
-console.log(`${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
-
 // Arcade minigame (Nick, Nov 4 2026): scoring matches the site's frame reader, and the lane plays fair
 {
   const A = await import('../public/js/arcade.js');
@@ -237,3 +234,6 @@ process.exit(fail ? 1 : 0);
   eq(A.simulate(A.rackPins(), { x: 163, angle: 0, speed: 600, spin: 0 }).knocked, 10, 'arcade: pocket shot strikes');
   eq(A.simulate(A.rackPins(), { x: 70, angle: 0, speed: 600, spin: -1 }).knocked, 0, 'arcade: hooking from the edge finds the gutter');
 }
+console.log(`${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);
+

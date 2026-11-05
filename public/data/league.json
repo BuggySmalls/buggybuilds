@@ -633,6 +633,38 @@
       "lane": 3,
       "score": 121,
       "frames": "5/ -/ 81 9- S62 72 9- 9- X 7/X"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "n8",
+      "game": 2,
+      "lane": 4,
+      "score": 120,
+      "frames": "35 9- X 62 4/ 61 7- S71 X 8/9"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "buggy",
+      "game": 2,
+      "lane": 4,
+      "score": 116,
+      "frames": "X 71 7- 9- 16 -6 9/ 3/ X 81"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "liam",
+      "game": 2,
+      "lane": 4,
+      "score": 130,
+      "frames": "3- X X X 8- 6- X 9- -- S81"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "fontes",
+      "game": 2,
+      "lane": 4,
+      "score": 81,
+      "frames": "-- 54 25 63 72 35 1/ 8- 63 31"
     }
   ]
 }

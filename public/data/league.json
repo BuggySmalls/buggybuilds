@@ -465,6 +465,105 @@
         }
       ],
       "note": "Team night: Team Red vs Team Blue. Logged from Kingstown Bowl's printed scoresheets."
+    },
+    {
+      "date": "2026-11-04",
+      "status": "completed",
+      "scores": {
+        "n8": [
+          171,
+          120,
+          139
+        ],
+        "buggy": [
+          127,
+          116,
+          112
+        ],
+        "fontes": [
+          116,
+          81,
+          89
+        ],
+        "liam": [
+          111,
+          130,
+          86
+        ],
+        "natehasboobs": [
+          107,
+          112,
+          96
+        ],
+        "kayleigh": [
+          76,
+          63,
+          86
+        ],
+        "tony": [
+          139,
+          122,
+          153
+        ],
+        "deedra": [
+          116,
+          90,
+          143
+        ],
+        "poopbird": [
+          121,
+          116,
+          109
+        ]
+      },
+      "frames": {
+        "n8": [
+          "8/ 7- 5/ 6/ X 8/ X X 53 X6/",
+          "35 9- X 62 4/ 61 7- S71 X 8/9",
+          "62 9/ 9/ 3/ 35 X 6- 9- X X7/"
+        ],
+        "buggy": [
+          "X -- 7/ 62 9- 5/ X 6/ X 7-",
+          "X 71 7- 9- 16 -6 9/ 3/ X 81",
+          "7- 81 52 X 9- -3 81 9/ 8/ 4/7"
+        ],
+        "fontes": [
+          "9- 5- X X 8- 72 8- 6/ 62 7-",
+          "-- 54 25 63 72 35 1/ 8- 63 31",
+          "61 X S8- 16 7/ 3- S81 6- -- X62"
+        ],
+        "liam": [
+          "9- X X X -5 S7- S72 13 5- -7",
+          "3- X X X 8- 6- X 9- -- S81",
+          "3- 9/ 36 9- 7- S8- 9/ 71 -4 62"
+        ],
+        "natehasboobs": [
+          "8- 7/ 6- X 81 X 5/ 21 71 6-",
+          "S62 9- 9- 72 6/ 6- 18 8/ 72 X8/",
+          "9- 7- 9/ 62 9- 9/ 7- 35 61 71"
+        ],
+        "kayleigh": [
+          "6- 18 9- 71 9- 7- 35 S72 S7- -4",
+          "-3 S8- 33 8- 8- -8 34 -3 6- 6-",
+          "-7 9- 3- 8- 7- -9 51 7/ 9- 9-"
+        ],
+        "tony": [
+          "36 7/ 9/ 17 X 52 X 8/ 9- X3/",
+          "7/ 7/ 9/ 72 4- 61 9/ 62 8/ 71",
+          "1/ 52 9/ 5/ 9/ 8/ 9/ 9/ 43 7/X"
+        ],
+        "deedra": [
+          "72 S7- 36 63 7/ S81 81 8/ 9/ S81",
+          "S81 S7- 43 81 81 S7- 9- 7- 8- 1/8",
+          "6/ 7/ 8/ S72 S63 8/ 81 X 4/ 72"
+        ],
+        "poopbird": [
+          "5/ -/ 81 9- S62 72 9- 9- X 7/X",
+          "8- S7- S81 9/ 9- 6/ 9- 8- X S81",
+          "72 S8- 9- S7- 72 81 9/ 51 X 9/7"
+        ]
+      },
+      "note": "Logged from the live lane-screen photos."
     }
   ],
   "announcements": [
@@ -560,222 +659,5 @@
       "note": "Tonight we're all on one team. Every pin anyone knocks down goes in one pot, and the goal is 3,300. That's just a couple pins a game over everyone's usual average, so everybody's game counts."
     }
   },
-  "liveAdd": [
-    {
-      "date": "2026-11-04",
-      "pid": "n8",
-      "game": 1,
-      "lane": 4,
-      "score": 171,
-      "frames": "8/ 7- 5/ 6/ X 8/ X X 53 X6/"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "buggy",
-      "game": 1,
-      "lane": 4,
-      "score": 127,
-      "frames": "X -- 7/ 62 9- 5/ X 6/ X 7-"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "fontes",
-      "game": 1,
-      "lane": 4,
-      "score": 116,
-      "frames": "9- 5- X X 8- 72 8- 6/ 62 7-"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "liam",
-      "game": 1,
-      "lane": 4,
-      "score": 111,
-      "frames": "9- X X X -5 S7- S72 13 5- -7"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "natehasboobs",
-      "game": 1,
-      "lane": 3,
-      "score": 107,
-      "frames": "8- 7/ 6- X 81 X 5/ 21 71 6-"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "kayleigh",
-      "game": 1,
-      "lane": 3,
-      "score": 76,
-      "frames": "6- 18 9- 71 9- 7- 35 S72 S7- -4"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "tony",
-      "game": 1,
-      "lane": 3,
-      "score": 139,
-      "frames": "36 7/ 9/ 17 X 52 X 8/ 9- X3/"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "deedra",
-      "game": 1,
-      "lane": 3,
-      "score": 116,
-      "frames": "72 S7- 36 63 7/ S81 81 8/ 9/ S81"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "poopbird",
-      "game": 1,
-      "lane": 3,
-      "score": 121,
-      "frames": "5/ -/ 81 9- S62 72 9- 9- X 7/X"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "n8",
-      "game": 2,
-      "lane": 4,
-      "score": 120,
-      "frames": "35 9- X 62 4/ 61 7- S71 X 8/9"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "buggy",
-      "game": 2,
-      "lane": 4,
-      "score": 116,
-      "frames": "X 71 7- 9- 16 -6 9/ 3/ X 81"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "liam",
-      "game": 2,
-      "lane": 4,
-      "score": 130,
-      "frames": "3- X X X 8- 6- X 9- -- S81"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "fontes",
-      "game": 2,
-      "lane": 4,
-      "score": 81,
-      "frames": "-- 54 25 63 72 35 1/ 8- 63 31"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "natehasboobs",
-      "game": 2,
-      "lane": 3,
-      "score": 112,
-      "frames": "S62 9- 9- 72 6/ 6- 18 8/ 72 X8/"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "kayleigh",
-      "game": 2,
-      "lane": 3,
-      "score": 63,
-      "frames": "-3 S8- 33 8- 8- -8 34 -3 6- 6-"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "tony",
-      "game": 2,
-      "lane": 3,
-      "score": 122,
-      "frames": "7/ 7/ 9/ 72 4- 61 9/ 62 8/ 71"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "deedra",
-      "game": 2,
-      "lane": 3,
-      "score": 90,
-      "frames": "S81 S7- 43 81 81 S7- 9- 7- 8- 1/8"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "poopbird",
-      "game": 2,
-      "lane": 3,
-      "score": 116,
-      "frames": "8- S7- S81 9/ 9- 6/ 9- 8- X S81"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "n8",
-      "game": 3,
-      "lane": 4,
-      "score": 139,
-      "frames": "62 9/ 9/ 3/ 35 X 6- 9- X X7/"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "buggy",
-      "game": 3,
-      "lane": 4,
-      "score": 112,
-      "frames": "7- 81 52 X 9- -3 81 9/ 8/ 4/7"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "liam",
-      "game": 3,
-      "lane": 4,
-      "score": 86,
-      "frames": "3- 9/ 36 9- 7- S8- 9/ 71 -4 62"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "fontes",
-      "game": 3,
-      "lane": 4,
-      "score": 89,
-      "frames": "61 X S8- 16 7/ 3- S81 6- -- X62"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "natehasboobs",
-      "game": 3,
-      "lane": 3,
-      "score": 96,
-      "frames": "9- 7- 9/ 62 9- 9/ 7- 35 61 71"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "kayleigh",
-      "game": 3,
-      "lane": 3,
-      "score": 86,
-      "frames": "-7 9- 3- 8- 7- -9 51 7/ 9- 9-"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "tony",
-      "game": 3,
-      "lane": 3,
-      "score": 153,
-      "frames": "1/ 52 9/ 5/ 9/ 8/ 9/ 9/ 43 7/X"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "deedra",
-      "game": 3,
-      "lane": 3,
-      "score": 143,
-      "frames": "6/ 7/ 8/ S72 S63 8/ 81 X 4/ 72"
-    },
-    {
-      "date": "2026-11-04",
-      "pid": "poopbird",
-      "game": 3,
-      "lane": 3,
-      "score": 109,
-      "frames": "72 S8- 9- S7- 72 81 9/ 51 X 9/7"
-    }
-  ]
+  "liveAdd": []
 }

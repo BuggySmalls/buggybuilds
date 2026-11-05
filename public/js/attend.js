@@ -81,6 +81,7 @@ const teamColor = (t, i) => NAMED[(t.name.match(/\b(red|blue|green|yellow|purple
 /* Lane draw (Nick, Oct 28 2026): random lanes every week, drawn with the teams. Shown right under the team board. */
 export function homeLaneBoard() {
   const st = state(); if (!st) return '';
+  if ((C.S.data.laneDraw?.hide || []).includes(st.date)) return '';   // Nick can pull a night's drawn lanes off the site
   const got = C.S.games?.lanes?.[st.date]; if (!got?.lanes?.length) return '';
   const teamOf = {};
   (st.teams || []).forEach((t, i) => t.pids.forEach(pid => { teamOf[pid] = { t, i }; }));

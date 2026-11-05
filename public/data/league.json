@@ -151,7 +151,10 @@
       "id": "liam",
       "name": "liam",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "Lot Liz"
+      ]
     },
     {
       "id": "fontes",
@@ -184,6 +187,12 @@
     {
       "id": "vcosta99",
       "name": "vcosta99"
+    },
+    {
+      "id": "kayleigh",
+      "name": "Kayleigh",
+      "joined": "2026-11-04",
+      "active": true
     }
   ],
   "events": [
@@ -572,6 +581,54 @@
       "lane": 4,
       "score": 116,
       "frames": "9- 5- X X 8- 72 8- 6/ 62 7-"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "liam",
+      "game": 1,
+      "lane": 4,
+      "score": 111,
+      "frames": "9- X X X -5 S7- S72 13 5- -7"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "natehasboobs",
+      "game": 1,
+      "lane": 3,
+      "score": 107,
+      "frames": "8- 7/ 6- X 81 X 5/ 21 71 6-"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "kayleigh",
+      "game": 1,
+      "lane": 3,
+      "score": 76,
+      "frames": "6- 18 9- 71 9- 7- 35 S72 S7- -4"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "tony",
+      "game": 1,
+      "lane": 3,
+      "score": 139,
+      "frames": "36 7/ 9/ 17 X 52 X 8/ 9- X3/"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "deedra",
+      "game": 1,
+      "lane": 3,
+      "score": 116,
+      "frames": "72 S7- 36 63 7/ S81 81 8/ 9/ S81"
+    },
+    {
+      "date": "2026-11-04",
+      "pid": "poopbird",
+      "game": 1,
+      "lane": 3,
+      "score": 121,
+      "frames": "5/ -/ 81 9- S62 72 9- 9- X 7/X"
     }
   ]
 }

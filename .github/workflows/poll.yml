@@ -19,7 +19,7 @@ jobs:
           head -n -1 /tmp/raw.txt > /tmp/games.json
           (jq '{fetchedAt: (now|todate), poll, attendance}' /tmp/games.json || echo '{}') > /tmp/poll.json
           # live night snapshot for Claude (Nick, Oct 28 2026): live scores, teams, lanes, scoresheets (no photos)
-          (jq '{fetchedAt: (now|todate), live, teams, lanes, sheets: [.sheets[]? | {id, date, lane, game, pids, scores, status}]}' /tmp/games.json || cat /tmp/raw.txt) > /tmp/live.json
+          (jq '{fetchedAt: (now|todate), live, teams, lanes, bets, sheets: [.sheets[]? | {id, date, lane, game, pids, scores, status}]}' /tmp/games.json || cat /tmp/raw.txt) > /tmp/live.json
           git fetch origin pollresults --depth=1 && git checkout -B pollresults FETCH_HEAD || git checkout --orphan pollresults
           git rm -rq --cached . >/dev/null 2>&1 || true
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +

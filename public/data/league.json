@@ -99,7 +99,10 @@
       "id": "tony",
       "name": "tony",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "T Dawg"
+      ]
     },
     {
       "id": "deedra",
@@ -154,7 +157,10 @@
       "id": "fontes",
       "name": "Fontes",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "T Thumb"
+      ]
     },
     {
       "id": "n8hashairynip",

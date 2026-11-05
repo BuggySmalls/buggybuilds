@@ -1027,7 +1027,7 @@ export class Accounts extends DurableObject {
     const callouts = this.sql.exec('SELECT id, date, from_ukey, to_pid, msg, created_at FROM callouts ORDER BY created_at').toArray()
       .filter(c => live(c.from_ukey)).map(c => ({ id: c.id, date: c.date, from: pidOf[c.from_ukey], to: c.to_pid, msg: c.msg, at: c.created_at }));
     const bets = this.sql.exec('SELECT id, date, from_ukey, to_pid, stakes, amount, status, created_at, answered_at, paid_at, got_at FROM bets ORDER BY created_at').toArray()
-      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, amount: b.amount || 0, status: b.status, at: b.created_at, answeredAt: b.answered_at || null, paidAt: b.paid_at || null, gotAt: b.got_at || null }));
+      .filter(b => live(b.from_ukey)).map(b => ({ id: b.id, date: b.date, from: pidOf[b.from_ukey], to: b.to_pid, stakes: b.stakes, amount: L.betcha?.amounts?.[b.id] ?? (b.amount || 0), status: b.status, at: b.created_at, answeredAt: b.answered_at || null, paidAt: b.paid_at || null, gotAt: b.got_at || null }));
     const hiddenPosts = new Set((L.talk?.hidden || []).map(Number));
     const posts = this.sql.exec('SELECT id, ukey, to_pid, msg, created_at, media FROM posts ORDER BY created_at DESC LIMIT 200').toArray()
       .filter(x => live(x.ukey) && !hiddenPosts.has(x.id)).map(x => ({ id: x.id, from: pidOf[x.ukey], to: x.to_pid || null, msg: x.msg, at: x.created_at,

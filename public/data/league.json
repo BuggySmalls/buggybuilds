@@ -659,5 +659,16 @@
       "note": "Tonight we're all on one team. Every pin anyone knocks down goes in one pot, and the goal is 3,300. That's just a couple pins a game over everyone's usual average, so everybody's game counts."
     }
   },
-  "liveAdd": []
+  "liveAdd": [],
+  "betcha": {
+    "settled": [
+      7,
+      8,
+      10,
+      12
+    ],
+    "amounts": {
+      "8": 3
+    }
+  }
 }

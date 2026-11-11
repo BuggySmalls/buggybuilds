@@ -132,7 +132,10 @@
       "id": "bigmoney",
       "name": "Big Money",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "Matt"
+      ]
     },
     {
       "id": "n8",

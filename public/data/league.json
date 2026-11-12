@@ -871,6 +871,78 @@
       "lane": 0,
       "score": 126,
       "frames": "3/ 34 54 6/ 44 9/ 8/ X 9- 9G"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "bigmoney",
+      "game": 1,
+      "lane": 7,
+      "score": 85,
+      "frames": "9/ 7/ 23 61 71 5- -6 54 9- 7-"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "n8",
+      "game": 1,
+      "lane": 7,
+      "score": 142,
+      "frames": "53 9/ 8/ 9/ 9- 63 8- 2/ 9/ 3/X"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "vcosta99",
+      "game": 1,
+      "lane": 7,
+      "score": 86,
+      "frames": "S7- 4- -- 9/ 3/ S8- 9- 9- 9- 9-"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "bigmoney",
+      "game": 2,
+      "lane": 7,
+      "score": 89,
+      "frames": "4- 14 6/ 9/ -4 71 8- 16 X 61"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "n8",
+      "game": 2,
+      "lane": 7,
+      "score": 149,
+      "frames": "9- 71 8/ 81 X X 9- 7/ X 9-"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "vcosta99",
+      "game": 2,
+      "lane": 7,
+      "score": 87,
+      "frames": "-4 7/ 62 9- 9/ 18 8- 6- 72 -7"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "bigmoney",
+      "game": 3,
+      "lane": 7,
+      "score": 149,
+      "frames": "63 8/ -/ 61 72 8/ X 9/ 9/ 9/X"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "n8",
+      "game": 3,
+      "lane": 7,
+      "score": 128,
+      "frames": "S7- 9- 81 X 7/ X 8- 9- X 81"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "vcosta99",
+      "game": 3,
+      "lane": 7,
+      "score": 93,
+      "frames": "54 8- -6 36 X 51 9- 4- -/ S8-"
     }
   ],
   "betcha": {

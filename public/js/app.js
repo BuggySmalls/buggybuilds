@@ -766,7 +766,11 @@ function openBadge(pid, key) {
     <div class="bd-top"><div class="badge ${cls}${got ? '' : ' locked'}"><div class="hex"><span class="hex-icon">${esc(b.icon || '')}</span><span class="hex-n">${got?.count || 0}</span></div></div>
       <div style="min-width:0"><h2>${esc(b.name)}</h2><p>${esc(b.desc)}</p></div></div>
     ${(() => { const pool = S.active, have = pool.filter(x => (S.achievements[x.id] || {})[key]).length, pct = pool.length ? Math.round(have / pool.length * 100) : 0;
-      return `<div class="bd-rarity"><div class="bd-pct"><b>${pct}%</b> of bowlers have this badge <span class="faint">(${have} of ${pool.length})</span></div><div class="bd-bar" aria-hidden="true"><i style="width:${pct}%"></i></div></div>`; })()}
+      // Tap the count to see who else has it (Nick, Nov 11 2026); tapping a bowler opens their copy of the badge
+      const who = pool.filter(x => (S.achievements[x.id] || {})[key]).map(x => ({ p: x, n: S.achievements[x.id][key].count || 1 })).sort((a, c) => c.n - a.n || a.p.name.localeCompare(c.p.name));
+      const head = `<div class="bd-pct"><b>${pct}%</b> of bowlers have this badge <span class="faint">(${have} of ${pool.length})</span>${have ? '<span class="bd-who-hint">See who ›</span>' : ''}</div><div class="bd-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>`;
+      if (!have) return `<div class="bd-rarity">${head}</div>`;
+      return `<details class="bd-rarity bd-who"><summary>${head}</summary><div class="bd-who-list">${who.map(w => `<button type="button" class="bd-who-row${w.p.id === pid ? ' me' : ''}" data-badge="${esc(w.p.id)}:${esc(key)}">${avatar(w.p, 26)}<span class="bd-who-name">${esc(w.p.name)}</span><span class="bd-x">×${w.n}</span></button>`).join('')}</div></details>`; })()}
     <div class="bd-sub">${pl(p.id)} · ${got ? `earned ${got.count} time${got.count === 1 ? '' : 's'}` : 'not earned yet'}</div>
     ${rows ? `<div class="bd-list">${rows}</div>` : `<p class="small muted">${b.manual ? 'Handed out by Nick.' : 'Nothing yet — keep bowling.'}</p>`}
   </div>`;

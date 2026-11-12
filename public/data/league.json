@@ -120,7 +120,10 @@
       "id": "poopbird",
       "name": "poopbird",
       "joined": "2026-10-21",
-      "active": true
+      "active": true,
+      "aliases": [
+        "Ryan"
+      ]
     },
     {
       "id": "roy",
@@ -165,7 +168,8 @@
       "joined": "2026-10-21",
       "active": true,
       "aliases": [
-        "T Thumb"
+        "T Thumb",
+        "Anchovies"
       ]
     },
     {

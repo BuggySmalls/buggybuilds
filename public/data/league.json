@@ -628,7 +628,33 @@
       ]
     },
     "2026-11-11": {
-      "teams": 3
+      "teams": 3,
+      "override": [
+        {
+          "name": "Team Sugar Rush",
+          "pids": [
+            "kate",
+            "buggy",
+            "tony"
+          ]
+        },
+        {
+          "name": "Team Marshmallow",
+          "pids": [
+            "fontes",
+            "poopbird",
+            "deedra"
+          ]
+        },
+        {
+          "name": "Team Soggy",
+          "pids": [
+            "vcosta99",
+            "n8",
+            "bigmoney"
+          ]
+        }
+      ]
     }
   },
   "laneDraw": {

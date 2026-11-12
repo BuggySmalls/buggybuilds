@@ -775,6 +775,30 @@
       "lane": 0,
       "score": 119,
       "frames": "71 S81 9/ X 35 16 6- X 71 9/7"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "deedra",
+      "game": 2,
+      "lane": 0,
+      "score": 108,
+      "frames": "7/ S8/ 11 S71 9- X 8/ 72 34 7-"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "poopbird",
+      "game": 2,
+      "lane": 0,
+      "score": 167,
+      "frames": "6/ X 7/ S81 7/ 7/ S81 X 9/ 9/7"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "fontes",
+      "game": 2,
+      "lane": 0,
+      "score": 124,
+      "frames": "S71 8/ 4- X 9/ 7/ X 8- 7- 44"
     }
   ],
   "betcha": {

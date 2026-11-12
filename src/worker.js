@@ -483,7 +483,7 @@ export class Accounts extends DurableObject {
         if (!b || b.status !== 'accepted') return fail(404, 'No bet to settle.');
         const L = await this.league(url.origin);
         const pidOf = Object.fromEntries(this.all().map(a => [a.ukey, a.player_id]));
-        const res = this.betWinner(L, { from: pidOf[b.from_ukey], to: b.to_pid, date: b.date });
+        const res = this.betWinner(L, { id: b.id, from: pidOf[b.from_ukey], to: b.to_pid, date: b.date });
         if (!res) return fail(400, 'Nobody’s won this one yet.');
         if (act === 'paid') {
           if (me.player_id !== res.loser) return fail(403, 'Only the loser can say they paid.');
@@ -812,7 +812,10 @@ export class Accounts extends DurableObject {
       return got.length ? got.reduce((a, v) => a + v, 0) : null;
     };
     const a = series(b.from), c = series(b.to);
-    if (a == null || c == null || a === c) return null;
+    if (a == null || c == null) return null;
+    const fx = L.betcha?.winners?.[b.id];   // winner fixed by hand (Nick, Nov 11 2026)
+    if (fx === b.from || fx === b.to) return fx === b.from ? { winner: b.from, loser: b.to } : { winner: b.to, loser: b.from };
+    if (a === c) return null;
     return a > c ? { winner: b.from, loser: b.to } : { winner: b.to, loser: b.from };
   }
   /* ---------- attendance + team nights ---------- */

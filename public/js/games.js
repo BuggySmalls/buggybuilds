@@ -72,7 +72,11 @@ export function calloutRecord(pid) {
 }
 
 // Betcha result, same rules as a call-out but only once the other bowler took the bet
-function betResult(b) { return b.status === 'accepted' ? calloutResult(b) : null; }
+function betResult(b) {
+  if (b.status !== 'accepted') return null;
+  const res = calloutResult(b), fx = C.E.betWinnerFix(b, C.S.data);
+  return fx && res && res !== 'NC' ? (fx === b.from ? 'W' : 'L') : res;
+}
 // Settling up: the winner taps "Got paid" and it's settled (Nick, Oct 28 2026). The loser's "I paid" is an optional heads-up.
 export function settleRoles(b) {
   const res = betResult(b); if (res !== 'W' && res !== 'L') return null;

@@ -123,7 +123,7 @@ const TOOLS = [
       const g = ctx.games || {}; const byDate = new Map(ctx.nights.map(n => [n.date, n]));
       const winner = (d, x, y) => { const n = byDate.get(d); const A = n?.byPid[x], B = n?.byPid[y]; if (!A || !B) return null; return A.series === B.series ? 'tie' : ctx.name(A.series > B.series ? x : y); };
       const f = l => (l || []).filter(x => !a.date || x.date === a.date);
-      return { betchas: f(g.bets).map(b => ({ date: b.date, from: ctx.name(b.from), to: ctx.name(b.to), stakes: b.stakes, dollars: E.betAmount(b) || 0, status: b.status, winner: b.status === 'accepted' ? winner(b.date, b.from, b.to) : null, settled: E.betSettled(b, ctx.data) })),
+      return { betchas: f(g.bets).map(b => ({ date: b.date, from: ctx.name(b.from), to: ctx.name(b.to), stakes: b.stakes, dollars: E.betAmount(b) || 0, status: b.status, winner: b.status === 'accepted' ? (E.betWinnerFix(b, ctx.data) && byDate.get(b.date) ? ctx.name(E.betWinnerFix(b, ctx.data)) : winner(b.date, b.from, b.to)) : null, settled: E.betSettled(b, ctx.data) })),
         callouts: f(g.callouts).map(c => ({ date: c.date, from: ctx.name(c.from), to: ctx.name(c.to), trashTalk: c.msg || undefined, winner: winner(c.date, c.from, c.to) })) };
     } },
 ];

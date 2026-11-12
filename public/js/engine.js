@@ -822,6 +822,8 @@ export function betPurse(b) { const a = betAmount(b); return a ? Math.ceil(a - 1
 // $5 or $2.50
 export function dollars(x) { return '$' + (x % 1 ? x.toFixed(2) : String(x)); }
 // Only the winner has to confirm (Nick, Oct 28 2026); the loser's "I paid" is optional.
+// Winner fixed by hand (Nick, Nov 11 2026): data.betcha.winners = { "<betId>": pid } beats the higher-series rule
+export function betWinnerFix(b, data) { const w = data?.betcha?.winners?.[b.id]; return w && (w === b.from || w === b.to) ? w : null; }
 export function betSettled(b, data) { return !!b.gotAt || (data?.betcha?.settled || []).map(Number).includes(Number(b.id)); }
 export function purse(data, nights, bets = []) {
   const cfg = data.league?.purse;
@@ -860,8 +862,9 @@ export function purse(data, nights, bets = []) {
     for (const b of bets.filter(b => b.date === n.date && b.status === 'accepted')) {
       const amt = betPurse(b); if (!amt) continue;
       const ra = n.rows.find(r => r.pid === b.from), rb = n.rows.find(r => r.pid === b.to);
-      if (!ra || !rb || ra.series === rb.series || !totals[b.from] || !totals[b.to]) continue;
-      const [w, l] = ra.series > rb.series ? [b.from, b.to] : [b.to, b.from];
+      if (!ra || !rb || (ra.series === rb.series && !betWinnerFix(b, data)) || !totals[b.from] || !totals[b.to]) continue;
+      const fx = betWinnerFix(b, data);
+      const [w, l] = fx ? [fx, fx === b.from ? b.to : b.from] : ra.series > rb.series ? [b.from, b.to] : [b.to, b.from];
       if (!betSettled(b, data)) { pendingBets.push({ date: n.date, betId: b.id, winner: w, loser: l, amount: amt }); continue; }
       totals[w].won = cents(totals[w].won + amt); totals[w].betWon = cents(totals[w].betWon + amt);
       payouts.push({ key: 'betcha', label: 'Betcha', winners: [w], loser: l, each: amt, betId: b.id });

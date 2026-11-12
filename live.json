@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-05T02:17:48Z",
+  "fetchedAt": "2026-11-12T00:06:26Z",
   "live": [
     {
       "date": "2026-10-28",
@@ -57,6 +57,34 @@
         }
       ],
       "at": 1793228704375
+    },
+    "2026-11-11": {
+      "teams": [
+        {
+          "name": "Team Sugar Rush",
+          "pids": [
+            "kate",
+            "buggy",
+            "tony"
+          ]
+        },
+        {
+          "name": "Team Marshmallow",
+          "pids": [
+            "fontes",
+            "poopbird",
+            "deedra"
+          ]
+        },
+        {
+          "name": "Team Soggy",
+          "pids": [
+            "vcosta99",
+            "n8"
+          ]
+        }
+      ],
+      "at": 1794441905007
     }
   },
   "lanes": {
@@ -123,6 +151,34 @@
         }
       ],
       "at": 1793837105061
+    },
+    "2026-11-11": {
+      "lanes": [
+        {
+          "lane": 1,
+          "pids": [
+            "tony",
+            "vcosta99",
+            "fontes"
+          ]
+        },
+        {
+          "lane": 2,
+          "pids": [
+            "poopbird",
+            "kate"
+          ]
+        },
+        {
+          "lane": 3,
+          "pids": [
+            "n8",
+            "deedra",
+            "buggy"
+          ]
+        }
+      ],
+      "at": 1794441905066
     }
   },
   "bets": [
@@ -201,7 +257,7 @@
       "status": "accepted",
       "at": 1793801301889,
       "answeredAt": 1793827054211,
-      "paidAt": null,
+      "paidAt": 1793845166574,
       "gotAt": null
     },
     {
@@ -210,7 +266,7 @@
       "from": "buggy",
       "to": "poopbird",
       "stakes": "$1 per round score and $1 for the total score",
-      "amount": 0,
+      "amount": 3,
       "status": "accepted",
       "at": 1793801351654,
       "answeredAt": 1793816435422,
@@ -240,7 +296,7 @@
       "status": "accepted",
       "at": 1793816419716,
       "answeredAt": 1793829861592,
-      "paidAt": null,
+      "paidAt": 1793845501679,
       "gotAt": null
     },
     {
@@ -266,6 +322,32 @@
       "status": "accepted",
       "at": 1793817087609,
       "answeredAt": 1793817124241,
+      "paidAt": null,
+      "gotAt": null
+    },
+    {
+      "id": 13,
+      "date": "2026-11-11",
+      "from": "buggy",
+      "to": "n8",
+      "stakes": "$2 but I’m getting 15 pins on the night",
+      "amount": 0,
+      "status": "accepted",
+      "at": 1794428812232,
+      "answeredAt": 1794441671574,
+      "paidAt": null,
+      "gotAt": null
+    },
+    {
+      "id": 14,
+      "date": "2026-11-11",
+      "from": "n8",
+      "to": "fontes",
+      "stakes": "Loser has to lick a rock",
+      "amount": 0,
+      "status": "accepted",
+      "at": 1794441903894,
+      "answeredAt": 1794441947899,
       "paidAt": null,
       "gotAt": null
     }

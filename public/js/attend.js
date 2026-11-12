@@ -82,7 +82,9 @@ const teamColor = (t, i) => NAMED[(t.name.match(/\b(red|blue|green|yellow|purple
 export function homeLaneBoard() {
   const st = state(); if (!st) return '';
   if ((C.S.data.laneDraw?.hide || []).includes(st.date)) return '';   // Nick can pull a night's drawn lanes off the site
-  const got = C.S.games?.lanes?.[st.date]; if (!got?.lanes?.length) return '';
+  // laneDraw.override[date] = [{lane, pids}] replaces the drawn lanes for a night (Nick, Nov 11 2026: late add)
+  const ov = C.S.data.laneDraw?.override?.[st.date];
+  const got = Array.isArray(ov) ? { lanes: ov } : C.S.games?.lanes?.[st.date]; if (!got?.lanes?.length) return '';
   const teamOf = {};
   (st.teams || []).forEach((t, i) => t.pids.forEach(pid => { teamOf[pid] = { t, i }; }));
   const assigned = new Set(got.lanes.flatMap(l => l.pids));

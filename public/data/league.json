@@ -751,6 +751,30 @@
       "lane": 0,
       "score": 168,
       "frames": "X 9/ 9- X X 54 9/ X X 51"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "kate",
+      "game": 1,
+      "lane": 0,
+      "score": 116,
+      "frames": "8/ 72 71 35 16 X 71 X 7/ 43"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "buggy",
+      "game": 1,
+      "lane": 0,
+      "score": 107,
+      "frames": "9- 17 5/ S81 S8- 7/ 81 2- 6/ 8-"
+    },
+    {
+      "date": "2026-11-11",
+      "pid": "tony",
+      "game": 1,
+      "lane": 0,
+      "score": 119,
+      "frames": "71 S81 9/ X 35 16 6- X 71 9/7"
     }
   ],
   "betcha": {

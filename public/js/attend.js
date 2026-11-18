@@ -4,7 +4,7 @@
 // On a team night the server draws even teams at league.teamDrawTime (7:05, Nick Oct 28 2026) so everyone's
 // set up by first ball (7:15). Team Red vs Team Blue live board sits at the very top of the home page.
 import { api } from './account.js';
-import { liveCalc } from './sheets.js';
+import { liveCalc, liveDone } from './sheets.js';
 
 let C; // { S, E, esc, avatar, who, fmtDate, fmtTime, P, route }
 const $ = s => document.querySelector(s);
@@ -131,7 +131,7 @@ export function homeTeamBoard(where = 'top') {
   const day = fin ? C.fmtDate(fin.n.date, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
   const vs = teams.length === 2 ? `${side(teams[0], 0)}<span class="tb-vs">VS</span>${side(teams[1], 1)}` : teams.map(side).join('');
   return `<section class="team-board${teams.length === 2 ? ' two' : ''}" id="teamboard">
-    <div class="tb-head"><span class="tb-live">${fin ? 'FINAL · ' + esc(day) : '● LIVE'}</span><b>${teams.map(t => esc(t.name)).join(' vs ')}</b><span class="tb-lead">${lead}</span></div>
+    <div class="tb-head"><span class="tb-live">${fin ? 'FINAL · ' + esc(day) : live && liveDone(st.date, live) ? 'FINAL' : '● LIVE'}</span><b>${teams.map(t => esc(t.name)).join(' vs ')}</b><span class="tb-lead">${lead}</span></div>
     <div class="tb-row">${vs}</div>
     <p class="tb-foot small">Team wins = games won. Total points = all handicap pins. ${fin ? `Final, from the official scoresheets. <a href="#/night/${fin.n.date}">Full night</a>` : 'Live as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a>'} · <a href="#/faq">How team scoring works</a></p></section>`;
 }

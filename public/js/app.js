@@ -10,7 +10,7 @@ import { installPoll, homePoll } from './poll.js';
 import { installIdeas, renderIdeas } from './ideas.js';
 import { installReact } from './react.js';
 import { installArcade, arcadeButton } from './arcade.js';
-import { installSheets, homeSheets, sheetThumbs, liveNow, liveDate, liveCalc } from './sheets.js';
+import { installSheets, homeSheets, sheetThumbs, liveNow, liveDate, liveCalc, liveDone } from './sheets.js';
 
 /* ================================================================== *
  * Data loading
@@ -574,7 +574,7 @@ pages.standings = () => {
   return `
   <div><div class="title-row"><h1 class="page-title">Standings</h1><a class="btn small upload-btn" href="#/scores">📷 Upload scores</a></div><p class="page-intro">${esc(label)}. Points come from where you finish each night on scratch series. Wins and losses count every game against every other bowler that night. Tap any column to sort. <a href="#/faq">How scoring works</a></p></div>
   ${liveNow()}
-  ${ld && !wkNight ? `<div class="live-note">${L ? `<b>● Live</b> These standings include tonight’s unofficial scores, as if the night ended now. <a href="#/standings?view=${view}&live=0">Show before tonight</a>` : `Showing standings before tonight. <a href="#/standings?view=${view}">Show live</a>`}</div>` : ''}
+  ${ld && !wkNight ? `<div class="live-note">${L ? `${liveDone(ld, L) ? `<b>All scores in</b> These standings include tonight’s final scores, unofficial until the night is logged.` : `<b>● Live</b> These standings include tonight’s unofficial scores, as if the night ended now.`} <a href="#/standings?view=${view}&live=0">Show before tonight</a>` : `Showing standings before tonight. <a href="#/standings?view=${view}">Show live</a>`}</div>` : ''}
   <div class="controls"><div class="seg" role="group" aria-label="Period">${views.map(([k, t]) => `<button data-q="view=${k}&wk=&cum=&fr=" aria-pressed="${view === k || (wkNight && k === 'week')}">${t}</button>`).join('')}</div>
     ${(view === 'week' || wkNight) && S.nights.length ? `<label class="field">Week<select data-qsel="wk">${S.nights.map((x, i) => `<option value="${i + 1}" ${(wkNight || S.nights.at(-1)) === x ? 'selected' : ''}>Week ${i + 1} · ${fmtDate(x.date)}</option>`).join('')}</select></label>` : ''}
     ${wkNight ? `<div class="seg" role="group" aria-label="Running total"><button data-q="cum=&fr=" aria-pressed="${!cum && !showFr}">Just that week</button><button data-q="cum=1&fr=" aria-pressed="${!!cum}">Running total</button></div>` : ''}

@@ -146,6 +146,26 @@ export function liveCalc(date) {
   return { date, data, nights, night, seasonNights, before, after, ok };
 }
 
+// Live board ends once every bowler's scores are in (Nick, Nov 18 2026). Done = everyone with a live score has
+// all 3 games, no photo is still waiting on Nick or on a read, and everyone on the night's lineup (lane board, else
+// who said Yes) has scores — lineup no-shows stop counting at 10:30pm or once the night is past.
+// league.json `liveFinal: {"<date>": true|false}` forces it either way.
+export function liveDone(date, L = liveCalc(date)) {
+  if (!date || !L) return false;
+  const force = C.S.data.liveFinal?.[date];
+  if (force === true || force === false) return force;
+  if (!L.night.rows.length || L.night.rows.some(r => r.totals.slice(0, 3).filter(g => g != null).length < 3)) return false;
+  if (waitingPhotos(date).length || sheets().some(s => s.date === date && s.status === 'pending')) return false;
+  const tz = C.S.data.league?.timezone || 'America/New_York';
+  const now = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).replace(',', '');
+  const late = now.slice(0, 10) > date || (now.slice(0, 10) === date && now.slice(11) >= '22:30');
+  if (late) return true;
+  const ov = C.S.data.laneDraw?.override?.[date];
+  const drawn = (C.S.data.laneDraw?.hide || []).includes(date) ? null : (Array.isArray(ov) ? ov : C.S.games?.lanes?.[date]?.lanes);
+  const lineup = drawn?.length ? drawn.flatMap(l => l.pids) : (C.S.games?.attendance?.[date]?.yes || []).map(x => x.pid);
+  return lineup.every(pid => L.night.byPid[pid]);
+}
+
 // What each bowler needs tonight: pins to win the night, and the worst finish that still takes the season lead
 function needs(L) {
   const { E, S } = C;
@@ -191,17 +211,24 @@ export function liveBoard(date, { title } = {}) {
   const L = liveCalc(date);
   if (!L) { const w = waitingStrip(date); return w ? `<section class="panel live-board"><div class="panel-head"><h2>${C.esc(title || `Live scoreboard · ${day(date)}`)}</h2></div>${w}</section>` : ''; }
   const { esc, who, S } = C;
+  const done = liveDone(date, L);
   const nd = needs(L), key = L.night.handicap ? 'hdcpSeries' : 'series';
   const leaderBefore = L.before[0]?.id, leaderNow = L.after[0]?.id;
   const cell = (r, k) => r.totals[k] == null ? '<td class="faint">—</td>' : `<td class="${L.ok[r.pid]?.[k] === false ? 'unconf' : ''}">${r.totals[k]}${L.ok[r.pid]?.[k] === false ? '*' : ''}</td>`;
   const test = (S.data.liveTest || []).some(x => x.date === date);
   const line = r => {
     const n = nd[r.pid], bits = [`${r.points} pts`];
-    bits.push(r.pointsPlace === 1 ? 'leading' : `+${n.toWin} to win`);
+    if (done) { if (r.pointsPlace === 1) bits.push('won the night'); } else bits.push(r.pointsPlace === 1 ? 'leading' : `+${n.toWin} to win`);
     return `<div class="lb-need">${bits.join(' · ')}</div>`;
   };
   const steal = L.night.rows.filter(r => r.pid !== leaderBefore && nd[r.pid].stealAt).slice(0, 5);
   const hold = leaderBefore && nd[leaderBefore];
+  if (done) return `<section class="panel live-board final"><div class="panel-head"><h2>${esc(`Final scores · ${day(date)}`)}${test ? ' <span class="sh-tag wait">Test</span>' : ''}</h2><span class="sh-tag ok">All in</span></div>
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>${key === 'hdcpSeries' ? 'Hdcp' : 'Total'}</th></tr></thead><tbody>
+    ${L.night.rows.map(r => `<tr><td class="l">${r.pointsPlace}</td><td class="l">${who(r.pid, { size: 26, nick: false })}${line(r)}</td>${cell(r, 0)}${cell(r, 1)}${cell(r, 2)}<td><b>${r[key]}</b></td></tr>`).join('')}
+    </tbody></table></div>
+    ${leaderBefore && leaderNow ? `<div class="steal"><b>Standings after tonight</b>${leaderNow === leaderBefore ? `<p>${C.pl(leaderBefore)} keeps the lead.</p>` : `<p><b>${C.pl(leaderNow)}</b> takes the lead from ${C.pl(leaderBefore)}.</p>`}</div>` : ''}
+    <p class="small muted">Every bowler’s scores are in, so the live board is closed. ${Object.values(L.ok).some(a => a.includes(false)) ? '* = Nick hasn’t checked that photo yet. ' : ''}Official results post once the night is logged.</p></section>`;
   return `<section class="panel live-board"><div class="panel-head"><h2>${esc(title || `Live scoreboard · ${day(date)}`)}${test ? ' <span class="sh-tag wait">Test</span>' : ''}</h2><a href="#/standings">Live standings</a></div>
     <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Bowler</th><th>G1</th><th>G2</th><th>G3</th><th>${key === 'hdcpSeries' ? 'Hdcp' : 'Total'}</th></tr></thead><tbody>
     ${L.night.rows.map(r => `<tr><td class="l">${r.pointsPlace}</td><td class="l">${who(r.pid, { size: 26, nick: false })}${line(r)}</td>${cell(r, 0)}${cell(r, 1)}${cell(r, 2)}<td><b>${r[key]}</b></td></tr>`).join('')}

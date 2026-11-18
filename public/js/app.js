@@ -534,8 +534,8 @@ function raceChart(m, top = 5) {
 /* ---------------- Standings ---------------- */
 // Trimmed by Nick (Nov 4 2026): no Hdcp, Streak or Month pts columns
 const COLS = [
-  ['points', 'Pts'], ['avg', 'Avg'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win %'], ['games', 'Games'], ['pins', 'Total score'], ['pinsDown', 'Pins down'],
-  ['strikePct', 'Strike %'], ['sparePct', 'Spare %'],
+  ['points', 'Pts'], ['avg', 'Avg'], ['w', 'W'], ['l', 'L'], ['winPct', 'Win<br>%'], ['games', 'Games'], ['pins', 'Total<br>score'], ['pinsDown', 'Pins<br>down'],
+  ['strikePct', 'Strike<br>%'], ['sparePct', 'Spare<br>%'],
 ];
 const rankMove = (was, now) => { const mv = was ? was - now : 0; return `<small class="rmv ${mv > 0 ? 'up' : mv < 0 ? 'down' : 'faint'}">${was ? (mv ? `${mv > 0 ? '▲' : '▼'} ${Math.abs(mv)}` : '—') : 'new'}</small>`; };
 const move = (was, now) => !was ? '<span class="mv new">new</span>' : was === now ? '' : `<span class="mv ${was > now ? 'up' : 'down'}">${was > now ? '▲' : '▼'}${Math.abs(was - now)}</span>`;
@@ -580,7 +580,7 @@ pages.standings = () => {
     ${wkNight ? `<div class="seg" role="group" aria-label="Running total"><button data-q="cum=&fr=" aria-pressed="${!cum && !showFr}">Just that week</button><button data-q="cum=1&fr=" aria-pressed="${!!cum}">Running total</button></div>` : ''}
     ${frNight ? `<div class="seg" role="group" aria-label="Show"><button data-q="fr=" aria-pressed="${!showFr}">Scoreboard</button><button data-q="fr=1&cum=" aria-pressed="${showFr}">Everyone’s frames</button></div>` : ''}</div>
   ${showFr ? allFrames(frNight) : `<section class="panel">
-    ${rows.some(r => r.games) ? `<div class="tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>
+    ${rows.some(r => r.games) ? `<div class="tbl stand-tbl"><table><thead><tr><th class="l">#</th><th class="l sticky">Bowler</th>${cols.map(([k, t]) => `<th><button data-q="sort=${k}" aria-sort="${sort === k ? 'descending' : 'none'}">${t}</button></th>`).join('')}</tr></thead><tbody>
     ${rows.map((r, i) => `<tr class="${i < 3 && r.games ? `top3 p${i + 1}` : ''}"><td class="l">${r.games ? `<div class="rk">${medal(i + 1)}${showMove ? rankMove(placeBefore[r.id], i + 1) : ''}</div>` : '<span class="rank">–</span>'}</td><td class="l sticky">${who(r.id, { size: 30, nick: false })}</td>${cols.map(([k]) => `<td>${cell(r, k)}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div>` : empty('Nothing bowled in this period yet', 'Check back after the next league night.')}
   </section>`}

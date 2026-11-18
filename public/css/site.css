@@ -1500,3 +1500,17 @@ span.nh-arrow{display:none}
 .ch-sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
 .ch-leg .ch-pins{margin-left:auto;font:800 16px var(--display)}
 .ch-leg .ch-pct{width:40px;text-align:right;color:var(--muted);font:600 13px var(--body)}
+
+/* Standings on a sideways phone (Nick, Nov 18 2026): two-word headers stack ("Total / score"), and the table tightens so every category fits in one row without scrolling */
+.stand-tbl th button{text-align:right;line-height:1.15}
+@media (orientation:landscape) and (max-height:500px){
+  .stand-tbl th{padding:6px 4px;font-size:10px;letter-spacing:0}
+  .stand-tbl td{padding:6px 4px;font-size:14px}
+  .stand-tbl td.l{padding-inline:6px}
+  .stand-tbl .who-cell{gap:6px}
+  .stand-tbl .who-cell .avatar{width:24px!important;height:24px!important;min-width:24px}
+  .stand-tbl .crowned{--av:24px}
+  .stand-tbl .who-cell .nm{display:block;max-width:118px}
+  .stand-tbl .rk{min-width:24px}
+}
+@media (orientation:landscape) and (max-height:500px) and (max-width:700px){.stand-tbl td{font-size:13px;padding-inline:3px}.stand-tbl th{padding-inline:3px}.stand-tbl .who-cell .nm{max-width:96px}}

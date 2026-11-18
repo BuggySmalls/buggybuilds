@@ -39,18 +39,19 @@ export function renderAttendBar() {
   const count = att.yes.length ? `<span class="at-count">${att.yes.length} in</span>` : '';
   let html;
   if (locked) html = `${chip}<span class="at-msg"><b>Teams are set.</b> See who you’re bowling with.</span><a class="at-btn yes" href="#/?teams">See teams</a>`;
-  else if (!S.me) html = `${chip}<span class="at-msg"><b>Bowling ${day}?</b> Sign in to confirm your attendance.</span>${count}<a class="at-btn yes" href="#/login">Sign in</a>`;
+  else if (!S.me) html = `${chip}<span class="at-msg"><b>Bowling ${day}?</b> Sign in to confirm your attendance.</span>${count}<a class="at-btn yes" href="#/login">Sign in</a>${queueStrip(att)}`;
   else if (att.mine === true) html = `${chip}<span class="at-msg"><b>You’re in for ${day}.</b> ${team ? `You’re in the team queue. Teams get drawn at ${C.fmtTime(drawTimeStr(st.date))}.` : 'See you on the lanes.'}</span>${count}<button type="button" class="at-btn ghost" data-attend="no">Can’t make it</button>${queueStrip(att)}`;
-  else if (att.mine === false) html = `${chip}<span class="at-msg"><b>You’re out for ${day}.</b> Plans change?</span>${count}<button type="button" class="at-btn yes" data-attend="yes">I’m in after all</button>`;
-  else html = `${chip}<span class="at-msg"><b>Confirm your attendance</b> for ${day}</span>${count}<span class="at-pair"><button type="button" class="at-btn yes" data-attend="yes">Yes</button><button type="button" class="at-btn no" data-attend="no">No</button></span>`;
+  else if (att.mine === false) html = `${chip}<span class="at-msg"><b>You’re out for ${day}.</b> Plans change?</span>${count}<button type="button" class="at-btn yes" data-attend="yes">I’m in after all</button>${queueStrip(att)}`;
+  else html = `${chip}<span class="at-msg"><b>Confirm your attendance</b> for ${day}</span>${count}<span class="at-pair"><button type="button" class="at-btn yes" data-attend="yes">Yes</button><button type="button" class="at-btn no" data-attend="no">No</button></span>${queueStrip(att)}`;
   bar.className = `attend-bar${att.mine === true ? ' in' : att.mine === false ? ' out' : ''}`;
   bar.innerHTML = `<div class="wrap">${html}</div>`;
   bar.hidden = false;
 }
 
-// The queue lives in the "You're in" bubble (Nick, Oct 28 2026): everyone who said Yes, photo + name.
+// Who's in: everyone who said Yes, photo + name. Shown in every state of the bar, so nobody has to tap Yes to see it (Nick, Nov 18 2026).
 function queueStrip(att) {
   const { P, avatar, esc } = C;
+  if (!att.yes.length) return '';
   return `<div class="at-queue" aria-label="Who's in">${att.yes.map(x => `<a class="at-face" href="#/player/${encodeURIComponent(x.pid)}" title="${esc(P(x.pid).name)}">${avatar(P(x.pid), 34)}<span class="at-name">${esc(P(x.pid).name)}</span></a>`).join('')}</div>`;
 }
 

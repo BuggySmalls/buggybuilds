@@ -5,7 +5,7 @@ import { drawResults, W as SHARE_W, H as SHARE_H, FONTS as SHARE_FONTS } from '.
 import { installGames, fetchGames, homeCallouts, nightCallouts, profileCallouts, calloutRecord, pickTable, homeBets, nightBets, profileBets, betRecord, betTicker } from './games.js';
 import { installTalk, renderBell, popNewest, homeTalk } from './talk.js';
 import { randomFact } from './facts.js';
-import { installAttend, renderAttendBar, homeAttend, nightTeams, homeTeamBoard, homeLaneBoard } from './attend.js';
+import { installAttend, renderAttendBar, homeAttend, nightTeams, homeTeamBoard, homeLaneBoard, homeGoalBoard } from './attend.js';
 import { installPoll, homePoll } from './poll.js';
 import { installIdeas, renderIdeas } from './ideas.js';
 import { installReact } from './react.js';
@@ -390,6 +390,7 @@ pages.home = () => {
 
   const banners = (S.data.announcements || []).filter(a => a.banner).sort((a, b) => b.date.localeCompare(a.date));
   return `
+  ${homeGoalBoard()}
   ${homeTeamBoard()}
   ${homeLaneBoard()}
   ${(() => { const cd = challengeDate(); return cd ? challengeBox(cd) : ''; })()}
@@ -411,6 +412,7 @@ pages.home = () => {
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a>${arcadeButton()}</div>
     </div>
   </section>
+  ${homeGoalBoard('below')}
   ${homeTeamBoard('below')}
   ${homePoll()}
   ${homeAttend()}

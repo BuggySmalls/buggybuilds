@@ -958,5 +958,20 @@
     "winners": {
       "1": "n8"
     }
+  },
+  "teamGoals": {
+    "2026-11-18": {
+      "name": "Cereal Bowlers vs The Number",
+      "pids": [
+        "buggy",
+        "tony",
+        "poopbird",
+        "deedra",
+        "kate"
+      ],
+      "guests": 2,
+      "guestPins": 230,
+      "perGame": 831
+    }
   }
 }

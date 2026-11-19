@@ -137,6 +137,54 @@ export function homeTeamBoard(where = 'top') {
     <p class="tb-foot small">Team wins = games won. Total points = all handicap pins. ${fin ? `Final, from the official scoresheets. <a href="#/night/${fin.n.date}">Full night</a>` : 'Live as scores come in from the lanes. Unchecked until Nick logs the night. <a href="#/scores">Add your score</a>'} · <a href="#/faq">How team scoring works</a></p></section>`;
 }
 
+/* Goal night (Nick, Nov 18 2026: "we're all going for one goal"): everyone is one team chasing a pin target.
+   league.json teamGoals["<date>"] = { name, pids, guests, guestPins, perGame, note? }
+   perGame = each bowler's season average (truncated) + guestPins (the guests' assumed pins per game, e.g. 2 league
+   averages for 2 guests). Goal = perGame x 3. Scratch pins. Guests count as guestPins for every game the team has
+   scores in, unless their real games are given in guestScores: [[g1,g2,g3], ...].
+   Live at the top of the home page on the night; after it's logged, under the hero until the following Monday. */
+function goalNight() {
+  const G = C.S.data.teamGoals || {}, today = new Date().toLocaleDateString('en-CA', { timeZone: C.S.data.league?.timezone || 'America/New_York' });
+  const dates = Object.keys(G).filter(d => d <= today).sort();
+  for (const date of dates.reverse()) {
+    const [y, m, d] = date.split('-').map(Number), dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const mon = new Date(Date.UTC(y, m - 1, d + (((8 - dow) % 7) || 7))).toISOString().slice(0, 10);
+    if (today < mon) return { date, g: G[date] };
+  }
+  return null;
+}
+export function homeGoalBoard(where = 'top') {
+  const gn = goalNight(); if (!gn) return '';
+  const { date, g } = gn, { esc } = C;
+  const logged = (C.S.nights || []).find(n => n.date === date);
+  if ((where === 'below') !== !!logged) return '';
+  const live = logged ? null : liveCalc(date);
+  const night = logged || live?.night || null;
+  const gs = [0, 1, 2].map(k => {
+    const mine = g.pids.map(pid => night?.byPid[pid]?.totals[k]).filter(v => v != null);
+    if (!mine.length) return null;
+    const guests = g.guestScores ? g.guestScores.reduce((a, x) => a + (x[k] ?? 0), 0) : g.guestPins;
+    return { pins: mine.reduce((a, b) => a + b, 0) + guests, n: mine.length };
+  });
+  const goal = g.perGame * 3, total = gs.reduce((a, x) => a + (x?.pins || 0), 0), pct = Math.min(100, Math.round(total / goal * 100));
+  const done = logged || (live && liveDone(date, live));
+  const left = goal - total, played = gs.filter(Boolean).length;
+  const pace = played ? Math.round(total / played * 3) : null;
+  const status = !played ? `Waiting on game 1 scores · need ${g.perGame} a game`
+    : total >= goal ? `GOAL HIT! ${total - goal ? `${total - goal} pins over` : 'Right on the number'}`
+    : done ? `Missed by ${left} pins`
+    : `${left} pins to go · ${played < 3 ? `need ${Math.ceil(left / (3 - played))} a game · ` : ''}on pace for ${pace}`;
+  const day = C.fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' });
+  const who = g.pids.map(pid => C.pl(pid)).join(' · ') + (g.guests ? ` · +${g.guests} guest${g.guests > 1 ? 's' : ''}` : '');
+  return `<section class="team-board goal-board" id="goalboard">
+    <div class="tb-head"><span class="tb-live">${logged ? 'FINAL · ' + esc(day) : done ? 'FINAL' : '● LIVE'}</span><b>${esc(g.name || 'One team, one goal')}</b><span class="tb-lead">${status}</span></div>
+    <div class="gb-main"><span class="gb-num"><b>${total}</b><i>/ ${goal}</i></span>
+      <div class="gb-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${total}"><span style="width:${pct}%"></span></div></div>
+    <div class="gb-games">${gs.map((x, k) => `<span class="${x ? (x.pins >= g.perGame ? 'hit' : 'miss') : ''}">G${k + 1} <b>${x ? x.pins : '–'}</b><i>/ ${g.perGame}</i></span>`).join('')}</div>
+    <p class="tb-who gb-who">${who}</p>
+    <p class="tb-foot small">Goal = everyone’s season average${g.guests ? ` + ${g.guestPins} a game for the guests (${g.guests === 2 ? 'two league averages between them' : 'assumed'})` : ''}, × 3 games. Scratch pins. ${g.note ? esc(g.note) + ' ' : ''}${logged ? `<a href="#/night/${date}">Full night</a>` : 'Live as scores come in from the lanes. <a href="#/scores">Add your score</a>'}</p></section>`;
+}
+
 export function homeAttend() {
   const st = state(); if (!st) return '';
   const { att, team, teams, day, locked, date } = st, { S, P, avatar, esc } = C;

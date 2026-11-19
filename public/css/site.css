@@ -1514,3 +1514,17 @@ span.nh-arrow{display:none}
   .stand-tbl .rk{min-width:24px}
 }
 @media (orientation:landscape) and (max-height:500px) and (max-width:700px){.stand-tbl td{font-size:13px;padding-inline:3px}.stand-tbl th{padding-inline:3px}.stand-tbl .who-cell .nm{max-width:96px}}
+
+/* Goal night board (Nick, Nov 18 2026) */
+.gb-main{display:flex;align-items:center;gap:12px;margin-top:10px}
+.gb-num{font-family:Bungee,Rubik,sans-serif;white-space:nowrap}
+.gb-num b{font-size:40px;line-height:1;text-shadow:3px 3px 0 #000}
+.gb-num i{font-style:normal;font-size:16px;opacity:.8;margin-left:4px}
+.gb-bar{flex:1;height:22px;background:#221d44;border:3px solid #111;border-radius:12px;overflow:hidden}
+.gb-bar span{display:block;height:100%;background:linear-gradient(90deg,#FF3D9A,#FFC857);transition:width .6s}
+.gb-games{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.gb-games span{background:#1a1636;border:2px solid #333;border-radius:10px;padding:4px 10px}
+.gb-games span.hit{border-color:#2ECC71}.gb-games span.miss{border-color:#FF3B3B}
+.gb-games b{font-family:Bungee,Rubik,sans-serif;margin-left:4px}.gb-games i{font-style:normal;opacity:.7;margin-left:2px}
+.gb-who{text-align:center;margin:8px 0 0}
+@media (max-width:420px){.gb-num b{font-size:30px}}

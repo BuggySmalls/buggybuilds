@@ -91,9 +91,9 @@ export function homeLaneBoard() {
   const assigned = new Set(got.lanes.flatMap(l => l.pids));
   const late = (st.att.yes || []).map(x => x.pid).filter(p => !assigned.has(p));
   return `<section class="lane-board" id="lanes">
-    <div class="tb-head"><b>Lanes · ${C.esc(st.day)}</b><span class="tb-lead">Drawn at random · top bowls first</span></div>
+    <div class="tb-head"><b>Lanes · ${C.esc(st.day)}</b><span class="tb-lead">${Array.isArray(ov) ? 'As bowled' : 'Drawn at random · top bowls first'}</span></div>
     <div class="lb-grid">${got.lanes.map(l => `<div class="lb-lane"><span class="lb-num">Lane ${C.esc(String(l.lane))}</span>
-      <ol>${l.pids.map(pid => { const tm = teamOf[pid]; return `<li${tm ? ` style="--tc:${teamColor(tm.t, tm.i)}"` : ''}>${tm ? '<i class="lb-dot" aria-hidden="true"></i>' : ''}${C.pl(pid)}</li>`; }).join('')}</ol></div>`).join('')}</div>
+      <ol>${l.pids.map(pid => { const tm = teamOf[pid]; return `<li${tm ? ` style="--tc:${teamColor(tm.t, tm.i)}"` : ''}>${tm ? '<i class="lb-dot" aria-hidden="true"></i>' : ''}${C.pl(pid)}</li>`; }).join('')}${(l.guests || []).map(n => `<li>${C.esc(n)} <span class="faint">(guest)</span></li>`).join('')}</ol></div>`).join('')}</div>
     ${late.length ? `<p class="tb-foot small">Said Yes after the draw: ${late.map(p => C.pl(p)).join(', ')}. Grab an open spot.</p>` : ''}</section>`;
 }
 
@@ -184,7 +184,7 @@ export function homeGoalBoard(where = 'top') {
       <div class="gb-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${total}"><span style="width:${pct}%"></span></div></div>
     <div class="gb-games">${gs.map((x, k) => `<span class="${x ? (x.pins >= g.perGame ? 'hit' : 'miss') : ''}">G${k + 1} <b>${x ? x.pins : '–'}</b><i>/ ${g.perGame}</i></span>`).join('')}</div>
     <p class="tb-who gb-who">${who}</p>
-    <p class="tb-foot small">Goal = everyone’s season average${g.guests ? ` + ${g.guestPins} a game for the guests (${g.guests === 2 ? 'two league averages between them' : 'assumed'})` : ''}, × 3 games. Scratch pins. ${g.note ? esc(g.note) + ' ' : ''}${logged ? `<a href="#/night/${date}">Full night</a>` : 'Live as scores come in from the lanes. <a href="#/scores">Add your score</a>'}</p></section>`;
+    <p class="tb-foot small">Goal = everyone’s season average${g.newPins ? ` (new bowlers at the league average, ${Object.values(g.newPins)[0]})` : ''}${g.guests ? ` + ${g.guestPins} a game for ${g.guests === 1 ? 'the guest' : 'the guests'} (${g.guests === 2 ? 'two league averages between them' : 'one league average'})` : ''}, × 3 games. Scratch pins. ${g.note ? esc(g.note) + ' ' : ''}${logged ? `<a href="#/night/${date}">Full night</a>` : 'Live as scores come in from the lanes. <a href="#/scores">Add your score</a>'}</p></section>`;
 }
 
 export function homeAttend() {

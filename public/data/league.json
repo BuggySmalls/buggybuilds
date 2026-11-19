@@ -944,6 +944,22 @@
       "lane": 7,
       "score": 93,
       "frames": "54 8- -6 36 X 51 9- 4- -/ S8-"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "deedra",
+      "game": 1,
+      "lane": 0,
+      "score": 106,
+      "frames": "9/ S81 S8- 72 S8- 81 X 9- 17 9-"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "kate",
+      "game": 1,
+      "lane": 0,
+      "score": 121,
+      "frames": "X 16 S8- 8- 9/ 9/ 7/ 9- 63 17"
     }
   ],
   "betcha": {
@@ -972,7 +988,17 @@
       ],
       "guests": 2,
       "guestPins": 230,
-      "perGame": 831
+      "perGame": 831,
+      "guestNames": [
+        "Tim"
+      ],
+      "guestScores": [
+        [
+          86,
+          null,
+          null
+        ]
+      ]
     }
   }
 }

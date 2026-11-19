@@ -140,8 +140,8 @@ export function homeTeamBoard(where = 'top') {
 /* Goal night (Nick, Nov 18 2026: "we're all going for one goal"): everyone is one team chasing a pin target.
    league.json teamGoals["<date>"] = { name, pids, guests, guestPins, perGame, note? }
    perGame = each bowler's season average (truncated) + guestPins (the guests' assumed pins per game, e.g. 2 league
-   averages for 2 guests). Goal = perGame x 3. Scratch pins. Guests count as guestPins for every game the team has
-   scores in, unless their real games are given in guestScores: [[g1,g2,g3], ...].
+   averages for 2 guests). Goal = perGame x 3. Scratch pins. Guests count as their share of guestPins for every game the
+   team has scores in, unless their real game is in guestScores: [[g1,g2,g3], ...] (null = not in yet); guestNames labels them.
    Live at the top of the home page on the night; after it's logged, under the hero until the following Monday. */
 function goalNight() {
   const G = C.S.data.teamGoals || {}, today = new Date().toLocaleDateString('en-CA', { timeZone: C.S.data.league?.timezone || 'America/New_York' });
@@ -163,7 +163,9 @@ export function homeGoalBoard(where = 'top') {
   const gs = [0, 1, 2].map(k => {
     const mine = g.pids.map(pid => night?.byPid[pid]?.totals[k]).filter(v => v != null);
     if (!mine.length) return null;
-    const guests = g.guestScores ? g.guestScores.reduce((a, x) => a + (x[k] ?? 0), 0) : g.guestPins;
+    // each guest: their real game if we have it (guestScores[i][k]), else their share of guestPins
+    const each = g.guestPins / (g.guests || 1);
+    const guests = Array.from({ length: g.guests || 0 }, (_, i) => g.guestScores?.[i]?.[k] ?? each).reduce((a, b) => a + b, 0);
     return { pins: mine.reduce((a, b) => a + b, 0) + guests, n: mine.length };
   });
   const goal = g.perGame * 3, total = gs.reduce((a, x) => a + (x?.pins || 0), 0), pct = Math.min(100, Math.round(total / goal * 100));
@@ -175,7 +177,7 @@ export function homeGoalBoard(where = 'top') {
     : done ? `Missed by ${left} pins`
     : `${left} pins to go · ${played < 3 ? `need ${Math.ceil(left / (3 - played))} a game · ` : ''}on pace for ${pace}`;
   const day = C.fmtDate(date, { weekday: 'short', month: 'short', day: 'numeric' });
-  const who = g.pids.map(pid => C.pl(pid)).join(' · ') + (g.guests ? ` · +${g.guests} guest${g.guests > 1 ? 's' : ''}` : '');
+  const who = g.pids.map(pid => C.pl(pid)).join(' · ') + (g.guests ? ` · +${g.guests} guest${g.guests > 1 ? 's' : ''}${g.guestNames?.length ? ` (${g.guestNames.map(esc).join(', ')})` : ''}` : '');
   return `<section class="team-board goal-board" id="goalboard">
     <div class="tb-head"><span class="tb-live">${logged ? 'FINAL · ' + esc(day) : done ? 'FINAL' : '● LIVE'}</span><b>${esc(g.name || 'One team, one goal')}</b><span class="tb-lead">${status}</span></div>
     <div class="gb-main"><span class="gb-num"><b>${total}</b><i>/ ${goal}</i></span>

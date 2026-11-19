@@ -705,6 +705,75 @@
           ]
         }
       ]
+    },
+    {
+      "date": "2026-11-18",
+      "status": "completed",
+      "scores": {
+        "deedra": [
+          106,
+          124,
+          159
+        ],
+        "kate": [
+          121,
+          125,
+          126
+        ],
+        "tony": [
+          127,
+          121,
+          109
+        ],
+        "buggy": [
+          104,
+          116,
+          118
+        ],
+        "poopbird": [
+          164,
+          105,
+          143
+        ],
+        "way-2-butch": [
+          86,
+          100,
+          93
+        ]
+      },
+      "frames": {
+        "deedra": [
+          "9/ S81 S8- 72 S8- 81 X 9- 17 9-",
+          "72 5- 7/ S8- 7- 72 9- 81 7/ XXX",
+          "63 8/ 9/ 7/ 9- 8/ 6/ X X 61"
+        ],
+        "kate": [
+          "X 16 S8- 8- 9/ 9/ 7/ 9- 63 17",
+          "8/ 6/ 9- -- X 81 8/ 8/ 8- 9-",
+          "3- 81 7- 63 4/ 8- -6 X X 8/8"
+        ],
+        "tony": [
+          "7/ X 7/ 7- X 71 8/ 43 7- 36",
+          "51 X 72 7/ 9- 26 X 17 36 6/6",
+          "7/ 52 9- 6- 16 7/ 7- -6 7/ 8/7"
+        ],
+        "buggy": [
+          "7- 62 71 3/ -- 3/ 8- 8/ S71 X8/",
+          "9- S8- 9/ X 9/ 7- 33 X 32 81",
+          "71 8- X 9- 45 S7/ 8/ 61 -8 9/6"
+        ],
+        "poopbird": [
+          "7/ X 9/ S81 X X 9- 7/ 35 1/9",
+          "63 6- 9/ X 71 8- 9- 81 9- S72",
+          "9- X X 7- 9/ 9- 43 9/ X 81"
+        ],
+        "way-2-butch": [
+          "44 7- -7 8- 71 X 61 -8 7- 9-",
+          "-6 63 6- X 9/ 43 -9 X 9- -1",
+          "-- -3 S61 -5 -6 4/ X 7/ X 1-"
+        ]
+      },
+      "note": "Goal night: everyone vs 2,493 pins with guest Tim. Finished at 2,435."
     }
   ],
   "announcements": [
@@ -882,120 +951,7 @@
       "note": "Tonight we're all on one team. Every pin anyone knocks down goes in one pot, and the goal is 3,300. That's just a couple pins a game over everyone's usual average, so everybody's game counts."
     }
   },
-  "liveAdd": [
-    {
-      "date": "2026-11-18",
-      "pid": "deedra",
-      "game": 1,
-      "lane": 18,
-      "score": 106,
-      "frames": "9/ S81 S8- 72 S8- 81 X 9- 17 9-"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "kate",
-      "game": 1,
-      "lane": 18,
-      "score": 121,
-      "frames": "X 16 S8- 8- 9/ 9/ 7/ 9- 63 17"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "tony",
-      "game": 1,
-      "lane": 17,
-      "score": 127,
-      "frames": "7/ X 7/ 7- X 71 8/ 43 7- 36"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "buggy",
-      "game": 1,
-      "lane": 17,
-      "score": 104,
-      "frames": "7- 62 71 3/ -- 3/ 8- 8/ S71 X8/"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "poopbird",
-      "game": 1,
-      "lane": 17,
-      "score": 164,
-      "frames": "7/ X 9/ S81 X X 9- 7/ 35 1/9"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "way-2-butch",
-      "game": 1,
-      "lane": 17,
-      "score": 86,
-      "frames": "44 7- -7 8- 71 X 61 -8 7- 9-"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "deedra",
-      "game": 2,
-      "lane": 18,
-      "score": 124,
-      "frames": "72 5- 7/ S8- 7- 72 9- 81 7/ XXX"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "kate",
-      "game": 2,
-      "lane": 18,
-      "score": 125,
-      "frames": "8/ 6/ 9- -- X 81 8/ 8/ 8- 9-"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "tony",
-      "game": 2,
-      "lane": 17,
-      "score": 121,
-      "frames": "51 X 72 7/ 9- 26 X 17 36 6/6"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "way-2-butch",
-      "game": 2,
-      "lane": 17,
-      "score": 100,
-      "frames": "-6 63 6- X 9/ 43 -9 X 9- -1"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "buggy",
-      "game": 2,
-      "lane": 17,
-      "score": 116,
-      "frames": "9- S8- 9/ X 9/ 7- 33 X 32 81"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "poopbird",
-      "game": 2,
-      "lane": 17,
-      "score": 105,
-      "frames": "63 6- 9/ X 71 8- 9- 81 9- S72"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "deedra",
-      "game": 3,
-      "lane": 18,
-      "score": 159,
-      "frames": "63 8/ 9/ 7/ 9- 8/ 6/ X X 61"
-    },
-    {
-      "date": "2026-11-18",
-      "pid": "kate",
-      "game": 3,
-      "lane": 18,
-      "score": 126,
-      "frames": "3- 81 7- 63 4/ 8- -6 X X 8/8"
-    }
-  ],
+  "liveAdd": [],
   "betcha": {
     "settled": [
       7,

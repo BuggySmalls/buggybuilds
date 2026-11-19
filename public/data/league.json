@@ -704,6 +704,23 @@
             "buggy"
           ]
         }
+      ],
+      "2026-11-18": [
+        {
+          "lane": 17,
+          "pids": [
+            "tony",
+            "buggy",
+            "poopbird"
+          ]
+        },
+        {
+          "lane": 18,
+          "pids": [
+            "deedra",
+            "kate"
+          ]
+        }
       ]
     }
   },
@@ -949,7 +966,7 @@
       "date": "2026-11-18",
       "pid": "deedra",
       "game": 1,
-      "lane": 0,
+      "lane": 18,
       "score": 106,
       "frames": "9/ S81 S8- 72 S8- 81 X 9- 17 9-"
     },
@@ -957,9 +974,33 @@
       "date": "2026-11-18",
       "pid": "kate",
       "game": 1,
-      "lane": 0,
+      "lane": 18,
       "score": 121,
       "frames": "X 16 S8- 8- 9/ 9/ 7/ 9- 63 17"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "tony",
+      "game": 1,
+      "lane": 17,
+      "score": 127,
+      "frames": "7/ X 7/ 7- X 71 8/ 43 7- 36"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "buggy",
+      "game": 1,
+      "lane": 17,
+      "score": 104,
+      "frames": "7- 62 71 3/ -- 3/ 8- 8/ S71 X8/"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "poopbird",
+      "game": 1,
+      "lane": 17,
+      "score": 164,
+      "frames": "7/ X 9/ S81 X X 9- 7/ 35 1/9"
     }
   ],
   "betcha": {
@@ -990,9 +1031,15 @@
       "guestPins": 230,
       "perGame": 831,
       "guestNames": [
-        "Tim"
+        "Tim",
+        "Alek"
       ],
       "guestScores": [
+        [
+          86,
+          null,
+          null
+        ],
         [
           86,
           null,

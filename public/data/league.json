@@ -930,6 +930,22 @@
       "lane": 17,
       "score": 86,
       "frames": "44 7- -7 8- 71 X 61 -8 7- 9-"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "deedra",
+      "game": 2,
+      "lane": 18,
+      "score": 124,
+      "frames": "72 5- 7/ S8- 7- 72 9- 81 7/ XXX"
+    },
+    {
+      "date": "2026-11-18",
+      "pid": "kate",
+      "game": 2,
+      "lane": 18,
+      "score": 125,
+      "frames": "8/ 6/ 9- -- X 81 8/ 8/ 8- 9-"
     }
   ],
   "betcha": {
@@ -966,7 +982,7 @@
       "guestScores": [
         [
           86,
-          null,
+          123,
           null
         ]
       ],

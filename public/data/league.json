@@ -210,6 +210,15 @@
         "Alek",
         "Butch"
       ]
+    },
+    {
+      "id": "timmy",
+      "name": "Timmy",
+      "joined": "2026-11-18",
+      "active": true,
+      "aliases": [
+        "Tim"
+      ]
     }
   ],
   "events": [
@@ -739,6 +748,11 @@
           86,
           100,
           93
+        ],
+        "timmy": [
+          86,
+          123,
+          79
         ]
       },
       "frames": {
@@ -771,9 +785,14 @@
           "44 7- -7 8- 71 X 61 -8 7- 9-",
           "-6 63 6- X 9/ 43 -9 X 9- -1",
           "-- -3 S61 -5 -6 4/ X 7/ X 1-"
+        ],
+        "timmy": [
+          "44 5- -- 8/ 8- 7- 8/ 8- 8- 51",
+          "8/ 7- 4- 9/ S71 X 7/ 7/ 9- 14",
+          "S7- 43 3- 7- 9/ -6 7/ 7- 6- S81"
         ]
       },
-      "note": "Goal night: everyone vs 2,493 pins with guest Tim. Finished at 2,435."
+      "note": "Goal night: everyone vs 2,493 pins. Finished at 2,435."
     }
   ],
   "announcements": [
@@ -921,10 +940,8 @@
           "lane": 18,
           "pids": [
             "deedra",
-            "kate"
-          ],
-          "guests": [
-            "Tim"
+            "kate",
+            "timmy"
           ]
         }
       ]
@@ -975,23 +992,13 @@
         "poopbird",
         "deedra",
         "kate",
-        "way-2-butch"
+        "way-2-butch",
+        "timmy"
       ],
-      "guests": 1,
-      "guestPins": 115,
       "perGame": 831,
-      "guestNames": [
-        "Tim"
-      ],
-      "guestScores": [
-        [
-          86,
-          123,
-          79
-        ]
-      ],
       "newPins": {
-        "way-2-butch": 115
+        "way-2-butch": 115,
+        "timmy": 115
       }
     }
   }

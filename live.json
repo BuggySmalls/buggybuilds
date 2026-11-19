@@ -1,37 +1,6 @@
 {
-  "fetchedAt": "2026-11-12T01:57:55Z",
-  "live": [
-    {
-      "date": "2026-10-28",
-      "pid": "natehasboobs",
-      "game": 2,
-      "lane": 24,
-      "score": 112,
-      "ok": true,
-      "at": 1793232903618,
-      "sheet": 6
-    },
-    {
-      "date": "2026-10-28",
-      "pid": "poopbird",
-      "game": 2,
-      "lane": 24,
-      "score": 165,
-      "ok": true,
-      "at": 1793232903618,
-      "sheet": 6
-    },
-    {
-      "date": "2026-10-28",
-      "pid": "vcosta99",
-      "game": 2,
-      "lane": 24,
-      "score": 115,
-      "ok": true,
-      "at": 1793232903618,
-      "sheet": 6
-    }
-  ],
+  "fetchedAt": "2026-11-19T00:11:22Z",
+  "live": [],
   "teams": {
     "2026-10-28": {
       "teams": [
@@ -179,6 +148,31 @@
         }
       ],
       "at": 1794441905066
+    },
+    "2026-11-18": {
+      "lanes": [
+        {
+          "lane": 1,
+          "pids": [
+            "tony",
+            "buggy"
+          ]
+        },
+        {
+          "lane": 2,
+          "pids": [
+            "deedra",
+            "kate"
+          ]
+        },
+        {
+          "lane": 3,
+          "pids": [
+            "poopbird"
+          ]
+        }
+      ],
+      "at": 1795046705055
     }
   },
   "bets": [
@@ -271,7 +265,7 @@
       "at": 1793801351654,
       "answeredAt": 1793816435422,
       "paidAt": null,
-      "gotAt": null
+      "gotAt": 1794842950787
     },
     {
       "id": 9,
@@ -322,7 +316,7 @@
       "status": "accepted",
       "at": 1793817087609,
       "answeredAt": 1793817124241,
-      "paidAt": null,
+      "paidAt": 1794842957886,
       "gotAt": null
     },
     {

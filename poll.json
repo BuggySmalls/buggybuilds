@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-19T01:59:38Z",
+  "fetchedAt": "2026-11-25T16:49:14Z",
   "poll": null,
   "attendance": {
     "2026-10-28": {
@@ -173,6 +173,78 @@
         {
           "pid": "n8",
           "at": 1795029137933
+        }
+      ],
+      "mine": null
+    },
+    "2026-11-25": {
+      "lockAt": 1795651500000,
+      "drawAt": 1795651500000,
+      "yes": [
+        {
+          "pid": "buggy",
+          "at": 1795054333645
+        },
+        {
+          "pid": "deedra",
+          "at": 1795055930373
+        },
+        {
+          "pid": "poopbird",
+          "at": 1795055941722
+        },
+        {
+          "pid": "curran",
+          "at": 1795452542480
+        },
+        {
+          "pid": "adam",
+          "at": 1795453630534
+        },
+        {
+          "pid": "kate",
+          "at": 1795472882243
+        },
+        {
+          "pid": "tony",
+          "at": 1795616938494
+        },
+        {
+          "pid": "n8",
+          "at": 1795617508313
+        },
+        {
+          "pid": "natehasboobs",
+          "at": 1795617614157
+        },
+        {
+          "pid": "chaddy-daddy",
+          "at": 1795621477840
+        },
+        {
+          "pid": "james",
+          "at": 1795623330532
+        },
+        {
+          "pid": "sophie",
+          "at": 0,
+          "guest": true
+        },
+        {
+          "pid": "sydney",
+          "at": 0,
+          "guest": true
+        },
+        {
+          "pid": "shannon",
+          "at": 0,
+          "guest": true
+        }
+      ],
+      "no": [
+        {
+          "pid": "roy",
+          "at": 1795453355296
         }
       ],
       "mine": null

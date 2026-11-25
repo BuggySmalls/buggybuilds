@@ -938,15 +938,38 @@ export class Accounts extends DurableObject {
     const avg = Object.fromEntries(pool.map(p => [p, given[p] ?? avgOf(p) ?? fill]));
     const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
     const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    // Couples together when possible (Nick, Nov 25 2026): league.teamPairs = [[a, b, weight?], …]. Not required —
+    // a split only wins on couples if its teams are still within PAIR_SLACK pins of the most even split.
+    const PAIR_SLACK = 5, inPool = new Set(pool);
+    const pairs = (Array.isArray(L.teamPairs) ? L.teamPairs : []).filter(x => Array.isArray(x) && inPool.has(x[0]) && inPool.has(x[1]) && x[0] !== x[1]);
+    const taken = new Set(), units = [];
+    for (const [a, b] of pairs) if (!taken.has(a) && !taken.has(b)) { taken.add(a); taken.add(b); units.push([a, b]); }
+    pool.filter(p => !taken.has(p)).forEach(p => units.push([p]));
+    const sizes = Array.from({ length: k }, (_, i) => Math.floor(n / k) + (i < n % k ? 1 : 0));
+    const together = split => pairs.reduce((a, [x, y, w]) => a + (split.some(t => t.includes(x) && t.includes(y)) ? (+w || 1) : 0), 0);
     const tries = [];
+    const add = split => { const means = split.map(s => s.reduce((a, p) => a + avg[p], 0) / s.length); tries.push({ split, spread: Math.max(...means) - Math.min(...means), pairs: together(split) }); };
     for (let t = 0; t < 4000; t++) {
       const order = shuffle([...pool]), split = Array.from({ length: k }, () => []);
       order.forEach((p, i) => split[i % k].push(p));
-      const means = split.map(s => s.reduce((a, p) => a + avg[p], 0) / s.length);
-      tries.push({ split, spread: Math.max(...means) - Math.min(...means) });
+      add(split);
+    }
+    // plus splits built couple-first, so keeping couples together actually gets tried
+    if (pairs.length) for (let t = 0; t < 4000; t++) {
+      const split = Array.from({ length: k }, () => []), room = [...sizes];
+      let ok = true;
+      for (const u of shuffle(units.map(u => [...u])).sort((a, b) => b.length - a.length)) {
+        const fits = room.map((r, i) => r >= u.length ? i : -1).filter(i => i >= 0);
+        if (!fits.length) { ok = false; break; }
+        const i = fits[rnd(fits.length)]; split[i].push(...u); room[i] -= u.length;
+      }
+      if (ok) add(split);
     }
     const best = Math.min(...tries.map(t => t.spread));
-    const close = tries.filter(t => t.spread <= best + 2);
+    const fair = tries.filter(t => t.spread <= best + PAIR_SLACK);
+    const most = Math.max(...fair.map(t => t.pairs));
+    const keep = fair.filter(t => t.pairs === most), keepBest = Math.min(...keep.map(t => t.spread));
+    const close = keep.filter(t => t.spread <= keepBest + 2);
     const pick = close[rnd(close.length)].split;
     // Fixed team names for the night (Nick, Oct 28 2026: Team Red vs Team Blue), else random cereal names
     const names = Array.isArray(cfg.names) && cfg.names.length >= k ? cfg.names : shuffle([...TEAM_NAMES]);

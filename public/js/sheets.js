@@ -118,7 +118,9 @@ function fixScores(s) {
    league.json `liveTest` adds rows by hand for testing; remove it to clear them. */
 // liveAdd (Nick, Oct 28 2026): scores Claude read off an approved photo nobody typed, put live from league.json.
 // Listed first so anything typed on the site for the same bowler + game wins.
-const liveList = () => [...(C.S.data.liveAdd || []).map(x => ({ ok: true, ...x })), ...(C.S.games?.live || []), ...(C.S.data.liveTest || []).map(x => ({ ok: true, ...x }))];
+// Claude's frame-by-frame reads win (Nick, Nov 25 2026): a liveAdd row with frames is listed last, so it beats a
+// typed/AI-guessed score for the same bowler + game. liveAdd rows without frames still lose to typed scores.
+const liveList = () => { const add = (C.S.data.liveAdd || []).map(x => ({ ok: true, ...x })); return [...add.filter(x => !x.frames), ...(C.S.games?.live || []), ...(C.S.data.liveTest || []).map(x => ({ ok: true, ...x })), ...add.filter(x => x.frames)]; };
 // Tonight as if the night ended now (Nick, Oct 28 2026): the live scores run through the same engine as a
 // logged night, so places, points, handicap and W/L all match what the official results will say.
 export function liveCalc(date) {
@@ -257,7 +259,7 @@ function review(list) {
   const dupHTML = dupGroups.map(g => `<div class="sh-dup">
       <div class="sh-dup-head"><b>${C.esc(day(g[0].date))} · ${laneTxt(g[0])} · Game ${g[0].game}</b><span class="small muted">${g.length} photos for the same game. Check the scores match, then keep one.</span></div>
       <div class="sh-dup-row">${g.sort((a, b) => a.at - b.at).map(s => card(s, { actions: `<span class="sh-btns">${s.status === 'approved' ? '' : btn(s, 'approve', 'Keep this one & post', 'btn primary small')}${btn(s, 'duplicate', 'Mark duplicate')}${btn(s, 'reject', 'Reject')}</span>${move(s)}` })).join('')}</div></div>`).join('');
-  const singleHTML = singles.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'approve', 'Confirm & post scores', 'btn primary small')}${btn(s, 'reject', 'Reject')}</span>` })).join('');
+  const singleHTML = singles.map(s => card(s, { actions: `<span class="sh-btns">${btn(s, 'approveread', '✓ Approve · Claude reads it', 'btn primary small')}${btn(s, 'approve', 'Post these scores now', 'btn small')}${btn(s, 'reject', 'Reject')}</span>` })).join('');
   const marked = list.filter(s => s.status === 'duplicate' || s.status === 'rejected');
   return { count: dupGroups.length + singles.length, html: `
     ${dupGroups.length ? `<h3 class="sh-sub">Possible duplicates</h3>${dupHTML}` : ''}
@@ -345,6 +347,11 @@ async function act(id, what) {
   document.querySelectorAll('[data-sheet]').forEach(b => { b.disabled = true; });
   try {
     const lv = document.querySelector(`[data-cf-lane="${id}"]`);
+    // Approve · Claude reads it (Nick, Nov 25 2026): approve with no scores; Claude reads the frames and posts them
+    if (what === 'approveread') {
+      C.S.games = await api(`/sheet/${id}/approve`, { method: 'POST', body: lv && +lv.value >= 1 ? { lane: +lv.value, game: +document.querySelector(`[name="cf-game-${id}"]`).value } : {} });
+      const y = scrollY; C.route(); scrollTo(0, y); return;
+    }
     const body = what === 'approve' ? { scores: Object.fromEntries([...document.querySelectorAll(`[data-fixscore="${id}"]`)].map(i => [i.dataset.pid, i.value])), ...(lv ? { lane: +lv.value, game: +document.querySelector(`[name="cf-game-${id}"]`).value } : {}) } : what === 'scores' ? { scores: Object.fromEntries([...document.querySelectorAll(`[data-fixscore="${id}"]`)].map(i => [i.dataset.pid, i.value])) } : what === 'move' ? { lane: +document.querySelector(`[data-move-lane="${id}"]`).value, game: +document.querySelector(`[name="move-game-${id}"]`).value } : {};
     C.S.games = what === 'delete' ? await api(`/sheet/${id}`, { method: 'DELETE' }) : await api(`/sheet/${id}/${what}`, { method: 'POST', body });
     const y = scrollY; C.route(); scrollTo(0, y);

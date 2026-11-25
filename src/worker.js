@@ -876,7 +876,7 @@ export class Accounts extends DurableObject {
   drawLanes(L, date) {
     const { hidden } = this.admin(L);
     const pidOf = Object.fromEntries(this.all().filter(a => !hidden.has(a.ukey)).map(a => [a.ukey, a.player_id]));
-    const pool = this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean);
+    const pool = this.withGuests(L, date, this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean));
     if (!pool.length) return null;
     const cfg = L.laneDraw || {}, nums = cfg.numbers?.[date], per = cfg.nights?.[date] || {};
     const k = Math.max(1, Math.min(Array.isArray(nums) && nums.length ? nums.length : (per.count || cfg.count || 4), Math.ceil(pool.length / 2)));
@@ -894,12 +894,34 @@ export class Accounts extends DurableObject {
     const labels = Array.isArray(nums) && nums.length ? nums : Array.from({ length: k }, (_, i) => i + 1);
     return shuffle(lanes).map((pids, i) => ({ lane: labels[i], pids: shuffle(pids) })).sort((a, b) => a.lane - b.lane);
   }
+  // Guests with no account (teamNights[date].guests = [pid, …], each a players[] entry in league.json) join that
+  // night's queue, team draw and lane draw as if they'd said Yes (Nick, Nov 25 2026).
+  nightGuests(L, date) { const g = L.teamNights?.[date]?.guests; return Array.isArray(g) ? g.filter(x => typeof x === 'string') : []; }
+  withGuests(L, date, pool) { return [...new Set([...pool, ...this.nightGuests(L, date)])]; }
+  // teamNights[date].avgs keys can be a pid, an account username, a display/scoresheet name, an alias or a first name.
+  drawAvgs(L, date, pool) {
+    const want = L.teamNights?.[date]?.avgs || {}, out = {};
+    if (!Object.keys(want).length) return out;
+    const low = x => String(x || '').trim().toLowerCase();
+    const roster = Object.fromEntries(this.merged(L).map(p => [p.id, p]));
+    for (const pid of pool) {
+      const p = roster[pid] || {};
+      const names = [pid, p.account, p.name, p.sheetName, ...(p.aliases || [])].map(low).filter(Boolean);
+      const firsts = names.map(n => n.split(/\s+/)[0]);
+      for (const [k, v] of Object.entries(want)) {
+        const key = low(k);   // "Liam Curran" matches by full name or first name ("liam"); "Adam" by first name
+        if (Number.isFinite(+v) && (names.includes(key) || firsts.includes(key.split(/\s+/)[0]))) { out[pid] = +v; break; }
+      }
+    }
+    return out;
+  }
+
   // Even teams from the queue: thousands of random splits, keep the most even ones (team average of
   // each bowler's average), then pick one of those at random. New bowlers count as the league average.
   drawTeams(L, date) {
     const { hidden } = this.admin(L);
     const pidOf = Object.fromEntries(this.all().filter(a => !hidden.has(a.ukey)).map(a => [a.ukey, a.player_id]));
-    const pool = this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean);
+    const pool = this.withGuests(L, date, this.sql.exec('SELECT ukey FROM attendance WHERE date = ? AND going = 1 ORDER BY at', date).toArray().map(r => pidOf[r.ukey]).filter(Boolean));
     const n = pool.length; if (n < 2) return null;
     const cfg = L.teamNights[date] || {};
     let k = Number.isInteger(cfg.teams) ? cfg.teams : n >= 12 ? 4 : n >= 6 ? 3 : 2;
@@ -908,9 +930,12 @@ export class Accounts extends DurableObject {
     for (const e of [...(L.events || [])].filter(e => e.status === 'completed' && e.date < date && e.scores).sort((a, b) => a.date.localeCompare(b.date)))
       for (const [pid, arr] of Object.entries(e.scores)) (games[pid] ??= []).push(...arr.filter(Number.isFinite));
     const avgOf = pid => { const g = games[pid]; if (!g?.length) return null; const r = win ? g.slice(-win) : g; return r.reduce((a, b) => a + b, 0) / r.length; };
-    const known = pool.map(avgOf).filter(v => v != null);
-    const fill = known.length ? known.reduce((a, b) => a + b, 0) / known.length : 140;
-    const avg = Object.fromEntries(pool.map(p => [p, avgOf(p) ?? fill]));
+    // Bowlers with no league games go at the league average (every scratch game so far) (Nick, Nov 25 2026).
+    const every = Object.values(games).flat();
+    const fill = every.length ? every.reduce((a, b) => a + b, 0) / every.length : 115;
+    // Self-reported averages for the draw: teamNights[date].avgs = { "<pid, username, name or first name>": avg } (Nick, Nov 25 2026)
+    const given = this.drawAvgs(L, date, pool);
+    const avg = Object.fromEntries(pool.map(p => [p, given[p] ?? avgOf(p) ?? fill]));
     const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
     const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const tries = [];
@@ -1042,6 +1067,10 @@ export class Accounts extends DurableObject {
       const a = attendance[r.date] ??= { lockAt: L.teamNights?.[r.date] ? this.drawAt(L, r.date) : this.lockAt(L, r.date), drawAt: L.teamNights?.[r.date] ? this.drawAt(L, r.date) : null, yes: [], no: [], mine: null };
       a[r.going ? 'yes' : 'no'].push({ pid: pidOf[r.ukey], at: r.at });
       if (me && r.ukey === me.ukey) a.mine = !!r.going;
+    }
+    for (const date of Object.keys(L.teamNights || {})) for (const pid of this.nightGuests(L, date)) {
+      const a = attendance[date] ??= { lockAt: this.drawAt(L, date), drawAt: this.drawAt(L, date), yes: [], no: [], mine: null };
+      if (!a.yes.some(y => y.pid === pid)) a.yes.push({ pid, at: 0, guest: true });
     }
     const teams = Object.fromEntries(this.sql.exec('SELECT date, teams, at FROM teamdraws').toArray().map(r => [r.date, { teams: this.swapTeams(L, r.date, JSON.parse(r.teams)), at: r.at }]));
     const lanes = Object.fromEntries(this.sql.exec('SELECT date, lanes, at FROM lanedraws').toArray().map(r => [r.date, { lanes: laneRow(r.lanes).lanes, at: r.at }]));

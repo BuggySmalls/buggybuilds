@@ -219,6 +219,27 @@
       "aliases": [
         "Tim"
       ]
+    },
+    {
+      "id": "sophie",
+      "name": "Sophie",
+      "joined": "2026-11-25",
+      "active": true,
+      "guest": true
+    },
+    {
+      "id": "sydney",
+      "name": "Sydney",
+      "joined": "2026-11-25",
+      "active": true,
+      "guest": true
+    },
+    {
+      "id": "shannon",
+      "name": "Shannon",
+      "joined": "2026-11-25",
+      "active": true,
+      "guest": true
     }
   ],
   "events": [
@@ -881,6 +902,20 @@
           ]
         }
       ]
+    },
+    "2026-11-25": {
+      "guests": [
+        "sophie",
+        "sydney",
+        "shannon"
+      ],
+      "avgs": {
+        "Adam": 80,
+        "Liam Curran": 180,
+        "sophie": 80,
+        "sydney": 80,
+        "shannon": 80
+      }
     }
   },
   "laneDraw": {
@@ -1001,5 +1036,12 @@
         "timmy": 115
       }
     }
-  }
+  },
+  "birthdays": [
+    {
+      "date": "2026-11-25",
+      "name": "Tony",
+      "pid": "tony"
+    }
+  ]
 }

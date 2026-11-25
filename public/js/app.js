@@ -370,6 +370,46 @@ function autoBlurb(row, prev, idx) {
 const pages = {};
 
 /* ---------------- Home ---------------- */
+// Birthday banner (Nick, Nov 25 2026): league.json birthdays[] {date, name, pid?} shows on that day only, under the hero.
+function birthdayBanners() {
+  return (S.data.birthdays || []).filter(b => b.date === S.todayISO).map(b => `<section class="celebrate bday" role="note">
+    <span class="bday-cake">${cakeArt(b.name)}</span>
+    <div class="celebrate-copy"><h2>Happy Birthday ${esc(b.name)}!</h2><p>${b.pid ? pl(b.pid) : esc(b.name)} gets the cake. Everybody else, go knock some pins down for the birthday bowler tonight.</p></div>
+  </section>`).join('');
+}
+// Bowling-ball cake: purple ball, three finger holes, the name on a frosting stripe, churro candles.
+function cakeArt(name) {
+  const nm = esc(String(name || '').toUpperCase().slice(0, 8));
+  const churro = (x, h) => `<g transform="translate(${x} ${40 - h})">
+      <path d="M0 -9c-5 0-6 5-3 8 1 1 3 1 3 1s2 0 3-1c3-3 2-8-3-8z" fill="#FF7A1A" stroke="#111" stroke-width="1.6"/>
+      <path d="M0 -5c-2 0-2.5 2-1.2 3.4.6.4 1.2.4 1.2.4s.6 0 1.2-.4C2.5-3 2-5 0-5z" fill="#FFE347"/>
+      <line x1="0" y1="0" x2="0" y2="3" stroke="#111" stroke-width="1.4"/>
+      <rect x="-3.6" y="3" width="7.2" height="${h}" rx="2.4" fill="#C9822E" stroke="#111" stroke-width="1.8"/>
+      ${[0, 1, 2].map(i => `<line x1="${-1.6 + i * 1.6}" y1="5" x2="${-1.6 + i * 1.6}" y2="${h + 1}" stroke="#8A4F14" stroke-width="1"/>`).join('')}
+      ${[6, 11, 16, 21].filter(y => y < h).map((y, i) => `<circle cx="${i % 2 ? 1.8 : -1.8}" cy="${y}" r=".9" fill="#FFF3D6"/>`).join('')}
+    </g>`;
+  return `<svg viewBox="0 -4 120 128" width="104" height="111" role="img" aria-label="Bowling-ball birthday cake with churro candles">
+    <defs>
+      <radialGradient id="bdBall" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#B98BFF"/><stop offset=".55" stop-color="#7B2FF7"/><stop offset="1" stop-color="#3E0F8F"/></radialGradient>
+      <clipPath id="bdClip"><circle cx="60" cy="76" r="40"/></clipPath>
+    </defs>
+    <ellipse cx="60" cy="116" rx="50" ry="7" fill="#00E5E8" stroke="#111" stroke-width="2.5"/>
+    ${churro(44, 26)}${churro(60, 32)}${churro(76, 26)}
+    <circle cx="60" cy="76" r="40" fill="url(#bdBall)" stroke="#111" stroke-width="3"/>
+    <g clip-path="url(#bdClip)">
+      <path d="M14 84h92v18H14z" fill="#FF2E93"/>
+      <path d="M14 82h92v4c-6 0-6 7-12 7s-6-5-12-5-6 8-12 8-6-6-12-6-6 7-12 7-6-5-12-5-6 6-12 6V82z" fill="#FFF3F8"/>
+      <path d="M14 82h92" stroke="#111" stroke-width="2"/>
+      ${[[26, 98, '#FFE347'], [44, 100, '#00E5E8'], [70, 99, '#7CFF4F'], [90, 97, '#FFE347']].map(([x, y, c]) => `<rect x="${x}" y="${y}" width="5" height="2" rx="1" fill="${c}"/>`).join('')}
+    </g>
+    <text x="60" y="${86 + 9}" text-anchor="middle" font-family="Bungee, 'Arial Black', Impact, sans-serif" font-size="${nm.length > 5 ? 10 : 13}" font-style="normal" fill="#3E0F8F">${nm}</text>
+    <circle cx="51" cy="52" r="5" fill="#1A0838" stroke="#111" stroke-width="1.5"/>
+    <circle cx="66" cy="50" r="5" fill="#1A0838" stroke="#111" stroke-width="1.5"/>
+    <circle cx="60" cy="68" r="5.6" fill="#1A0838" stroke="#111" stroke-width="1.5"/>
+    <ellipse cx="44" cy="58" rx="6" ry="3.5" fill="#fff" opacity=".28" transform="rotate(-35 44 58)"/>
+  </svg>`;
+}
+
 pages.home = () => {
   const L = S.data.league;
   const next = E.nextNight(S.data, new Date());
@@ -389,17 +429,8 @@ pages.home = () => {
   const movers = table.map((r, i) => ({ id: r.id, now: i + 1, was: prevRank[r.id] })).filter(m => m.was).map(m => ({ ...m, d: m.was - m.now })).filter(m => m.d).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 4);
 
   const banners = (S.data.announcements || []).filter(a => a.banner).sort((a, b) => b.date.localeCompare(a.date));
-  return `
-  ${homeGoalBoard()}
-  ${homeTeamBoard()}
-  ${homeLaneBoard()}
-  ${(() => { const cd = challengeDate(); return cd ? challengeBox(cd) : ''; })()}
-  ${banners.map(a => `<section class="celebrate" role="note">
-    <span class="confetti" aria-hidden="true">🎉</span>
-    ${(a.pids || []).length ? `<div class="celebrate-faces">${a.pids.map(id => avatar(P(id), 48)).join('')}</div>` : ''}
-    <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
-    <span class="confetti" aria-hidden="true">🎉</span>
-  </section>`).join('')}
+  // The hero is always the first thing on the home page; only the attendance bar sits above it (Nick, Nov 25 2026).
+  const heroHTML = `
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
@@ -412,6 +443,20 @@ pages.home = () => {
       <div class="hero-side"><div class="crt"><div class="board" id="countdown">${countdownHTML(next)}</div></div><a class="btn primary" href="webcal://cerealbowlers.org/calendar.ics">★ Add league nights to my calendar</a>${arcadeButton()}</div>
     </div>
   </section>
+  `;
+  return `
+  ${heroHTML}
+  ${homeGoalBoard()}
+  ${homeTeamBoard()}
+  ${homeLaneBoard()}
+  ${birthdayBanners()}
+  ${(() => { const cd = challengeDate(); return cd ? challengeBox(cd) : ''; })()}
+  ${banners.map(a => `<section class="celebrate" role="note">
+    <span class="confetti" aria-hidden="true">🎉</span>
+    ${(a.pids || []).length ? `<div class="celebrate-faces">${a.pids.map(id => avatar(P(id), 48)).join('')}</div>` : ''}
+    <div class="celebrate-copy"><h2>${esc(a.title)}</h2><p>${esc(a.body)}</p></div>
+    <span class="confetti" aria-hidden="true">🎉</span>
+  </section>`).join('')}
   ${homeGoalBoard('below')}
   ${homeTeamBoard('below')}
   ${homePoll()}
@@ -1001,8 +1046,8 @@ pages.faq = () => {
     qa('Where do strike and spare stats come from?', `<p>The photo of the scoring screen. When frames are logged, the site tracks strikes, spares, strike % and spare conversion %, gutter balls, splits, open frames and strike streaks. Games logged with just a total don't count toward those stats. Nothing is estimated.</p>`),
     qa('How are the matches to watch picked?', `<p>Before each night the site scores every possible pairing. It looks at how close their head-to-head record is, how close their averages are, whether they're next to each other in the standings, whether both are in the monthly title race, revenge after a blowout, and win streaks. The top pairing is the Match of the Week, and each match lists the reasons it was picked. Nick can pick them by hand instead.</p>`),
     qa('How do I confirm I’m bowling?', `<p>Every week a bar at the top of the site asks if you’re in for the next Wednesday. Sign in and tap <b>Yes</b> or <b>No</b>. Yes puts you on that night’s lineup (and the team queue on a team night), and Nick gets a heads-up either way. You can change your answer until first ball.</p>`),
-    qa('How are lanes picked?', `<p>Every week, at ${fmtTime(S.data.league.teamDrawTime || S.data.league.startTime || '19:15')}, the site splits everyone who confirmed into lanes at random, as evenly as it can, and picks the bowling order on each lane. On team nights every lane gets a mix of teams. The lanes show at the top of the home page.</p>`),
-    qa('How does team night work?', `<p>On team nights you bowl your normal individual night like always, and you’re also on a team. Everyone who confirmed by ${fmtTime(S.data.league.teamDrawTime || S.data.league.startTime || '19:15')} goes into the team queue, and at ${fmtTime(S.data.league.teamDrawTime || S.data.league.startTime || '19:15')} the site splits the queue into even teams at random: 3 teams with 6 to 11 bowlers, 4 teams with 12 or more (unless Nick sets the teams for the night, like Team Red vs Team Blue), balanced so every team has about the same average. That way everyone’s set up and bowling by first ball at ${fmtTime(S.data.league.startTime)}. The team scoreboard sits at the top of the home page and updates live as scores come in. Each game, a team’s score is everyone’s handicap game added up (scratch plus handicap). If a team has fewer bowlers than the biggest team, it gets a blind for each empty spot, worth that team’s own average that game, so 3 vs 4 is fair. Teams are tracked on two separate stats: <b>team wins</b> (the higher team score each game gets the win, so 3 wins a night) and <b>total points</b> (every handicap pin the team knocks down all night).</p>`),
+    qa('How are lanes picked?', `<p>Every week, at ${fmtTime(S.data.league.teamDrawTime || S.data.league.startTime || '19:15')}, the site splits everyone who confirmed into lanes at random, as evenly as it can, and picks the bowling order on each lane. On team nights every lane gets a mix of teams. The lanes show on the home page, right under the big league banner.</p>`),
+    qa('How does team night work?', `<p>On team nights you bowl your normal individual night like always, and you’re also on a team. Everyone who confirmed by ${fmtTime(S.data.league.teamDrawTime || S.data.league.startTime || '19:15')} goes into the team queue, and at ${fmtTime(S.data.league.teamDrawTime || S.data.league.startTime || '19:15')} the site splits the queue into even teams at random: 3 teams with 6 to 11 bowlers, 4 teams with 12 or more (unless Nick sets the teams for the night, like Team Red vs Team Blue), balanced so every team has about the same average (bowlers with no league games yet count at the league average, and guests or anyone with a self-reported average go in at that number). That way everyone’s set up and bowling by first ball at ${fmtTime(S.data.league.startTime)}. The team scoreboard sits on the home page, right under the big league banner, and updates live as scores come in. Each game, a team’s score is everyone’s handicap game added up (scratch plus handicap). If a team has fewer bowlers than the biggest team, it gets a blind for each empty spot, worth that team’s own average that game, so 3 vs 4 is fair. Teams are tracked on two separate stats: <b>team wins</b> (the higher team score each game gets the win, so 3 wins a night) and <b>total points</b> (every handicap pin the team knocks down all night).</p>`),
     qa('How does the purse work?', `<p>${S.data.league.purse?.betchasOnly ? 'Right now the only money on the purse is Betchas: put a dollar amount in one, win it, and once you tap “Got paid” it goes on your winnings. There’s no nightly buy-in or payout until the league decides on one.' : S.data.league.purse ? `Everyone who bowls puts in $${S.data.league.purse.buyIn} a night. The pot pays out ${S.data.league.purse.payouts.map(p => `${Math.round(p.share * 100)}% for ${p.label.toLowerCase()}`).join(' and ')}, on scratch scores. Ties split it. The Purse page tracks lifetime winnings and net (won minus paid in).${S.data.league.purse.confirmed ? '' : ' <b>These are proposed rules and not final yet.</b>'}` : 'No purse is set up yet.'}</p>`),
     qa('Can I get league nights in my calendar?', `<p>Yes. Tap <b>Add league nights to my calendar</b> on the home or schedule page. Your phone subscribes to the schedule, so skipped weeks or time changes update on their own, with reminders at 9 AM the day of and an hour before. On iPhone, turn off <b>Remove Alerts</b> when you subscribe so the reminders come through.</p>`),
     qa('What counts as a record?', `<p>The Hall of Fame and Hall of Shame update themselves the moment a mark is beaten. The Leaderboards page keeps the top 25 games and series ever bowled, plus the full history of who held each record. Nick can also add custom awards.</p>`),
@@ -1308,6 +1353,13 @@ function route() {
   document.body.classList.remove('sheet-open');
   const title = { home: '', standings: 'Standings', players: 'Players', player: P(parts[1]).name, stats: 'Statistics', schedule: 'Schedule', night: 'Results', championships: 'Monthly Championships', power: 'Power Rankings', records: 'League Records', rivalries: 'Rivalries', leaderboards: 'Leaderboards', purse: 'Purse', faq: 'League Rules & FAQ', pickem: 'Pick’em', poll: S.data.poll?.title || 'League Poll', scores: 'Upload scores', talk: 'Chit Chat', betcha: 'Betcha', ideas: 'Your ideas', arcade: 'Arcade', join: 'Join', login: 'Sign in', me: 'My profile' }[key];
   document.title = `${title ? title + ' · ' : ''}${S.data.league.name}`;
+  // Home: the hero comes first with only the attendance bar above it, so the ideas box (and the join bar) sit at the
+  // bottom of the page; every other page keeps them at the top (Nick, Nov 25 2026).
+  { const app = $('#app'), att = $('#attendBar'), ideas = $('#ideasBar');
+    if (app && att && ideas && joinBar) {
+      if (key === 'home') { app.after(ideas); app.after(joinBar); }
+      else { att.before(ideas); att.after(joinBar); }
+    } }
   try { renderBell(); renderAttendBar(); renderIdeas(); if (key === 'home') popNewest(); } catch (e) { console.error(e); }
   fitRumble();
   if (key === 'home') timer = setInterval(() => { const el = $('#countdown'); if (el) el.innerHTML = countdownHTML(E.nextNight(S.data, new Date())); }, 1000);

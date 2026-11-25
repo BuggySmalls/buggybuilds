@@ -2,7 +2,7 @@
 // A bar at the top of every page asks signed-in bowlers if they're in for the next Wednesday.
 // Yes puts them on that night's lineup (and the team queue on a team night); Nick gets a phone push.
 // On a team night the server draws even teams at league.teamDrawTime (7:05, Nick Oct 28 2026) so everyone's
-// set up by first ball (7:15). Team Red vs Team Blue live board sits at the very top of the home page.
+// set up by first ball (7:15). Team Red vs Team Blue live board sits right under the hero on the home page.
 import { api } from './account.js';
 import { liveCalc, liveDone } from './sheets.js';
 

@@ -1528,3 +1528,13 @@ span.nh-arrow{display:none}
 .gb-games b{font-family:Bungee,Rubik,sans-serif;margin-left:4px}.gb-games i{font-style:normal;opacity:.7;margin-left:2px}
 .gb-who{text-align:center;margin:8px 0 0}
 @media (max-width:420px){.gb-num b{font-size:30px}}
+
+/* Birthday banner (Nick, Nov 25 2026): bowling-ball cake with churro candles, under the hero on the day */
+.celebrate.bday{border-color:var(--red);background:linear-gradient(90deg,rgba(123,47,247,.28),var(--red-soft),rgba(0,229,232,.16));box-shadow:var(--pop),0 0 18px rgba(255,46,147,.35)}
+.celebrate.bday h2{color:var(--maple);font-style:normal}
+.celebrate.bday p{font-style:normal}
+.bday-cake{flex:none;display:block;line-height:0}
+.bday-cake svg{display:block;filter:drop-shadow(3px 3px 0 #111)}
+@media (max-width:560px){.bday-cake{margin:0 auto}}
+/* Ideas box + join bar at the bottom of the home page (Nick, Nov 25 2026) */
+main#app + .join-bar, main#app + .ideas-bar, main#app + .join-bar + .ideas-bar{border-bottom:0;border-top:3px solid #111}

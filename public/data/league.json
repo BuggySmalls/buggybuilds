@@ -242,6 +242,12 @@
       "joined": "2026-11-25",
       "active": true,
       "guest": true
+    },
+    {
+      "id": "the-machine",
+      "name": "The Machine",
+      "joined": "2026-11-25",
+      "active": true
     }
   ],
   "events": [
@@ -1253,6 +1259,14 @@
       "lane": 3,
       "score": 113,
       "frames": "9- 8- X -9 X 8/ 61 81 S62 44"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "the-machine",
+      "game": 2,
+      "lane": 3,
+      "score": 102,
+      "frames": "44 -3 8/ 54 7/ 81 62 7/ 61 9-"
     }
   ],
   "betcha": {

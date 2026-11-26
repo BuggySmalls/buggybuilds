@@ -1462,6 +1462,38 @@
       "game": 2,
       "lane": 14,
       "score": 102
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "natehasboobs",
+      "game": 3,
+      "lane": 13,
+      "score": 104,
+      "frames": "X 8/ S81 S8- 23 63 72 8- 63 9-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "kayleigh",
+      "game": 3,
+      "lane": 13,
+      "score": 80,
+      "frames": "7- 9- 15 -6 34 9/ 9- 8- -- 9-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "poopbird",
+      "game": 3,
+      "lane": 13,
+      "score": 118,
+      "frames": "54 7/ X 63 81 42 72 81 7/ 9-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "deedra",
+      "game": 3,
+      "lane": 13,
+      "score": 124,
+      "frames": "S72 X 9- X 44 X 9/ 62 81 44"
     }
   ],
   "betcha": {

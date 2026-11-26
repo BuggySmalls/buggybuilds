@@ -1228,6 +1228,31 @@
       "game": 1,
       "lane": null,
       "score": 102
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "buggy",
+      "game": 2,
+      "lane": 3,
+      "score": 79,
+      "frames": "9- 3- 9/ 18 9- 7- 61 7- S71 9-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "tony",
+      "game": 2,
+      "lane": 3,
+      "score": 83,
+      "frames": "9- 7- 8- 9- 8- 63 9- 52 9- S8-",
+      "ok": false
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "kate",
+      "game": 2,
+      "lane": 3,
+      "score": 113,
+      "frames": "9- 8- X -9 X 8/ 61 81 S62 44"
     }
   ],
   "betcha": {

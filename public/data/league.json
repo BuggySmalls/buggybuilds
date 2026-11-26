@@ -147,7 +147,8 @@
       "active": true,
       "aliases": [
         "Scooter McScoot III",
-        "Scoot"
+        "Scoot",
+        "SCOOTE"
       ],
       "formerIds": [
         "scooter"
@@ -1044,7 +1045,40 @@
       "note": "Tonight we're all on one team. Every pin anyone knocks down goes in one pot, and the goal is 3,300. That's just a couple pins a game over everyone's usual average, so everybody's game counts."
     }
   },
-  "liveAdd": [],
+  "liveAdd": [
+    {
+      "date": "2026-11-25",
+      "pid": "curran",
+      "game": 1,
+      "lane": null,
+      "score": 138,
+      "frames": "-1 4/ 7/ X 72 33 4/ 8/ 9- 9/X"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "chaddy-daddy",
+      "game": 1,
+      "lane": null,
+      "score": 113,
+      "frames": "9- 51 81 9- 8/ X 63 26 X 7-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "n8",
+      "game": 1,
+      "lane": null,
+      "score": 108,
+      "frames": "8- 54 72 9- 72 36 9/ X S62 72"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "adam",
+      "game": 1,
+      "lane": null,
+      "score": 98,
+      "frames": "8- S8/ 6- 1/ 9- 54 8- 7- 7- 9-"
+    }
+  ],
   "betcha": {
     "settled": [
       7,

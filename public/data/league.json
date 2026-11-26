@@ -209,7 +209,8 @@
       "active": true,
       "aliases": [
         "Alek",
-        "Butch"
+        "Butch",
+        "W2B"
       ]
     },
     {
@@ -1191,6 +1192,42 @@
       "lane": null,
       "score": 108,
       "frames": "X 9- X 8- 21 51 X 72 44 9-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "james",
+      "game": 1,
+      "lane": null,
+      "score": 105,
+      "frames": "16 16 9/ -6 X 9- 5/ 43 S8- X53"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "fontes",
+      "game": 1,
+      "lane": null,
+      "score": 112
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "vcosta99",
+      "game": 1,
+      "lane": null,
+      "score": 60
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "liam",
+      "game": 1,
+      "lane": null,
+      "score": 93
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "way-2-butch",
+      "game": 1,
+      "lane": null,
+      "score": 102
     }
   ],
   "betcha": {

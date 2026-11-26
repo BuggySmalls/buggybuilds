@@ -1535,5 +1535,8 @@
       "name": "Tony",
       "pid": "tony"
     }
-  ]
+  ],
+  "liveFinal": {
+    "2026-11-25": true
+  }
 }

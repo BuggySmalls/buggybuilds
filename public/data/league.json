@@ -101,7 +101,8 @@
       "joined": "2026-10-21",
       "active": true,
       "aliases": [
-        "T Dawg"
+        "T Dawg",
+        "Ant"
       ]
     },
     {
@@ -1249,8 +1250,7 @@
       "game": 2,
       "lane": 3,
       "score": 83,
-      "frames": "9- 7- 8- 9- 8- 63 9- 52 9- S8-",
-      "ok": false
+      "frames": "9- 7- 8- 9- 8- 63 9- 52 9- S8-"
     },
     {
       "date": "2026-11-25",

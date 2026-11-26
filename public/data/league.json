@@ -1363,6 +1363,30 @@
       "lane": 3,
       "score": 102,
       "frames": "X 81 63 7- 9- 9- 7/ 53 9- 71"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "shannon",
+      "game": 2,
+      "lane": null,
+      "score": 113,
+      "frames": "9/ 6- 6- 9/ 7- 15 61 S8- 8/ XX-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "sophie",
+      "game": 2,
+      "lane": null,
+      "score": 54,
+      "frames": "5- -8 -6 3- S7- -- 8- -8 6- 3-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "sydney",
+      "game": 2,
+      "lane": null,
+      "score": 51,
+      "frames": "1- 35 1- 3- 1- 7- 8- 8- 52 -7"
     }
   ],
   "betcha": {

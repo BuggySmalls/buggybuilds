@@ -1299,6 +1299,38 @@
       "lane": 1,
       "score": 126,
       "frames": "8/ 63 7- 72 9- 9- -/ 9- X 7/9"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "adam",
+      "game": 3,
+      "lane": null,
+      "score": 111,
+      "frames": "X 7/ 15 8/ 45 81 9/ 71 44 9-"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "curran",
+      "game": 3,
+      "lane": null,
+      "score": 200,
+      "frames": "9/ 8/ X 6/ 81 9/ X X X 7/8"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "n8",
+      "game": 3,
+      "lane": null,
+      "score": 108,
+      "frames": "9- X 71 9/ S8- 8- 9/ 61 34 36"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "chaddy-daddy",
+      "game": 3,
+      "lane": null,
+      "score": 108,
+      "frames": "6/ 8- 6/ 5- 8- 34 X 34 9/ 61"
     }
   ],
   "betcha": {

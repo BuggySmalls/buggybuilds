@@ -1105,6 +1105,28 @@
       "game": 1,
       "lane": null,
       "score": 112
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "shannon",
+      "game": 1,
+      "lane": null,
+      "score": 112,
+      "frames": "8- -6 7/ 9- 62 9- X 52 18 8/X"
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "sophie",
+      "game": 1,
+      "lane": null,
+      "score": 42
+    },
+    {
+      "date": "2026-11-25",
+      "pid": "sydney",
+      "game": 1,
+      "lane": null,
+      "score": 89
     }
   ],
   "betcha": {

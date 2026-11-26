@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-11-25T16:49:14Z",
+  "fetchedAt": "2026-11-26T00:11:12Z",
   "live": [],
   "teams": {
     "2026-10-28": {
@@ -54,6 +54,51 @@
         }
       ],
       "at": 1794441905007
+    },
+    "2026-11-25": {
+      "teams": [
+        {
+          "name": "Team Crunch",
+          "pids": [
+            "natehasboobs",
+            "kayleigh",
+            "poopbird",
+            "deedra",
+            "the-machine"
+          ]
+        },
+        {
+          "name": "Team Sugar Rush",
+          "pids": [
+            "fontes",
+            "vcosta99",
+            "liam",
+            "james",
+            "way-2-butch"
+          ]
+        },
+        {
+          "name": "Team Frosted",
+          "pids": [
+            "adam",
+            "shannon",
+            "curran",
+            "sydney",
+            "n8"
+          ]
+        },
+        {
+          "name": "Team Spoon",
+          "pids": [
+            "chaddy-daddy",
+            "sophie",
+            "tony",
+            "kate",
+            "buggy"
+          ]
+        }
+      ],
+      "at": 1795651505041
     }
   },
   "lanes": {
@@ -173,6 +218,51 @@
         }
       ],
       "at": 1795046705055
+    },
+    "2026-11-25": {
+      "lanes": [
+        {
+          "lane": 1,
+          "pids": [
+            "curran",
+            "the-machine",
+            "way-2-butch",
+            "chaddy-daddy",
+            "kayleigh"
+          ]
+        },
+        {
+          "lane": 2,
+          "pids": [
+            "liam",
+            "vcosta99",
+            "adam",
+            "kate",
+            "deedra"
+          ]
+        },
+        {
+          "lane": 3,
+          "pids": [
+            "james",
+            "tony",
+            "buggy",
+            "natehasboobs",
+            "sydney"
+          ]
+        },
+        {
+          "lane": 4,
+          "pids": [
+            "fontes",
+            "n8",
+            "shannon",
+            "poopbird",
+            "sophie"
+          ]
+        }
+      ],
+      "at": 1795651505109
     }
   },
   "bets": [
